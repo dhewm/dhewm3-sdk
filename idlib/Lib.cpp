@@ -35,7 +35,9 @@ If you have questions concerning this license or the applicable additional terms
 #include <unistd.h>
 #endif
 
-#include <SDL_endian.h>
+// DG: I don't want a build dependency on SDL for mods just for SDL_endian.h,
+//     so I copied (most of) it into sys/:
+#include "sys/Stub_SDL_endian.h"
 
 #include "sys/platform.h"
 #include "idlib/math/Vector.h"

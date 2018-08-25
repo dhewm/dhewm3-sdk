@@ -4,13 +4,11 @@
 #define BUILD_OS				"@os@"
 #define BUILD_CPU				"@cpu@"
 
+#define BUILD_IS_BIG_ENDIAN		@is_big_endian@
+
 #define BUILD_LIBRARY_SUFFIX	"@CMAKE_SHARED_LIBRARY_SUFFIX@"
 
 #define BUILD_LIBDIR			"@libdir@"
 #define BUILD_DATADIR			"@datadir@"
-
-#cmakedefine HAVE_JPEG_MEM_SRC
-
-#cmakedefine ID_ENABLE_CURL
 
 #endif

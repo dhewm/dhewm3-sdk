@@ -32,7 +32,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "idlib/math/Vector.h"
 #include "idlib/BitMsg.h"
 
-#include "framework/Unzip.h"
+//#include "framework/Unzip.h"
+// DG: instead of getting ZPOS64_T from some zlib header (via Unzip.h)
+//     just define it here
+typedef uint64_t ZPOS64_T;
 
 /*
 ==============================================================

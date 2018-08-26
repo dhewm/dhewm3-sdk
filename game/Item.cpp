@@ -275,6 +275,13 @@ void idItem::Spawn( void ) {
 	idStr		giveTo;
 	idEntity *	ent;
 	float		tsize;
+	const char *kv;
+
+	kv = spawnArgs.GetString( "inv_name", "" );
+	if ( kv != "" ) { // SnoopJeDi - Only if it's something good to eat!
+		gameLocal.items++;
+	}
+
 
 	if ( spawnArgs.GetBool( "dropToFloor" ) ) {
 		PostEventMS( &EV_DropToFloor, 0 );
@@ -363,6 +370,8 @@ bool idItem::Pickup( idPlayer *player ) {
 	if ( !GiveToPlayer( player ) ) {
 		return false;
 	}
+
+	player->inventory.itemspickedup++; // SnoopJeDi
 
 	if ( gameLocal.isServer ) {
 		ServerSendEvent( EVENT_PICKUP, NULL, false, -1 );
@@ -636,6 +645,17 @@ bool idItemPowerup::GiveToPlayer( idPlayer *player ) {
 	if ( player->spectating ) {
 		return false;
 	}
+	if ( !idStr::Icmp( spawnArgs.GetString( "type" ), "4" ) ) {
+		if (player->health >= player->spawnArgs.GetInt( "maxbonushealth" )) {
+			return false;
+		}
+	}
+	if ( !idStr::Icmp( spawnArgs.GetString( "type" ), "5" ) || !idStr::Icmp( spawnArgs.GetString( "type" ), "6" ) ) {
+		if (player->inventory.armor >= player->spawnArgs.GetInt( "maxbonusarmor" )) {
+			return false;
+		}
+	}
+
 	player->GivePowerUp( type, time * 1000 );
 	return true;
 }

@@ -536,6 +536,10 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, mtr );
 		}
 	}
+	if ( player->statsUIopen ) {  //SnoopJeDi - Draw over world.
+		player->statsUI->Redraw( gameLocal.time );
+	}
+
 }
 
 /*

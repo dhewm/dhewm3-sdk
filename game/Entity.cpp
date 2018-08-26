@@ -4102,6 +4102,17 @@ void idEntity::Event_FadeSound( int channel, float to, float over ) {
 
 /*
 ================
+idEntity::FadeMusic
+================
+*/
+void idEntity::FadeMusic( int channel, float to, float over ) {  //SnoopJeDi
+    if ( spawnArgs.GetBool( "s_music" ) ) {
+       Event_FadeSound( channel, to, over );
+	}
+}
+
+/*
+================
 idEntity::Event_GetWorldOrigin
 ================
 */

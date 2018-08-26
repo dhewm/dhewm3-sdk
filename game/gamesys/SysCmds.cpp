@@ -317,7 +317,9 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		player->GiveItem( name );
 		return;
 	}
-
+	if ( give_all ) {
+		player->Give( "extraammo", "1" ); // SnoopJeDi
+	}
 	if ( give_all || idStr::Icmp( name, "health" ) == 0 )	{
 		player->health = player->inventory.maxHealth;
 		if ( !give_all ) {

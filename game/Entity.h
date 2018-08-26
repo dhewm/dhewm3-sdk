@@ -360,6 +360,7 @@ public:
 
 	void					ServerSendEvent( int eventId, const idBitMsg *msg, bool saveEvent, int excludeClient ) const;
 	void					ClientSendEvent( int eventId, const idBitMsg *msg ) const;
+	void                    FadeMusic( int channel, float to, float over ); // SnoopJeDi
 
 protected:
 	renderEntity_t			renderEntity;						// used to present a model to the renderer

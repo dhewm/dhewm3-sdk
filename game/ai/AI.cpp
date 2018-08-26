@@ -719,6 +719,8 @@ void idAI::Spawn( void ) {
 		return;
 	}
 
+	gameLocal.monsters++; // SnoopJeDi
+
 	spawnArgs.GetInt(	"team",					"1",		team );
 	spawnArgs.GetInt(	"rank",					"0",		rank );
 	spawnArgs.GetInt(	"fly_offset",			"0",		fly_offset );
@@ -1053,6 +1055,9 @@ void idAI::Think( void ) {
 	if ( CheckDormant() ) {
 		return;
 	}
+	if ( gameLocal.GetLocalPlayer()->statsUIopen ) //SnoopJeDi - Don't Think() so!
+		return;
+
 
 	if ( thinkFlags & TH_THINK ) {
 		// clear out the enemy when he dies or is hidden
@@ -3395,9 +3400,15 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 		kv = spawnArgs.MatchPrefix( "def_drops", kv );
 	}
 
-	if ( ( attacker && attacker->IsType( idPlayer::Type ) ) && ( inflictor && !inflictor->IsType( idSoulCubeMissile::Type ) ) ) {
+	/*if ( ( attacker && attacker->IsType( idPlayer::Type ) ) && ( inflictor && !inflictor->IsType( idSoulCubeMissile::Type ) ) ) {
 		static_cast< idPlayer* >( attacker )->AddAIKill();
-	}
+	}*/
+	// SnoopJeDi - If stats makes it to coop, this needs to be unborked, and
+	// original attacker info needs to be passed along the barrel chain.
+
+	if ( !gameLocal.isMultiplayer )
+		gameLocal.GetLocalPlayer()->AddAIKill();
+
 }
 
 /***********************************************************************

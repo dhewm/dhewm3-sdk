@@ -566,5 +566,34 @@ private:
 	void				Event_RestoreVolume();
 };
 
+// SnoopJeDi -- BEGIN
+/*
+================================
+
+idTarget_EndLevelCdoom
+
+This is the illegitimate child of idTarget_EndLevel and my desire for a stats screen.
+It's a zombie entity, which only really serves to stop game sounds and bring up the stats screen.
+Everything else is handled in Player.cpp
+
+================================
+*/
+
+
+class idTarget_EndLevelCdoom : public idEntity {
+public:
+	CLASS_PROTOTYPE( idTarget_EndLevelCdoom );
+
+	void	Spawn( void );
+			~idTarget_EndLevelCdoom();
+	idUserInterface	* gui;
+
+private:
+	void	Event_Trigger( idEntity *activator );
+};
+
+// SnoopJeDi -- END
+
+
 
 #endif /* !__GAME_TARGET_H__ */

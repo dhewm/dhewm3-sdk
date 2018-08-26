@@ -118,6 +118,9 @@ extern idCVar	g_vehicleSuspensionDown;
 extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
+extern idCVar 	g_lms_bind_run_once; // SnoopJeDi
+extern idCVar   s_music_vol; // SnoopJeDi
+
 
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;

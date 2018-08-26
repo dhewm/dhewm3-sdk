@@ -216,6 +216,75 @@ void idTarget_EndLevel::Event_Activate( idEntity *activator ) {
 	gameLocal.sessionCommand += nextMap;
 }
 
+//SnoopJeDi -- BEGIN
+//Zombie class!
+
+CLASS_DECLARATION( idEntity, idTarget_EndLevelCdoom )
+	EVENT( EV_Activate,		idTarget_EndLevelCdoom::Event_Trigger )
+END_CLASS
+
+
+
+/*
+================
+idTarget_EndLevelCdoom::Spawn
+================
+*/
+void idTarget_EndLevelCdoom::Spawn( void ) {
+}
+
+/*
+================
+idTarget_EndLevelCdoom::~idTarget_EndLevelCdoom()
+================
+*/
+idTarget_EndLevelCdoom::~idTarget_EndLevelCdoom() {
+}
+
+/*
+================
+idTarget_EndLevelCdoom::Event_Trigger
+================
+*/
+void idTarget_EndLevelCdoom::Event_Trigger( idEntity *activator ) {
+
+	if ( !activator->IsType( idPlayer::Type ) )
+		return;
+	gameSoundWorld->StopAllSounds();
+	renderView_t			renderView;
+
+	memset( &renderView, 0, sizeof( renderView ) );
+
+	renderView.width = SCREEN_WIDTH;
+	renderView.height = SCREEN_HEIGHT;
+	renderView.x = 0;
+	renderView.y = 0;
+
+	renderView.fov_x = 90;
+	renderView.fov_y = 90; // FIXME!
+	renderView.time = gameLocal.time;
+
+#if 0
+	renderView.vieworg = initialViewOrg;
+	renderView.viewaxis = idAngles(initialViewAngles).toMat3();
+#else
+	renderView.vieworg = renderEntity.origin;
+	renderView.viewaxis = renderEntity.axis;
+#endif
+
+	gameRenderWorld->RenderScene( &renderView );
+
+	// draw the gui on top of the 3D view
+
+	idPlayer * player = gameLocal.GetLocalPlayer();
+	player->OpenStats( idStr(spawnArgs.GetString("nextMap", "")), spawnArgs.GetInt( "level_no", "-1" ) );
+}
+
+
+
+// SnoopJeDi -- END
+
+
 
 /*
 ===============================================================================

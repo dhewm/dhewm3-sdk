@@ -47,11 +47,14 @@ All game cvars should be defined here.
 
 */
 
-const char *si_gameTypeArgs[]		= { "singleplayer", "deathmatch", "Tourney", "Team DM", "Last Man", NULL };
+const char *si_gameTypeArgs[]		= { "singleplayer", "cdoomDM", "Tourney", "Team DM", "Last Man", NULL }; // SnoopJeDi
 const char *si_readyArgs[]			= { "Not Ready", "Ready", NULL };
+
 const char *si_spectateArgs[]		= { "Play", "Spectate", NULL };
 
-const char *ui_skinArgs[]			= { "skins/characters/player/marine_mp", "skins/characters/player/marine_mp_red", "skins/characters/player/marine_mp_blue", "skins/characters/player/marine_mp_green", "skins/characters/player/marine_mp_yellow", NULL };
+const char *ui_skinArgs[]			= { "skins/characters/player/doomguy_green", "skins/characters/player/doomguy_red", "skins/characters/player/doomguy_blue", "skins/characters/player/doomguy_yellow", "skins/characters/player/doomguy_indigo", "skins/characters/player/doomguy_black", "skins/characters/player/doomguy_tan", "skins/characters/player/doomguy_white", NULL };
+//SnoopJeDi - Modified to allow cdoom skins 5/24/06
+
 const char *ui_teamArgs[]			= { "Red", "Blue", NULL };
 
 struct gameVersion_s {
@@ -66,8 +69,8 @@ idCVar gamename(					"gamename",					GAME_VERSION,	CVAR_GAME | CVAR_SERVERINFO |
 idCVar gamedate(					"gamedate",					__DATE__,		CVAR_GAME | CVAR_ROM, "" );
 
 // server info
-idCVar si_name(						"si_name",					"dhewm server",	CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "name of the server" );
-idCVar si_gameType(					"si_gameType",		si_gameTypeArgs[ 0 ],	CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "game type - singleplayer, deathmatch, Tourney, Team DM or Last Man", si_gameTypeArgs, idCmdSystem::ArgCompletion_String<si_gameTypeArgs> );
+idCVar si_name(						"si_name",					"DOOM Server",	CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "name of the server" );
+idCVar si_gameType(					"si_gameType",		si_gameTypeArgs[ 0 ],	CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "game type - singleplayer, cdoomDM, Tourney, Team DM or Last Man", si_gameTypeArgs, idCmdSystem::ArgCompletion_String<si_gameTypeArgs> ); // SnoopJeDi
 idCVar si_map(						"si_map",					"game/mp/d3dm1",CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE, "map to be played next on server", idCmdSystem::ArgCompletion_MapName );
 idCVar si_maxPlayers(				"si_maxPlayers",			"4",			CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_INTEGER, "max number of players allowed on the server", 1, 4 );
 idCVar si_fragLimit(				"si_fragLimit",				"10",			CVAR_GAME | CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_INTEGER, "frag limit", 1, MP_PLAYER_MAXFRAGS );
@@ -89,8 +92,14 @@ idCVar ui_showGun(					"ui_showGun",				"1",			CVAR_GAME | CVAR_USERINFO | CVAR_
 idCVar ui_ready(					"ui_ready",				si_readyArgs[ 0 ],	CVAR_GAME | CVAR_USERINFO, "player is ready to start playing", idCmdSystem::ArgCompletion_String<si_readyArgs> );
 idCVar ui_spectate(					"ui_spectate",		si_spectateArgs[ 0 ],	CVAR_GAME | CVAR_USERINFO, "play or spectate", idCmdSystem::ArgCompletion_String<si_spectateArgs> );
 idCVar ui_chat(						"ui_chat",					"0",			CVAR_GAME | CVAR_USERINFO | CVAR_BOOL | CVAR_ROM | CVAR_CHEAT, "player is chatting" );
+// SnoopJeDi: autoRun
+idCVar ui_autoRun(					"ui_autoRun",				"0",			CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "whether or not the player should run while not holding the run button" );
+
 
 // change anytime vars
+// SnoopJeDi: music volume
+idCVar s_music_vol(                 "s_music_vol",              "0",            CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE , "the volume in dB of all speakers with the s_music key set" );
+
 idCVar developer(					"developer",				"0",			CVAR_GAME | CVAR_BOOL, "" );
 
 idCVar r_aspectRatio(				"r_aspectRatio",			"-1",			CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
@@ -110,6 +119,9 @@ idCVar g_nightmare(					"g_nightmare",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR
 idCVar g_gravity(					"g_gravity",		DEFAULT_GRAVITY_STRING, CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_skipFX(					"g_skipFX",					"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_skipParticles(				"g_skipParticles",			"0",			CVAR_GAME | CVAR_BOOL, "" );
+// SnoopJeDi - just so grepping can pick up my name
+idCVar g_lms_bind_run_once(   "g_lms_bind_run_once",  "0",   CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for LMS." );//deadite4, thanks to Hobbes
+
 
 idCVar g_disasm(					"g_disasm",					"0",			CVAR_GAME | CVAR_BOOL, "disassemble script into base/script/disasm.txt on the local drive when script is compiled" );
 idCVar g_debugBounds(				"g_debugBounds",			"0",			CVAR_GAME | CVAR_BOOL, "checks for models with bounds > 2048" );

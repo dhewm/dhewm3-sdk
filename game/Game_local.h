@@ -448,6 +448,14 @@ public:
 
 	bool					NeedRestart();
 
+	//    void                    UpdateMusicVol( idSoundEmitter *ent );
+    idList<int>             musicSpeakers; //SnoopJeDi - holds entitynum values for speakers with s_music set
+	void					DeactivateSecretAreas( int areanum );
+	int						monsters;
+	int						items;
+	idList<int>				secretAreas;
+
+
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
 

@@ -3156,3 +3156,89 @@ void idPhantomObjects::Think( void ) {
 		BecomeInactive( TH_THINK );
 	}
 }
+
+// SnoopJeDi -- Begin
+
+CLASS_DECLARATION( idEntity, idSecret )
+	EVENT( EV_Touch,				idSecret::Event_Touch )
+END_CLASS
+
+/*
+===========================
+idSecret::idSecret()
+===========================
+*/
+idSecret::idSecret( void ) {
+}
+
+/*
+===========================
+idSecret::Think()
+===========================
+*/
+void idSecret::Think() {
+}
+
+/*
+===========================
+idSecret::Spawn()
+===========================
+*/
+void idSecret::Spawn( void ) {
+	SecretNum = spawnArgs.GetInt( "SecretNum", "0" ); //Todo: Increment secret areas automatically for newb mappers?
+	if ( gameLocal.secretAreas.FindIndex( SecretNum ) < 0 ) {
+		gameLocal.secretAreas.Append( SecretNum );
+	}
+	activated = false;
+	GetPhysics()->SetContents( CONTENTS_TRIGGER ); // Can be Touch()-ed, but not solid.
+}
+
+/*
+===========================
+idSecret::Event_Activate()
+===========================
+*/
+void idSecret::Event_Activate( idEntity *activator ) {
+	Deactivate();
+}
+
+/*
+===========================
+idSecret::Save()
+===========================
+*/
+void idSecret::Save( idSaveGame *savefile ) const {
+	savefile->WriteInt( SecretNum );
+}
+
+/*
+===========================
+idSecret::Restore()
+===========================
+*/
+void idSecret::Restore( idRestoreGame *savefile ) {
+	savefile->ReadInt( SecretNum );
+}
+
+/*
+===========================
+idSecret::Event_Touch()
+===========================
+*/
+void idSecret::Event_Touch( idEntity *other, trace_t *trace ) {
+	if ( !gameLocal.isMultiplayer && !activated && other->IsType(
+idPlayer::Type) ) {
+		gameLocal.GetLocalPlayer()->SecretArea( SecretNum );
+		Deactivate(); // Don't touch me again!
+	}
+}
+
+void idSecret::Deactivate() {
+	activated = true;
+}
+
+int idSecret::GetNum() {
+	return SecretNum;
+}
+
+// SnoopJeDi -- End

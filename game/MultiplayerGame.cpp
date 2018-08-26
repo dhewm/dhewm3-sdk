@@ -2767,7 +2767,7 @@ void idMultiplayerGame::ServerCallVote( int clientNum, const idBitMsg &msg ) {
 			assert( vote_gameTypeIndex >= 0 && vote_gameTypeIndex <= 3 );
 			switch ( vote_gameTypeIndex ) {
 				case 0:
-					strcpy( value, "Deathmatch" );
+					strcpy( value, "cdoomDM" );//deadite4
 					break;
 				case 1:
 					strcpy( value, "Tourney" );

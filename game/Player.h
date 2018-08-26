@@ -103,6 +103,9 @@ enum {
 	INVISIBILITY,
 	MEGAHEALTH,
 	ADRENALINE,
+	HEALTHVIAL, // SnoopJeDi
+	ARMORBONUS, // SnoopJeDi
+	MEGAARMOR,	// SnoopJeDi
 	MAX_POWERUPS
 };
 
@@ -132,6 +135,10 @@ public:
 	int						ammo[ AMMO_NUMTYPES ];
 	int						clip[ MAX_WEAPONS ];
 	int						powerupEndTime[ MAX_POWERUPS ];
+	int						Secrets; //SnoopJeDi
+	int						kills; //SnoopJeDi
+	int						itemspickedup; // SnoopJeDi
+	int						time; // SnoopJeDi - For saved games
 
 	// mp
 	int						ammoPredictTime;
@@ -265,6 +272,15 @@ public:
 	idUserInterface *		objectiveSystem;
 	bool					objectiveSystemOpen;
 
+	idUserInterface *		statsUI;					// SnoopJeDi
+	bool					statsUIopen;				// SnoopJeDi
+	bool					statsDebug;					// SnoopJeDi
+	void					OpenStats( idStr nextMap, int level_no ); // SnoopJeDi
+	void					StatsProceed();				// SnoopJeDi
+	void					ClearStats();				// SnoopJeDi
+	void					ToggleStatsDebug();			// SnoopJeDi
+
+
 	int						weapon_soulcube;
 	int						weapon_pda;
 	int						weapon_fists;
@@ -283,6 +299,8 @@ public:
 	bool					healthPulse;
 	bool					healthTake;
 	int						nextHealthTake;
+	bool					extraammo; // SnoopJeDi
+
 
 
 	bool					hiddenWeapon;		// if the weapon is hidden ( in noWeapons maps )
@@ -520,6 +538,9 @@ public:
 	virtual	void			DrawPlayerIcons( void );
 	virtual	void			HidePlayerIcons( void );
 	bool					NeedsIcon( void );
+
+	void					SecretArea( int areanum );  //SnoopJeDi
+
 
 	bool					SelfSmooth( void );
 	void					SetSelfSmooth( bool b );

@@ -187,6 +187,7 @@ void idGameLocal::Clear( void ) {
 	num_entities = 0;
 	spawnedEntities.Clear();
 	activeEntities.Clear();
+	musicSpeakers.Clear();  // SnoopJeDi - Housekeeping!
 	numEntitiesToDeactivate = 0;
 	sortPushers = false;
 	sortTeamMasters = false;
@@ -306,6 +307,15 @@ void idGameLocal::Init( void ) {
 	idClass::Init();
 
 	InitConsoleCommands();
+
+	if ( !g_lms_bind_run_once.GetBool() ) { // SnoopJeDi - LMS addition
+       //The default config file contains proper value for mod_validSkins cvar.
+       //We want to run this once after the base doom config file has run so we can
+       //have the correct xp binds
+       cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
+       cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta g_lms_bind_run_once 1\n" );
+       cmdSystem->ExecuteCommandBuffer();
+	}
 
 	// load default scripts
 	program.Startup( SCRIPT_DEFAULT );
@@ -521,6 +531,14 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteInt( framenum );
 	savegame.WriteInt( previousTime );
 	savegame.WriteInt( time );
+
+	savegame.WriteInt( monsters ); // SnoopJeDi - Added by deadite4
+	savegame.WriteInt( items ); // SnoopJeDi
+	int numsecrets = secretAreas.Num();
+	savegame.WriteInt( numsecrets );
+	for ( i = 0; i != numsecrets; i++ ) {
+		savegame.WriteInt( secretAreas[ i ] );
+	}
 
 	savegame.WriteInt( vacuumAreaNum );
 
@@ -871,6 +889,13 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	memset( spawnIds, -1, sizeof( spawnIds ) );
 	spawnCount = INITIAL_SPAWN_COUNT;
 
+	//musicSpeakers.Clear();  // SnoopJeDi: This doesn't feel right, might cause some weird bugs if more than one music speaker is used.
+	s_music_vol.ClearModified();
+	s_music_vol.SetModified(); // SnoopJeDi: we want to fade on level start
+	secretAreas.Clear(); // SnoopJeDi
+	monsters = 0;
+	items = 0;
+
 	spawnedEntities.Clear();
 	activeEntities.Clear();
 	numEntitiesToDeactivate = 0;
@@ -1163,6 +1188,9 @@ idGameLocal::InitFromNewMap
 */
 void idGameLocal::InitFromNewMap( const char *mapName, idRenderWorld *renderWorld, idSoundWorld *soundWorld, bool isServer, bool isClient, int randseed ) {
 
+	musicSpeakers.Clear(); // SnoopJeDi: new map, not reload, so clear the list
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "heartbeat\n" ); // SnoopJeDi - iddevnet fix to keep server from dropping off master list
+
 	this->isServer = isServer;
 	this->isClient = isClient;
 	this->isMultiplayer = isServer || isClient;
@@ -1181,6 +1209,9 @@ void idGameLocal::InitFromNewMap( const char *mapName, idRenderWorld *renderWorl
 	LoadMap( mapName, randseed );
 
 	InitScriptForMap();
+
+	monsters = 0; // SnoopJeDi
+	items = 0; // SnoopJeDi
 
 	MapPopulate();
 
@@ -1338,6 +1369,15 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( framenum );
 	savegame.ReadInt( previousTime );
 	savegame.ReadInt( time );
+
+	savegame.ReadInt( monsters ); // SnoopJeDi
+	savegame.ReadInt( items ); // SnoopJeDi
+	int numsecrets;
+	savegame.ReadInt( numsecrets );
+	secretAreas.SetNum( numsecrets, true ); // Resize the list so we don't violate memory rules
+	for ( i = 0; i != numsecrets; i++ ) {
+		savegame.ReadInt( secretAreas[ i ] );
+	}
 
 	savegame.ReadInt( vacuumAreaNum );
 
@@ -2187,6 +2227,8 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 		previousTime = time;
 		time += msec;
 		realClientTime = time;
+		if ( !isMultiplayer )
+			GetLocalPlayer()->inventory.time = time; // SnoopJeDi - source of dedserver bug 5/21/06
 
 #ifdef GAME_DLL
 		// allow changing SIMD usage on the fly
@@ -2447,6 +2489,16 @@ makes rendering and sound system calls
 ================
 */
 bool idGameLocal::Draw( int clientNum ) {
+
+	if ( s_music_vol.IsModified() ) {  //SnoopJeDi, fade that sound!
+       for ( int i = 0; i < musicSpeakers.Num(); i++ ) {
+           idSound* ent = static_cast<idSound *>(entities[ musicSpeakers[ i ] ]);
+		   if (ent)
+			    ent->FadeMusic( 0, s_music_vol.GetFloat(), 0 );
+       }
+       s_music_vol.ClearModified();
+    }
+
 	if ( isMultiplayer ) {
 		return mpGame.Draw( clientNum );
 	}
@@ -3121,6 +3173,8 @@ bool idGameLocal::InhibitEntitySpawn( idDict &spawnArgs ) {
 
 	if ( isMultiplayer ) {
 		spawnArgs.GetBool( "not_multiplayer", "0", result );
+//	} else if ( !isMultiplayer ) {
+// 		spawnArgs.GetBool( "not_sp", "0", result );  // SnoopJeDi - MP stuff
 	} else if ( g_skill.GetInteger() == 0 ) {
 		spawnArgs.GetBool( "not_easy", "0", result );
 	} else if ( g_skill.GetInteger() == 1 ) {
@@ -4217,7 +4271,7 @@ idGameLocal::UpdateServerInfoFlags
 */
 void idGameLocal::UpdateServerInfoFlags() {
 	gameType = GAME_SP;
-	if ( ( idStr::Icmp( serverInfo.GetString( "si_gameType" ), "deathmatch" ) == 0 ) ) {
+	if ( ( ( idStr::Icmp( serverInfo.GetString( "si_gameType" ), "deathmatch" ) == 0 ) ) || ( ( idStr::Icmp( serverInfo.GetString( "si_gameType" ), "cdoomDM" ) == 0 ) )  ) {
 		gameType = GAME_DM;
 	} else if ( ( idStr::Icmp( serverInfo.GetString( "si_gameType" ), "Tourney" ) == 0 ) ) {
 		gameType = GAME_TOURNEY;
@@ -4368,3 +4422,21 @@ idGameLocal::GetMapLoadingGUI
 ===============
 */
 void idGameLocal::GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] ) { }
+
+/*
+====================
+idGameLocal::DeactivateSecretAreas  - SnoopJeDi
+Multiple func_secret entities can be used for one secret (ie. E1M1 hallway).
+Once triggered, all entities with the same SecretNum will be deactivated.
+====================
+*/
+void idGameLocal::DeactivateSecretAreas( int areanum ) {
+	for ( idEntity * ent = spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() ) {
+		if ( ent->IsType( idSecret::Type ) ) {
+			idSecret *secret = static_cast<idSecret *>(ent);
+			if ( secret->GetNum() == areanum ) {
+				secret->Deactivate();
+			}
+		}
+	}
+}

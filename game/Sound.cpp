@@ -128,6 +128,10 @@ void idSound::Spawn( void ) {
 	} else {
 		timerOn = false;
 	}
+    if ( spawnArgs.GetBool( "s_music" ) ) {                  //SnoopJeDi
+       gameLocal.musicSpeakers.Append( entityNumber );
+    }
+
 }
 
 /*

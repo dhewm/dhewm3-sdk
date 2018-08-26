@@ -765,4 +765,36 @@ private:
 	idList<idVec3>		lastTargetPos;
 };
 
+// SnoopJeDi -- Begin
+/*
+==================================
+
+	idSecret - Simple entity for activating secret areas
+
+==================================
+*/
+class idSecret : public idEntity {
+public:
+		CLASS_PROTOTYPE( idSecret );
+
+						idSecret();
+		void			Spawn ( void );
+		void			Save( idSaveGame *savefile ) const;
+		void			Restore( idRestoreGame *savefile );
+		void			Think( void );
+		void			Deactivate();
+		int			    GetNum();
+
+private:
+		void			Event_Touch( idEntity *other, trace_t *trace );
+		int				SecretNum;
+		bool			activated;
+
+		void			Event_Activate( idEntity *activator ); // SnoopJeDi - added 2/13/07, allows mappers to trigger secrets (guis, etc)
+};
+// SnoopJeDi -- End
+
+
+
+
 #endif /* !__GAME_MISC_H__ */

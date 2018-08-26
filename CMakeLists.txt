@@ -1,8 +1,34 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(dhewm3sdk)
 
-# TODO
+option(BASE		"Build the base (game/) game code" ON)
+set(BASE_NAME	"base" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
+set(BASE_DEFS	"GAME_DLL" CACHE STRING "Compiler definitions for the mod built from game/")
 
+option(D3XP		"Build the d3xp/ game code" ON)
+set(D3XP_NAME	"d3xp" CACHE STRING "Name of the mod built from d3xp/ (will result in \${D3XP_NAME}.dll)")
+set(D3XP_DEFS	"GAME_DLL;_D3XP;CTF" CACHE STRING "Compiler definitions for the mod built from d3xp/")
+
+option(ONATIVE	"Optimize for the host CPU" OFF)
+
+set(src_game_mod
+	# add additional .cpp files of your mod in game/
+	# (that you added to the ones already existant in the SDK/in dhewm3)
+	# like "game/MyFile.cpp" (without quotes, one file per line)
+)
+
+set(src_d3xp_mod
+	# add additional .cpp files of your mod in d3xp/
+	# (that you added to the ones already existant in the SDK/in dhewm3)
+	# like "d3xp/MyFile.cpp" (without quotes, one file per line)
+)
+
+
+########################################################################
+# You /probably/ don't need to change anything below here for your Mod #
+########################################################################
+
+# TODO
 # osx: place game .dylib's in the bundle (next to the binary)
 # osx: -weak_framework ?
 
@@ -26,11 +52,6 @@ if(NOT COMMAND add_compile_options)
 		endforeach()
 	endfunction()
 endif()
-
-
-option(BASE			"Build the base game code" ON)
-option(D3XP			"Build the d3xp game code" ON)
-option(ONATIVE		"Optimize for the host CPU" OFF)
 
 if(NOT CMAKE_SYSTEM_PROCESSOR)
 	message(FATAL_ERROR "No target CPU architecture set")
@@ -265,6 +286,8 @@ set(src_game
 	game/physics/Physics_Static.cpp
 	game/physics/Physics_StaticMulti.cpp
 	game/physics/Push.cpp
+
+	${src_game_mod}
 )
 
 set(src_d3xp
@@ -339,6 +362,8 @@ set(src_d3xp
 	d3xp/physics/Push.cpp
 	d3xp/Grabber.cpp
 	d3xp/physics/Force_Grab.cpp
+
+	${src_d3xp_mod}
 )
 
 set(src_idlib
@@ -412,12 +437,14 @@ endif()
 if(BASE)
 	if (AROS)
 		add_executable(base sys/aros/dll/dllglue.c ${src_game})
-		set_target_properties(base PROPERTIES OUTPUT_NAME "base.aros-${AROS_ARCH}")
+		set_target_properties(base PROPERTIES OUTPUT_NAME "${BASE_NAME}.aros-${AROS_ARCH}")
 	else()
 		add_library(base SHARED ${src_game})
+		# so mods can create cdoom.dll instead of base.dll from the code in game/
+		set_target_properties(base PROPERTIES OUTPUT_NAME "${BASE_NAME}")
 	endif()
 	set_target_properties(base PROPERTIES PREFIX "")
-	set_target_properties(base PROPERTIES COMPILE_DEFINITIONS "GAME_DLL")
+	set_target_properties(base PROPERTIES COMPILE_DEFINITIONS "${BASE_DEFS}")
 	set_target_properties(base PROPERTIES COMPILE_FLAGS "-I${CMAKE_SOURCE_DIR}/game")
 	set_target_properties(base PROPERTIES LINK_FLAGS "${ldflags}")
 	set_target_properties(base PROPERTIES INSTALL_NAME_DIR "@executable_path")
@@ -439,12 +466,14 @@ endif()
 if(D3XP)
 	if (AROS)
 		add_executable(d3xp sys/aros/dll/dllglue.c ${src_d3xp})
-		set_target_properties(d3xp PROPERTIES OUTPUT_NAME "d3xp.aros-${AROS_ARCH}")
+		set_target_properties(d3xp PROPERTIES OUTPUT_NAME "${D3XP_NAME}.aros-${AROS_ARCH}")
 	else()
 		add_library(d3xp SHARED ${src_d3xp})
+		# so mods can create whatever.dll instead of d3xp.dll from the code in d3xp/
+		set_target_properties(d3xp PROPERTIES OUTPUT_NAME "${D3XP_NAME}")
 	endif()
 	set_target_properties(d3xp PROPERTIES PREFIX "")
-	set_target_properties(d3xp PROPERTIES COMPILE_DEFINITIONS "GAME_DLL;_D3XP;CTF")
+	set_target_properties(d3xp PROPERTIES COMPILE_DEFINITIONS "${D3XP_DEFS}")
 	set_target_properties(d3xp PROPERTIES COMPILE_FLAGS "-I${CMAKE_SOURCE_DIR}/d3xp")
 	set_target_properties(d3xp PROPERTIES LINK_FLAGS "${ldflags}")
 	set_target_properties(d3xp PROPERTIES INSTALL_NAME_DIR "@executable_path")

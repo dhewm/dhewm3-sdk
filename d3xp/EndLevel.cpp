@@ -26,6 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+// NOTE: even though this file is part of the Doom3 GPL source (and the original SDK in d3xp/),
+//       it has never been part of the build (=> not compiled into d3xp.dll)
+
 #include "sys/platform.h"
 
 #include "EndLevel.h"

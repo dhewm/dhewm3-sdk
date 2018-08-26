@@ -326,6 +326,10 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 	}
 
 	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
+		// this causes a "warning: left shift count >= width of type"
+		// because MAX_WEAPONS is 32 - but it works as intended anyway
+		// (=> all bits are set afterwards, because BITS(32) == 0 ; 0 - 1 == -1 => all bits set.
+		// that's a bit ugly but more flexible when redefining MAX_WEAPONS
 		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
 		player->CacheWeapons();
 

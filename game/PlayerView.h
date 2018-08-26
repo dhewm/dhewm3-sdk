@@ -110,6 +110,14 @@ private:
 
 	bool				bfgVision;			//
 
+#ifdef _DENTONMOD
+	int					shiftSensitivityDelay;
+	int					screenHeight;
+	int					screenWidth;
+	float				shiftScale_x;
+	float				shiftScale_y;
+#endif
+
 	const idMaterial *	tunnelMaterial;		// health tunnel vision
 	const idMaterial *	armorMaterial;		// armor damage view effect
 	const idMaterial *	berserkMaterial;	// berserk effect

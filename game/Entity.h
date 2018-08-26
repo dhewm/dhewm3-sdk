@@ -39,6 +39,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "gamesys/Event.h"
 #include "Game_local.h"
 
+#ifdef _DENTONMOD
+#ifndef _DENTONMOD_ENTITY_CPP
+#define _DENTONMOD_ENTITY_CPP
+#endif
+#endif
 /*
 ===============================================================================
 
@@ -76,7 +81,14 @@ enum {
 	TH_PHYSICS				= 2,		// run physics each frame
 	TH_ANIMATE				= 4,		// update animation each frame
 	TH_UPDATEVISUALS		= 8,		// update renderEntity
+
+#ifdef _DENTONMOD_ENTITY_CPP
+	TH_UPDATEPARTICLES		= 16,		// This flag is used by various classes derived from entity in various situations
+	TH_UPDATEWOUNDPARTICLES = 32		// so create a new flag. By Clone JC Denton
+
+#else
 	TH_UPDATEPARTICLES		= 16
+#endif
 };
 
 //
@@ -113,6 +125,23 @@ public:
 	idList<signal_t> signal[ NUM_SIGNALS ];
 };
 
+#ifdef _DENTONMOD_ENTITY_CPP
+
+//-----------------------------------------------------------------------------------------------
+// enDamage effect holds information about wound effects being played on the entities 
+//																	- Clone JC Denton
+//-----------------------------------------------------------------------------------------------
+typedef struct entDamageEffect_s {
+	idVec3					origin;
+	idVec3					dir; //new
+//	idMat3					axis;
+	int						time;
+//	bool					isTimeInitialized; // New flag which sets time at right time.
+	const idDeclParticle*	type;
+	struct entDamageEffect_s *	next;
+} entDamageEffect_t;
+
+#endif
 
 class idEntity : public idClass {
 public:
@@ -187,6 +216,9 @@ public:
 	void					BecomeActive( int flags );
 	void					BecomeInactive( int flags );
 	void					UpdatePVSAreas( const idVec3 &pos );
+#ifdef _DENTONMOD_ENTITY_CPP
+	void					UpdateParticles	( void ); // damage particle effects - By Clone JCD 
+#endif
 
 	// visuals
 	virtual void			Present( void );
@@ -304,7 +336,12 @@ public:
 							// applies damage to this entity
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
 							// adds a damage effect like overlays, blood, sparks, debris etc.
+#ifdef _DENTONMOD
+							//the soundEnt parameter helps unifying how sound is played upon projectile impact.
+	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt = NULL );
+#else
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
+#endif
 							// callback function for when another entity received damage from this entity.  damage can be adjusted and returned to the caller.
 	virtual void			DamageFeedback( idEntity *victim, idEntity *inflictor, int &damage );
 							// notifies this entity that it is in pain
@@ -365,6 +402,9 @@ protected:
 	renderEntity_t			renderEntity;						// used to present a model to the renderer
 	int						modelDefHandle;						// handle to static renderer model
 	refSound_t				refSound;							// used to present sound to the audio engine
+#ifdef _DENTONMOD_ENTITY_CPP
+	entDamageEffect_t *		entDamageEffects;			// We are going to add damage effect to every entity.
+#endif 
 
 private:
 	idPhysics_Static		defaultPhysicsObj;					// default physics object
@@ -480,9 +520,11 @@ typedef struct damageEffect_s {
 	idVec3					localOrigin;
 	idVec3					localNormal;
 	int						time;
+
 	const idDeclParticle*	type;
 	struct damageEffect_s *	next;
 } damageEffect_t;
+
 
 class idAnimatedEntity : public idEntity {
 public:
@@ -506,8 +548,13 @@ public:
 	bool					GetJointTransformForAnim( jointHandle_t jointHandle, int animNum, int currentTime, idVec3 &offset, idMat3 &axis ) const;
 
 	virtual int				GetDefaultSurfaceType( void ) const;
+#ifdef _DENTONMOD
+	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt );
+	void					AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &localPoint, const idVec3 &localNormal, const idVec3 &localDir, const idDeclEntityDef *def, const idMaterial *collisionMaterial, idEntity *soundEnt = NULL );
+#else
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
 	void					AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &localPoint, const idVec3 &localNormal, const idVec3 &localDir, const idDeclEntityDef *def, const idMaterial *collisionMaterial );
+#endif
 	void					UpdateDamageEffects( void );
 
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
@@ -519,9 +566,12 @@ public:
 
 protected:
 	idAnimator				animator;
+
 	damageEffect_t *		damageEffects;
 
 private:
+	int						nextBloodPoolTime;
+
 	void					Event_GetJointHandle( const char *jointname );
 	void					Event_ClearAllJoints( void );
 	void					Event_ClearJoint( jointHandle_t jointnum );

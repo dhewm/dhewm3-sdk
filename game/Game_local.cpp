@@ -252,6 +252,11 @@ void idGameLocal::Clear( void ) {
 	savedEventQueue.Init();
 
 	memset( lagometer, 0, sizeof( lagometer ) );
+
+#ifdef _PORTALSKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
 }
 
 /*
@@ -536,6 +541,11 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
 
+#ifdef _PORTALSKY
+	portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
+#endif
+
 	savegame.WriteBool( mapCycleLoaded );
 	savegame.WriteInt( spawnCount );
 
@@ -713,7 +723,6 @@ void idGameLocal::Error( const char *fmt, ... ) const {
 		common->Error( "%s", text );
 	}
 }
-
 /*
 ===============
 gameError
@@ -905,6 +914,11 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	framenum		= 0;
 	sessionCommand = "";
 	nextGibTime		= 0;
+
+#ifdef  _PORTALSKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
 
 	vacuumAreaNum = -1;		// if an info_vacuum is spawned, it will set this
 
@@ -1352,6 +1366,11 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( realClientTime );
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
+
+#ifdef _PORTALSKY
+	portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+#endif
 
 	savegame.ReadBool( mapCycleLoaded );
 	savegame.ReadInt( spawnCount );
@@ -1998,6 +2017,25 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			pvs.FreeCurrentPVS( playerConnectedAreas );
 			pvs.FreeCurrentPVS( otherPVS );
 			playerConnectedAreas = newPVS;
+
+#ifdef _PORTALSKY
+		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
+		if ( portalSkyEnt.GetEntity() ) {
+			idEntity *skyEnt = portalSkyEnt.GetEntity();
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerPVS, otherPVS );
+			pvs.FreeCurrentPVS( playerPVS );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerPVS = newPVS;
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
+			pvs.FreeCurrentPVS( playerConnectedAreas );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerConnectedAreas = newPVS;
+		}
+#endif
 		}
 	}
 }
@@ -3706,7 +3744,11 @@ void idGameLocal::RadiusPush( const idVec3 &origin, const float radius, const fl
 		// scale the push for the inflictor
 		if ( ent == inflictor || ( ent->IsType( idAFAttachment::Type ) && static_cast<idAFAttachment*>(ent)->GetBody() == inflictor ) ) {
 			scale = inflictorScale;
-		} else {
+	    } 
+		else if ( ent->IsType (idAFEntity_Base::Type) && static_cast<idAFEntity_Base*>(ent)->IsActiveAF()) {	// Only scale push when ragdoll is active - BY Clone JCD
+				scale = ent->spawnArgs.GetFloat ("ragdoll_push_scale", "1.0");	// Scales down ragdoll push based on def's value
+		}
+		else {
 			scale = 1.0f;
 		}
 
@@ -4274,6 +4316,26 @@ idGameLocal::ThrottleUserInfo
 void idGameLocal::ThrottleUserInfo( void ) {
 	mpGame.ThrottleUserInfo();
 }
+
+#ifdef _PORTALSKY
+/*
+=================
+idGameLocal::SetPortalSkyEnt
+=================
+*/
+void idGameLocal::SetPortalSkyEnt( idEntity *ent ) {
+	portalSkyEnt = ent;
+}
+
+/*
+=================
+idGameLocal::IsPortalSkyAcive
+=================
+*/
+bool idGameLocal::IsPortalSkyAcive() {
+	return portalSkyActive;
+}
+#endif
 
 /*
 ===========

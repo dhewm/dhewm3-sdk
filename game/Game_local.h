@@ -294,6 +294,13 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+#ifdef _PORTALSKY
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyAcive();
+#endif
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -386,6 +393,10 @@ public:
 
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
+
+#ifdef _PORTALSKY
+	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
+#endif
 
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;

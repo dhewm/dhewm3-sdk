@@ -626,6 +626,11 @@ void idBrittleFracture::Think( void ) {
 
 	RunPhysics();
 	Present();
+
+#ifdef _DENTONMOD_ENTITY_CPP
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*
@@ -669,7 +674,11 @@ void idBrittleFracture::AddForce( idEntity *ent, int id, const idVec3 &point, co
 idBrittleFracture::ProjectDecal
 ================
 */
+#ifdef _DENTONMOD
+void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, const int time, const char *damageDefName, idEntity *soundEnt ) {
+#else
 void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, const int time, const char *damageDefName ) {
+#endif
 	int i, j, bits, clipBits;
 	float a, c, s;
 	idVec2 st[MAX_POINTS_ON_WINDING];
@@ -696,10 +705,34 @@ void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, co
 		// try to get the sound from the damage def
 		const idDeclEntityDef *damageDef = NULL;
 		const idSoundShader *sndShader = NULL;
+
 		if ( damageDefName ) {
 			damageDef = gameLocal.FindEntityDef( damageDefName, false );
-			if ( damageDef ) {
+
+			if (damageDef) {
+#ifdef _DENTONMOD
+				const char *sound = damageDef->dict.GetString( "snd_shatter" );
+
+				if( *sound == '\0' ) {
+					sound = damageDef->dict.GetString( "snd_glass" );
+				}
+
+				if ( *sound != '\0' ) {
+					if( soundEnt == NULL ) {
+						StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_ANY, 0, false, NULL );
+					} else {
+						soundEnt->StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_ANY, 0, false, NULL );
+					}
+				} else {
+					StartSound( "snd_bullethole", SND_CHANNEL_ANY, 0, false, NULL );
+				}
+			}
+		}
+#else// Above code means the same as below but strangely enough the code written below doesnt work.
 				sndShader = declManager->FindSound( damageDef->dict.GetString( "snd_shatter", "" ) );
+				if( !sndShader ) {
+					sndShader = declManager->FindSound( damageDef->dict.GetString( "snd_glass", "" ) );
+				}
 			}
 		}
 
@@ -708,6 +741,7 @@ void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, co
 		} else {
 			StartSound( "snd_bullethole", SND_CHANNEL_ANY, 0, false, NULL );
 		}
+#endif
 	}
 
 	a = gameLocal.random.RandomFloat() * idMath::TWO_PI;
@@ -997,10 +1031,64 @@ void idBrittleFracture::Killed( idEntity *inflictor, idEntity *attacker, int dam
 idBrittleFracture::AddDamageEffect
 ================
 */
+#ifdef _DENTONMOD
+void idBrittleFracture::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt ) {
+#else
 void idBrittleFracture::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName ) {
+
 	if ( !disableFracture ) {
 		ProjectDecal( collision.c.point, collision.c.normal, gameLocal.time, damageDefName );
 	}
+#endif
+
+#ifdef _DENTONMOD
+	if ( !disableFracture ) {
+		ProjectDecal( collision.c.point, collision.c.normal, gameLocal.time, damageDefName, soundEnt );
+	}
+
+	// a damage effect is added			-By Clone JC Denton
+
+	const idDeclEntityDef *def = gameLocal.FindEntityDef( damageDefName, false );
+	if ( def == NULL ) {
+		return;
+	}
+	if (disableFracture) { //play sound only when the flag is set, otherwise idBrittleFracture::ProjectDecal will take care of playing the sound 
+
+		const char *sound = def->dict.GetString( "snd_shatter" );
+
+		if( *sound == '\0' ) {
+			sound = def->dict.GetString( "snd_glass" );
+		}
+
+		if ( *sound != '\0' ) {
+			if( soundEnt == NULL ) {
+				StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_ANY, 0, false, NULL );
+			} else {
+				soundEnt->StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_ANY, 0, false, NULL );
+			}
+		} else {
+			StartSound( "snd_bullethole", SND_CHANNEL_ANY, 0, false, NULL );
+		}
+	}
+
+	const char *bleed = def->dict.GetString( "smoke_wound_glass" );
+
+	if ( *bleed != '\0' ) {
+		entDamageEffect_t	*de = new entDamageEffect_t;
+		de->next = this->entDamageEffects;
+		this->entDamageEffects = de;
+
+		de->origin = (collision.c.point - renderEntity.origin) * renderEntity.axis.Transpose();
+		de->dir = collision.c.normal * renderEntity.axis.Transpose();
+		de->type = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, bleed ) );
+
+		de->time = -1;	//	We use this as a flag initially, idEntity::UpdateParticles() will actually set it to proper value.
+
+		if (!(thinkFlags & TH_UPDATEWOUNDPARTICLES)) {// if flag was not set before set it now
+			BecomeActive( TH_UPDATEWOUNDPARTICLES );
+		}
+	}
+#endif
 }
 
 /*

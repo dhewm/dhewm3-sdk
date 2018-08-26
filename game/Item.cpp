@@ -76,6 +76,9 @@ idItem::idItem() {
 	orgOrigin.Zero();
 	canPickUp = true;
 	fl.networkSync = true;
+/*#ifdef _DENTONMOD
+	entDamageEffects = NULL;
+#endif*/
 }
 
 /*
@@ -236,6 +239,11 @@ void idItem::Think( void ) {
 	}
 
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*
@@ -712,6 +720,43 @@ void idObjective::Event_CamShot( ) {
 			renderView_t fullView = *view;
 			fullView.width = SCREEN_WIDTH;
 			fullView.height = SCREEN_HEIGHT;
+
+#ifdef _PORTALSKY
+			// HACK : always draw sky-portal view if there is one in the map, this isn't real-time
+			if ( gameLocal.portalSkyEnt.GetEntity() && g_enablePortalSky.GetBool() ) {
+				renderView_t	portalView = fullView;
+				portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+				// setup global fixup projection vars
+				if ( 1 ) {
+					int vidWidth, vidHeight;
+					idVec2 shiftScale;
+
+					renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+					float pot;
+					int temp;
+
+					int	 w = vidWidth;
+					for (temp = 1 ; temp < w ; temp<<=1) {
+					}
+					pot = (float)temp;
+					shiftScale.x = (float)w / pot;
+
+					int	 h = vidHeight;
+					for (temp = 1 ; temp < h ; temp<<=1) {
+					}
+					pot = (float)temp;
+					shiftScale.y = (float)h / pot;
+
+					fullView.shaderParms[4] = shiftScale.x;
+					fullView.shaderParms[5] = shiftScale.y;
+				}
+
+				gameRenderWorld->RenderScene( &portalView );
+				renderSystem->CaptureRenderToImage( "_currentRender" );
+			}
+#endif
 			// draw a view to a texture
 			renderSystem->CropRenderSize( 256, 256, true );
 			gameRenderWorld->RenderScene( &fullView );
@@ -870,6 +915,9 @@ idMoveableItem::idMoveableItem() {
 	trigger = NULL;
 	smoke = NULL;
 	smokeTime = 0;
+/*#ifdef _DENTONMOD
+	entDamageEffects = NULL;
+#endif*/
 }
 
 /*
@@ -998,6 +1046,11 @@ void idMoveableItem::Think( void ) {
 	}
 
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*

@@ -119,6 +119,10 @@ extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
 
+#ifdef _PORTALSKY
+extern idCVar	g_enablePortalSky;
+#endif
+
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;
 
@@ -254,4 +258,13 @@ extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
 
+extern idCVar	r_bloom;
+extern idCVar	r_bloom_blur_mult;
+extern idCVar	r_bloom_src_mult;
+extern idCVar   r_bloom_contrast;
+extern idCVar   r_bloom_contrast_mult;				// clone_jc_denton
+extern idCVar   r_bloom_contrast_min;				// clone_jc_denton
+extern idCVar   r_bloom_shiftSensitivity_delay;		// clone_jc_denton
+extern idCVar   r_bloom_blurIterations;				// clone_jc_denton
+extern idCVar   r_bloom_buffer;						// clone_jc_denton
 #endif /* !__SYS_CVAR_H__ */

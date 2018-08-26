@@ -92,6 +92,9 @@ const idEventDef EV_Player_LevelTrigger( "levelTrigger" );
 const idEventDef EV_SpectatorTouch( "spectatorTouch", "et" );
 const idEventDef EV_Player_GetIdealWeapon( "getIdealWeapon", NULL, 's' );
 
+const idEventDef EV_Player_WeaponAvailable( "weaponAvailable", "s", 'd');//
+const idEventDef EV_Player_GetImpulseKey( "getImpulseKey", NULL, 'd' ); // Added By Clone JC Denton
+
 CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_GetButtons,			idPlayer::Event_GetButtons )
 	EVENT( EV_Player_GetMove,				idPlayer::Event_GetMove )
@@ -110,6 +113,8 @@ CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_HideTip,				idPlayer::Event_HideTip )
 	EVENT( EV_Player_LevelTrigger,			idPlayer::Event_LevelTrigger )
 	EVENT( EV_Gibbed,						idPlayer::Event_Gibbed )
+	EVENT( EV_Player_WeaponAvailable,		idPlayer::Event_WeaponAvailable )//
+	EVENT( EV_Player_GetImpulseKey,			idPlayer::Event_GetImpulseKey )	// Added By Clone JCD
 	EVENT( EV_Player_GetIdealWeapon,		idPlayer::Event_GetIdealWeapon )
 END_CLASS
 
@@ -249,6 +254,10 @@ void idInventory::GetPersistantData( idDict &dict ) {
 		}
 	}
 
+	//Save the clip data
+	for( i = 0; i < MAX_WEAPONS; i++ ) {              //new
+		dict.SetInt( va("clip%i", i), clip[ i ] );
+	}
 	// items
 	num = 0;
 	for( i = 0; i < items.Num(); i++ ) {
@@ -346,6 +355,10 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 		}
 	}
 
+	//Restore the clip data
+	for( i = 0; i < MAX_WEAPONS; i++ ) {//new
+		clip[i] = dict.GetInt(va("clip%i", i), "-1");
+	}
 	// items
 	num = dict.GetInt( "items" );
 	items.SetNum( num );
@@ -709,7 +722,8 @@ ammo_t idInventory::AmmoIndexForWeaponClass( const char *weapon_classname, int *
 idInventory::AddPickupName
 ==============
 */
-void idInventory::AddPickupName( const char *name, const char *icon ) {
+//void idInventory::AddPickupName( const char *name, const char *icon ) {
+void idInventory::AddPickupName( const char *name, const char *icon, idPlayer* owner ) { //New, Dont know what it does
 	int num;
 
 	num = pickupItemNames.Num();
@@ -722,6 +736,14 @@ void idInventory::AddPickupName( const char *name, const char *icon ) {
 			info.name = name;
 		}
 		info.icon = icon;
+		if ( gameLocal.isServer ) {
+			idBitMsg	msg;
+			byte		msgBuf[MAX_EVENT_PARAM_SIZE];
+
+			msg.Init( msgBuf, sizeof( msgBuf ) );
+			msg.WriteString( name, MAX_EVENT_PARAM_SIZE );
+			owner->ServerSendEvent( idPlayer::EVENT_PICKUPNAME, &msg, false, -1 );
+		}
 	}
 }
 
@@ -759,7 +781,7 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 
 			name = AmmoPickupNameForIndex( i );
 			if ( idStr::Length( name ) ) {
-				AddPickupName( name, "" );
+				AddPickupName( name, "", owner ); //new _D3XP
 			}
 		}
 	} else if ( !idStr::Icmp( statname, "armor" ) ) {
@@ -779,7 +801,7 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 		i = WeaponIndexForAmmoClass( spawnArgs, statname + 7 );
 		if ( i != -1 ) {
 			// set, don't add. not going over the clip size limit.
-			clip[ i ] = atoi( value );
+			// clip[ i ] = atoi( value ); // FIXME: what about this?
 		}
 	} else if ( !idStr::Icmp( statname, "berserk" ) ) {
 		GivePowerUp( owner, BERSERK, SEC2MS( atof( value ) ) );
@@ -806,7 +828,8 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 			}
 
 			if ( i >= MAX_WEAPONS ) {
-				gameLocal.Error( "Unknown weapon '%s'", weaponName.c_str() );
+				gameLocal.Warning( "Unknown weapon '%s'", weaponName.c_str() );
+				continue;
 			}
 
 			// cache the media for this weapon
@@ -821,10 +844,6 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 
 			if ( !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || ( weaponName == "weapon_fists" ) || ( weaponName == "weapon_soulcube" ) ) {
 				if ( ( weapons & ( 1 << i ) ) == 0 || gameLocal.isMultiplayer ) {
-					if ( owner->GetUserInfo()->GetBool( "ui_autoSwitch" ) && idealWeapon ) {
-						assert( !gameLocal.isClient );
-						*idealWeapon = i;
-					}
 					if ( owner->hud && updateHud && lastGiveTime + 1000 < gameLocal.time ) {
 						owner->hud->SetStateInt( "newWeapon", i );
 						owner->hud->HandleNamedEvent( "newWeapon" );
@@ -903,10 +922,15 @@ int idInventory::HasAmmo( ammo_t type, int amount ) {
 idInventory::HasAmmo
 ===============
 */
-int idInventory::HasAmmo( const char *weapon_classname ) {
+int idInventory::HasAmmo( const char *weapon_classname, bool includeClip, idPlayer* owner ) {		//_D3XP
 	int ammoRequired;
 	ammo_t ammo_i = AmmoIndexForWeaponClass( weapon_classname, &ammoRequired );
-	return HasAmmo( ammo_i, ammoRequired );
+
+	int ammoCount = HasAmmo( ammo_i, ammoRequired );
+	if(includeClip && owner) {
+		ammoCount += clip[owner->SlotForWeapon(weapon_classname)];
+	}
+	return ammoCount;
 }
 
 /*
@@ -1032,6 +1056,7 @@ idPlayer::idPlayer() {
 	currentWeapon			= -1;
 	idealWeapon				= -1;
 	previousWeapon			= -1;
+	quickWeapon				= -1; //new
 	weaponSwitchTime		=  0;
 	weaponEnabled			= true;
 	weapon_soulcube			= -1;
@@ -1133,6 +1158,11 @@ idPlayer::idPlayer() {
 	isChatting				= false;
 
 	selfSmooth				= false;
+
+#ifdef _DENTONMOD_PLAYER_CPP
+	memset( &weaponZoom, 0, sizeof( weaponZoom ) ); // New
+	memset(	projectileType, 0, sizeof(projectileType) );
+#endif //_DENTONMOD_PLAYER_CPP
 }
 
 /*
@@ -1206,9 +1236,14 @@ void idPlayer::Init( void ) {
 	oldButtons				= 0;
 	oldFlags				= 0;
 
+#ifdef _DENTONMOD_PLAYER_CPP
+	memset( &weaponZoom, 0, sizeof( weaponZoom ) ); // New
+#endif //_DENTONMOD_PLAYER_CPP
+
 	currentWeapon			= -1;
 	idealWeapon				= -1;
 	previousWeapon			= -1;
+	quickWeapon				= -1; //new
 	weaponSwitchTime		= 0;
 	weaponEnabled			= true;
 	weapon_soulcube			= SlotForWeapon( "weapon_soulcube" );
@@ -1268,6 +1303,7 @@ void idPlayer::Init( void ) {
 	SetupWeaponEntity();
 	currentWeapon = -1;
 	previousWeapon = -1;
+	quickWeapon	= -1; //new
 
 	heartRate = BASE_HEARTRATE;
 	AdjustHeartRate( BASE_HEARTRATE, 0.0f, 0.0f, true );
@@ -1592,6 +1628,36 @@ void idPlayer::Spawn( void ) {
 			}
 		}
 	}
+	//Setup the weapon toggle lists //NEW
+	const idKeyValue *kv;
+	kv = spawnArgs.MatchPrefix( "weapontoggle", NULL );
+	while( kv ) {
+		WeaponToggle_t newToggle;
+		strcpy(newToggle.name, kv->GetKey().c_str());
+
+		idStr toggleData = kv->GetValue();
+
+		idLexer src;
+		idToken token;
+		src.LoadMemory(toggleData, toggleData.Length(), "toggleData");
+		while(1) {
+			if(!src.ReadToken(&token)) {
+				break;
+			}
+			int index = atoi(token.c_str());
+			newToggle.toggleList.Append(index);
+
+			//Skip the ,
+			src.ReadToken(&token);
+		}
+		weaponToggles.Set(newToggle.name, newToggle);
+
+		kv = spawnArgs.MatchPrefix( "weapontoggle", kv );
+	}
+
+#ifdef _DENTONMOD_PLAYER_CPP
+	memset(	projectileType, 0, sizeof(projectileType) );
+#endif
 }
 
 /*
@@ -1728,6 +1794,7 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( currentWeapon );
 	savefile->WriteInt( idealWeapon );
 	savefile->WriteInt( previousWeapon );
+	savefile->WriteInt( quickWeapon );      //new
 	savefile->WriteInt( weaponSwitchTime );
 	savefile->WriteBool( weaponEnabled );
 	savefile->WriteBool( showWeaponViewModel );
@@ -1746,6 +1813,17 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( gibDeath );
 	savefile->WriteBool( gibsLaunched );
 	savefile->WriteVec3( gibsDir );
+
+	//Remeber the order of saving this info... cause last time I did a stupid mistake....
+#ifdef _DENTONMOD_PLAYER_CPP
+	weaponZoom_s flags = weaponZoom;			// Save the weapon Zoom Info
+	LittleBitField( &flags, sizeof( flags ) ); 
+	savefile->Write( &flags, sizeof( flags ) );
+
+	for( i = 0; i < MAX_WEAPONS; i++ ) {
+		savefile->WriteByte( projectileType[ i ] );
+	}
+#endif //_DENTONMOD_PLAYER_CPP
 
 	savefile->WriteFloat( zoomFov.GetStartTime() );
 	savefile->WriteFloat( zoomFov.GetDuration() );
@@ -1814,6 +1892,15 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	if ( hud ) {
 		hud->SetStateString( "message", common->GetLanguageDict()->GetString( "#str_02916" ) );
 		hud->HandleNamedEvent( "Message" );
+	}
+	savefile->WriteInt(weaponToggles.Num());         //new, all lines from here
+	for(i = 0; i < weaponToggles.Num(); i++) {
+		WeaponToggle_t* weaponToggle = weaponToggles.GetIndex(i);
+		savefile->WriteString(weaponToggle->name);
+		savefile->WriteInt(weaponToggle->toggleList.Num());
+		for(int j = 0; j < weaponToggle->toggleList.Num(); j++) {
+			savefile->WriteInt(weaponToggle->toggleList[j]);
+		}
 	}
 }
 
@@ -1960,6 +2047,7 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( currentWeapon );
 	savefile->ReadInt( idealWeapon );
 	savefile->ReadInt( previousWeapon );
+	savefile->ReadInt( quickWeapon );   //new
 	savefile->ReadInt( weaponSwitchTime );
 	savefile->ReadBool( weaponEnabled );
 	savefile->ReadBool( showWeaponViewModel );
@@ -1978,6 +2066,16 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( gibDeath );
 	savefile->ReadBool( gibsLaunched );
 	savefile->ReadVec3( gibsDir );
+
+#ifdef _DENTONMOD_PLAYER_CPP
+	// Remember the order of saving this info...
+	savefile->Read( &weaponZoom, sizeof( weaponZoom ) );
+	LittleBitField( &weaponZoom, sizeof( weaponZoom ) );
+
+	for( i = 0; i < MAX_WEAPONS; i++ ) {
+		savefile->ReadByte( projectileType[ i ] );
+	}
+#endif //_DENTONMOD_PLAYER_CPP
 
 	savefile->ReadFloat( set );
 	zoomFov.SetStartTime( set );
@@ -2063,6 +2161,25 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
+	int weaponToggleCount;  //new all lines from here
+	savefile->ReadInt(weaponToggleCount);
+	for(i = 0; i < weaponToggleCount; i++) {
+		WeaponToggle_t newToggle;
+		memset(&newToggle, 0, sizeof(newToggle));
+
+		idStr name;
+		savefile->ReadString(name);
+		strcpy(newToggle.name, name.c_str());
+
+		int indexCount;
+		savefile->ReadInt(indexCount);
+		for(int j = 0; j < indexCount; j++) {
+			int temp;
+			savefile->ReadInt(temp);
+			newToggle.toggleList.Append(temp);
+		}
+		weaponToggles.Set(newToggle.name, newToggle);
+	}
 }
 
 /*
@@ -2488,15 +2605,17 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 		_hud->SetStateString( "player_totalammo", "" );
 	} else {
 		// show remaining ammo
-		_hud->SetStateString( "player_totalammo", va( "%i", ammoamount - inclip ) );
+		_hud->SetStateString( "player_totalammo", va( "%i", ammoamount ) ); //new
 		_hud->SetStateString( "player_ammo", weapon.GetEntity()->ClipSize() ? va( "%i", inclip ) : "--" );		// how much in the current clip
 		_hud->SetStateString( "player_clips", weapon.GetEntity()->ClipSize() ? va( "%i", ammoamount / weapon.GetEntity()->ClipSize() ) : "--" );
-		_hud->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount - inclip ) );
+		_hud->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount ) ); //new
 	}
 
 	_hud->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
 	_hud->SetStateBool( "player_clip_empty", ( weapon.GetEntity()->ClipSize() ? inclip == 0 : false ) );
 	_hud->SetStateBool( "player_clip_low", ( weapon.GetEntity()->ClipSize() ? inclip <= weapon.GetEntity()->LowAmmo() : false ) );
+	// Let the HUD know the total amount of ammo regardless of the ammo required value
+	_hud->SetStateString( "player_ammo_count", va("%i", weapon.GetEntity()->AmmoCount())); // new
 
 	_hud->HandleNamedEvent( "updateAmmo" );
 }
@@ -2787,15 +2906,30 @@ void idPlayer::FireWeapon( void ) {
 	}
 
 	if ( !hiddenWeapon && weapon.GetEntity()->IsReady() ) {
+
+#ifdef _DENTONMOD
+		if ( ( weapon_soulcube >= 0 ) && ( currentWeapon == weapon_soulcube ) && currentWeapon == idealWeapon ) {
+			if ( hud ) {
+				hud->HandleNamedEvent( "soulCubeNotReady" );
+			}
+			quickWeapon = weapon_soulcube; 
+			SelectWeapon( previousWeapon, false );
+		}
 		if ( weapon.GetEntity()->AmmoInClip() || weapon.GetEntity()->AmmoAvailable() ) {
 			AI_ATTACK_HELD = true;
 			weapon.GetEntity()->BeginAttack();
+#else
+		if ( weapon.GetEntity()->AmmoInClip() || weapon.GetEntity()->AmmoAvailable() ) {
+			AI_ATTACK_HELD = true;
+			weapon.GetEntity()->BeginAttack();
+
 			if ( ( weapon_soulcube >= 0 ) && ( currentWeapon == weapon_soulcube ) ) {
 				if ( hud ) {
 					hud->HandleNamedEvent( "soulCubeNotReady" );
 				}
 				SelectWeapon( previousWeapon, false );
 			}
+#endif
 		} else {
 			NextBestWeapon();
 		}
@@ -2958,7 +3092,9 @@ bool idPlayer::GiveItem( idItem *item ) {
 
 	// display the pickup feedback on the hud
 	if ( gave && ( numPickup == inventory.pickupItemNames.Num() ) ) {
-		inventory.AddPickupName( item->spawnArgs.GetString( "inv_name" ), item->spawnArgs.GetString( "inv_icon" ) );
+		//		inventory.AddPickupName( item->spawnArgs.GetString( "inv_name" ), item->spawnArgs.GetString( "inv_icon" ) );
+		inventory.AddPickupName( item->spawnArgs.GetString( "inv_name" ), item->spawnArgs.GetString( "inv_icon" ), this ); //New _D3XP
+
 	}
 
 	return gave;
@@ -3486,6 +3622,27 @@ void idPlayer::Reload( void ) {
 		weapon.GetEntity()->Reload();
 	}
 }
+/*
+===============
+idPlayer::WeaponSpecialFunction 
+
+Weapon special function- Added by Clone JC Denton
+===============
+*/
+void idPlayer::WeaponSpecialFunction( bool keyTapped ) {
+
+	if ( gameLocal.isClient ) {
+		return;
+	}
+
+	if ( spectating || gameLocal.inCinematic || influenceActive ) {
+		return;
+	}
+
+	if ( !hiddenWeapon && weapon.GetEntity() && weapon.GetEntity()->IsLinked() ) {
+		weapon.GetEntity()->BeginSpecialFunction( keyTapped );
+	}
+}
 
 /*
 ===============
@@ -3496,14 +3653,19 @@ void idPlayer::NextBestWeapon( void ) {
 	const char *weap;
 	int w = MAX_WEAPONS;
 
+#ifdef _DENTONMOD
+	if ( gameLocal.isClient || !weaponEnabled || currentWeapon != idealWeapon ) {
+#else
 	if ( gameLocal.isClient || !weaponEnabled ) {
+#endif
 		return;
 	}
 
 	while ( w > 0 ) {
 		w--;
 		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if ( !weap[ 0 ] || ( ( inventory.weapons & ( 1 << w ) ) == 0 ) || ( !inventory.HasAmmo( weap ) ) ) {
+		if ( !weap[ 0 ] || ( ( inventory.weapons & ( 1 << w ) ) == 0 ) || ( !inventory.HasAmmo( weap, true, this ) ) ) { //new
+			//if ( !weap[ 0 ] || ( ( inventory.weapons & ( 1 << w ) ) == 0 ) || ( !inventory.HasAmmo( weap ) ) ) {
 			continue;
 		}
 		if ( !spawnArgs.GetBool( va( "weapon%d_best", w ) ) ) {
@@ -3511,6 +3673,11 @@ void idPlayer::NextBestWeapon( void ) {
 		}
 		break;
 	}
+#ifdef _DENTONMOD
+	if( w != idealWeapon ) {
+		quickWeapon = idealWeapon;
+	}
+#endif
 	idealWeapon = w;
 	weaponSwitchTime = gameLocal.time + WEAPON_SWITCH_DELAY;
 	UpdateHudWeapon();
@@ -3554,7 +3721,8 @@ void idPlayer::NextWeapon( void ) {
 		if ( ( inventory.weapons & ( 1 << w ) ) == 0 ) {
 			continue;
 		}
-		if ( inventory.HasAmmo( weap ) ) {
+		if ( inventory.HasAmmo( weap, true, this ) ) {//new
+			//		if ( inventory.HasAmmo( weap ) ) {
 			break;
 		}
 	}
@@ -3604,7 +3772,8 @@ void idPlayer::PrevWeapon( void ) {
 		if ( ( inventory.weapons & ( 1 << w ) ) == 0 ) {
 			continue;
 		}
-		if ( inventory.HasAmmo( weap ) ) {
+		if ( inventory.HasAmmo( weap, true, this ) ) { //new
+			//if ( inventory.HasAmmo( weap ) ) { 
 			break;
 		}
 	}
@@ -3621,7 +3790,7 @@ void idPlayer::PrevWeapon( void ) {
 idPlayer::SelectWeapon
 ===============
 */
-void idPlayer::SelectWeapon( int num, bool force ) {
+void idPlayer::SelectWeapon( int num, bool force, const bool toggleWeapons ) {
 	const char *weap;
 
 	if ( !weaponEnabled || spectating || gameLocal.inCinematic || health < 0 ) {
@@ -3652,13 +3821,59 @@ void idPlayer::SelectWeapon( int num, bool force ) {
 		return;
 	}
 
+
+	WeaponToggle_t* weaponToggle;
+
+	//Is the weapon a toggle weapon & player is trying to select it.
+	if(weaponToggles.Get(va("weapontoggle%d", num), &weaponToggle) && toggleWeapons ) {
+
+		int weaponToggleIndex = 0;
+
+		//Find the current Weapon in the list
+		int currentIndex = -1;
+		for(int i = 0; i < weaponToggle->toggleList.Num(); i++) {
+			if(weaponToggle->toggleList[i] == idealWeapon) {
+				currentIndex = i;
+				break;
+			}
+		}
+		if(currentIndex == -1) {
+			//Didn't find the current weapon so select the first item
+			weaponToggleIndex = 0;
+		} else {
+			//Roll to the next available item in the list
+			weaponToggleIndex = currentIndex;
+			weaponToggleIndex++;
+			if(weaponToggleIndex >= weaponToggle->toggleList.Num()) {
+				weaponToggleIndex = 0;
+			}
+		}
+
+		for(int i = 0; i < weaponToggle->toggleList.Num(); i++) {
+
+			//Is it available
+			if(inventory.weapons & ( 1 << weaponToggle->toggleList[weaponToggleIndex])) {
+				break;
+			}
+
+			weaponToggleIndex++;
+			if(weaponToggleIndex >= weaponToggle->toggleList.Num()) {
+				weaponToggleIndex = 0;
+			}
+		}
+
+		num = weaponToggle->toggleList[weaponToggleIndex];
+	}
+
 	if ( force || ( inventory.weapons & ( 1 << num ) ) ) {
-		if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {
+
+		if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {
 			return;
 		}
 		if ( ( previousWeapon >= 0 ) && ( idealWeapon == num ) && ( spawnArgs.GetBool( va( "weapon%d_toggle", num ) ) ) ) {
 			weap = spawnArgs.GetString( va( "def_weapon%d", previousWeapon ) );
-			if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {
+
+			if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {
 				return;
 			}
 			idealWeapon = previousWeapon;
@@ -3699,6 +3914,7 @@ void idPlayer::DropWeapon( bool died ) {
 	if ( !idStr::Icmp( idWeapon::GetAmmoNameForNum( weapon.GetEntity()->GetAmmoType() ), "ammo_grenades" ) && ( ammoavailable - inclip <= 0 ) ) {
 		return;
 	}
+	ammoavailable += inclip;  //new
 
 	// expect an ammo setup that makes sense before doing any dropping
 	// ammoavailable is -1 for infinite ammo, and weapons like chainsaw
@@ -3725,6 +3941,7 @@ void idPlayer::DropWeapon( bool died ) {
 		item->spawnArgs.SetInt( keyval->GetKey(), ammoavailable );
 		idStr inclipKey = keyval->GetKey();
 		inclipKey.Insert( "inclip_", 4 );
+		inclipKey.Insert( va("%.2d", currentWeapon), 11);//new
 		item->spawnArgs.SetInt( inclipKey, inclip );
 	}
 	if ( !died ) {
@@ -3764,6 +3981,9 @@ void idPlayer::StealWeapon( idPlayer *player ) {
 	assert( weapon_classname );
 	int ammoavailable = player->weapon.GetEntity()->AmmoAvailable();
 	int inclip = player->weapon.GetEntity()->AmmoInClip();
+
+	ammoavailable += inclip; //new
+
 	if ( ( ammoavailable != -1 ) && ( ammoavailable - inclip < 0 ) ) {
 		// see DropWeapon
 		common->DPrintf( "idPlayer::StealWeapon: bad ammo setup\n" );
@@ -3871,8 +4091,21 @@ void idPlayer::Weapon_Combat( void ) {
 		weaponGone = false;	// if you drop and re-get weap, you may miss the = false above
 		if ( weapon.GetEntity()->IsHolstered() ) {
 			if ( !weapon.GetEntity()->AmmoAvailable() ) {
+#ifdef _DENTONMOD	// If weapon with no ammo is soulcube, switch to previous weapon	
+				if ( ( weapon_soulcube >= 0 ) && ( currentWeapon == weapon_soulcube ) && currentWeapon == idealWeapon ) {
+					if ( hud ) {
+						hud->HandleNamedEvent( "soulCubeNotReady" );
+					}
+					quickWeapon = weapon_soulcube; 
+					SelectWeapon( previousWeapon, false );
+				} else {
+					// weapons can switch automatically if they have no more ammo
+					NextBestWeapon();
+				}
+#else
 				// weapons can switch automatically if they have no more ammo
 				NextBestWeapon();
+#endif
 			} else {
 				weapon.GetEntity()->Raise();
 				state = GetScriptFunction( "RaiseWeapon" );
@@ -3891,6 +4124,13 @@ void idPlayer::Weapon_Combat( void ) {
 		} else if ( oldButtons & BUTTON_ATTACK ) {
 			AI_ATTACK_HELD = false;
 			weapon.GetEntity()->EndAttack();
+		}
+
+		// check for Weapon special function, new
+		if ( ( usercmd.buttons & BUTTON_5 ) && !weaponGone ) {  // BUTTON_5 is being used for weapon special function 
+			WeaponSpecialFunction( !(oldButtons & BUTTON_5) );	// The condition holds True when key is being tapped rather than held
+		} else if ( oldButtons & BUTTON_5 ) {
+			weapon.GetEntity()->EndSpecialFunction();
 		}
 	}
 
@@ -5537,6 +5777,7 @@ idPlayer::PerformImpulse
 ==============
 */
 void idPlayer::PerformImpulse( int impulse ) {
+	int prevIdealWeap;
 
 	if ( gameLocal.isClient ) {
 		idBitMsg	msg;
@@ -5549,22 +5790,65 @@ void idPlayer::PerformImpulse( int impulse ) {
 		ClientSendEvent( EVENT_IMPULSE, &msg );
 	}
 
-	if ( impulse >= IMPULSE_0 && impulse <= IMPULSE_12 ) {
-		SelectWeapon( impulse, false );
+	if ( impulse == IMPULSE_21 || (impulse >= IMPULSE_23 && impulse <= IMPULSE_27) ) {
+
+		int weap;
+		if ( spawnArgs.GetInt ( va("impulse%d", impulse), "0", weap ) ) {
+			prevIdealWeap = idealWeapon;
+			SelectWeapon( weap, false);
+			if( idealWeapon != prevIdealWeap ) {
+				quickWeapon = prevIdealWeap;
+			}
+		}
 		return;
 	}
 
+	if ( impulse >= IMPULSE_0 && impulse <= IMPULSE_12 ) {
+		WeaponToggle_t* weaponToggle;
+
+		// This loop works as a small bug fix for toggle weapons -By Clone JC Denton
+		// It simply increments the impulse value if there are multiple weapons under one weapon slot.
+
+		for (int i=0; i<impulse; i++) {
+			if (weaponToggles.Get(va("weapontoggle%d", i), &weaponToggle))
+				impulse += weaponToggle->toggleList.Num() - 1;
+		}
+
+		prevIdealWeap = idealWeapon;
+		SelectWeapon( impulse, false, true);
+		if( idealWeapon != prevIdealWeap ) {
+			quickWeapon = prevIdealWeap;
+		}
+		return;
+	}
 	switch( impulse ) {
 		case IMPULSE_13: {
 			Reload();
 			break;
 		}
 		case IMPULSE_14: {
+			prevIdealWeap = idealWeapon;
 			NextWeapon();
+			if( idealWeapon != prevIdealWeap ) {
+				quickWeapon = prevIdealWeap;
+			}
 			break;
 		}
 		case IMPULSE_15: {
+			prevIdealWeap = idealWeapon;
 			PrevWeapon();
+			if( idealWeapon != prevIdealWeap ) {
+				quickWeapon = prevIdealWeap;
+			}
+			break;
+						 }
+		case IMPULSE_16: { // New, for half-life style quick weapon
+			if ( quickWeapon == -1 ) {
+				return;
+			}
+			prevIdealWeap = idealWeapon;
+			SelectWeapon( quickWeapon, false );
+			quickWeapon = prevIdealWeap;
 			break;
 		}
 		case IMPULSE_17: {
@@ -5613,6 +5897,10 @@ void idPlayer::PerformImpulse( int impulse ) {
 			}
 			break;
 		}
+		/*	case IMPULSE_30: {
+			WeaponSpecialFunction ();
+			break;
+		}*/
 		case IMPULSE_40: {
 			UseVehicle();
 			break;
@@ -6249,6 +6537,19 @@ void idPlayer::Think( void ) {
 		}
 	}
 
+#ifdef _DENTONMOD_PLAYER_CPP
+	// zooming, initiated by weapon script 
+	if ( ( weaponZoom.oldZoomStatus ^ weaponZoom.startZoom ) ) {
+		if ( weaponZoom.startZoom && weapon.GetEntity() ) {
+			weaponZoom.oldZoomStatus = true;
+			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
+		} else {
+			weaponZoom.oldZoomStatus = false;
+			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
+		}
+	}
+#endif //_DENTONMOD_PLAYER_CPP
+
 	// if we have an active gui, we will unrotate the view angles as
 	// we turn the mouse movements into gui events
 	idUserInterface *gui = ActiveGui();
@@ -6394,6 +6695,10 @@ void idPlayer::Think( void ) {
 		}
 		gameLocal.Printf( "%d: enemies\n", num );
 	}
+#ifdef _PORTALSKY
+	// determine if portal sky is in pvs
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( gameLocal.GetPlayerPVS(), GetPhysics()->GetOrigin() );
+#endif
 }
 
 /*
@@ -6961,8 +7266,13 @@ float idPlayer::CalcFov( bool honorZoom ) {
 		return influenceFov;
 	}
 
+#ifdef _DENTONMOD_PLAYER_CPP
 	if ( zoomFov.IsDone( gameLocal.time ) ) {
-		fov = ( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
+		fov = ( honorZoom && ((usercmd.buttons & BUTTON_ZOOM) || weaponZoom.startZoom )) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD
+#else
+	if ( zoomFov.IsDone( gameLocal.time ) ) {
+		fov = ( honorZoom && (usercmd.buttons & BUTTON_ZOOM)) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD
+#endif// _DENTONMOD_PLAYER_CPP
 	} else {
 		fov = zoomFov.GetCurrentValue( gameLocal.time );
 	}
@@ -7665,7 +7975,11 @@ void idPlayer::Event_SelectWeapon( const char *weaponName ) {
 	}
 
 	if ( hiddenWeapon && gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) {
+#ifdef _DENTONMOD
+		idealWeapon = quickWeapon = weapon_fists;
+#else
 		idealWeapon = weapon_fists;
+#endif
 		weapon.GetEntity()->HideWeapon();
 		return;
 	}
@@ -7687,7 +8001,13 @@ void idPlayer::Event_SelectWeapon( const char *weaponName ) {
 	}
 
 	hiddenWeapon = false;
+
+#ifdef _DENTONMOD
+	if( idealWeapon != weaponNum ) {
+		quickWeapon = idealWeapon;
+	}
 	idealWeapon = weaponNum;
+#endif
 
 	UpdateHudWeapon();
 }
@@ -7923,6 +8243,13 @@ void idPlayer::ClientPredictionThink( void ) {
 	if ( gameLocal.isNewFrame && entityNumber == gameLocal.localClientNum ) {
 		playerView.CalculateShake();
 	}
+
+#ifdef _PORTALSKY
+	// determine if portal sky is in pvs
+	pvsHandle_t	clientPVS = gameLocal.pvs.SetupCurrentPVS( GetPVSAreas(), GetNumPVSAreas() );
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( clientPVS, GetPhysics()->GetOrigin() );
+	gameLocal.pvs.FreeCurrentPVS( clientPVS );
+#endif
 }
 
 /*
@@ -8161,7 +8488,8 @@ void idPlayer::WritePlayerStateToSnapshot( idBitMsgDelta &msg ) const {
 	msg.WriteByte( bobCycle );
 	msg.WriteInt( stepUpTime );
 	msg.WriteFloat( stepUpDelta );
-	msg.WriteShort( inventory.weapons );
+	msg.WriteInt( inventory.weapons );//new
+	//	msg.WriteShort( inventory.weapons );
 	msg.WriteByte( inventory.armor );
 
 	for( i = 0; i < AMMO_NUMTYPES; i++ ) {
@@ -8183,7 +8511,8 @@ void idPlayer::ReadPlayerStateFromSnapshot( const idBitMsgDelta &msg ) {
 	bobCycle = msg.ReadByte();
 	stepUpTime = msg.ReadInt();
 	stepUpDelta = msg.ReadFloat();
-	inventory.weapons = msg.ReadShort();
+	inventory.weapons = msg.ReadInt();//new
+	//	inventory.weapons = msg.ReadShort();
 	inventory.armor = msg.ReadByte();
 
 	for( i = 0; i < AMMO_NUMTYPES; i++ ) {
@@ -8244,6 +8573,12 @@ bool idPlayer::ClientReceiveEvent( int event, int time, const idBitMsg &msg ) {
 			} else {
 				ClearPowerup( powerup );
 			}
+			return true;
+		}
+		case EVENT_PICKUPNAME: { //New, Not so sure what it does
+			char buf[MAX_EVENT_PARAM_SIZE];
+			msg.ReadString(buf, MAX_EVENT_PARAM_SIZE);
+			inventory.AddPickupName(buf, "", this); //New from_D3XP
 			return true;
 		}
 		case EVENT_SPECTATE: {
@@ -8520,3 +8855,51 @@ bool idPlayer::NeedsIcon( void ) {
 	// local clients don't render their own icons... they're only info for other clients
 	return entityNumber != gameLocal.localClientNum && ( isLagged || isChatting );
 }
+
+/*
+==================
+idPlayer::Event_WeaponAvailable
+==================
+*/
+void idPlayer::Event_WeaponAvailable( const char* name ) {
+
+	idThread::ReturnInt( WeaponAvailable(name) ? 1 : 0 );
+}
+
+/*
+==================
+idPlayer::Event_GetImpulseKey
+==================
+*/
+void idPlayer::Event_GetImpulseKey( void ) {
+	idThread::ReturnInt( usercmd.impulse );
+}
+
+bool idPlayer::WeaponAvailable( const char* name ) {
+	for( int i = 0; i < MAX_WEAPONS; i++ ) {
+		if ( inventory.weapons & ( 1 << i ) ) {
+			const char *weap = spawnArgs.GetString( va( "def_weapon%d", i ) );
+			if ( !idStr::Cmp( weap, name ) ) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/*  
+=================
+idPlayer::GetCurrentWeapon			//New
+=================
+
+idStr idPlayer::GetCurrentWeapon() {
+const char *weapon;
+
+if ( currentWeapon >= 0 ) {
+weapon = spawnArgs.GetString( va( "def_weapon%d", currentWeapon ) );
+return weapon;
+} else {
+return "";
+}
+}
+*/

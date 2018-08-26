@@ -36,7 +36,18 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "PlayerView.h"
 
+static int MakePowerOfTwo( int num ) {
+	int		pot;
+	for (pot = 1 ; pot < num ; pot<<=1) {
+	}
+	return pot;
+}
+
 const int IMPULSE_DELAY = 150;
+
+const char *blurxMaterial[5] = { "textures/fsfx/blurx64", "textures/fsfx/blurx128", "textures/fsfx/blurx256", "textures/fsfx/blurx512", "textures/fsfx/blurx1024" };
+const char *bluryMaterial[5] = { "textures/fsfx/blury32", "textures/fsfx/blury64", "textures/fsfx/blury128", "textures/fsfx/blury256", "textures/fsfx/blury512" };
+	
 /*
 ==============
 idPlayerView::idPlayerView
@@ -55,6 +66,11 @@ idPlayerView::idPlayerView() {
 	bfgMaterial = declManager->FindMaterial( "textures/decals/bfgvision" );
 	lagoMaterial = declManager->FindMaterial( LAGO_MATERIAL, false );
 	bfgVision = false;
+#ifdef _DENTONMOD
+	//initWeights = false;
+	shiftSensitivityDelay = 0;
+	screenHeight = screenWidth = 0;
+#endif
 	dvFinishTime = 0;
 	kickFinishTime = 0;
 	kickAngles.Zero();
@@ -452,6 +468,39 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 	renderView_t	hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 
+#ifdef _PORTALSKY
+	if ( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() ) {
+
+		renderView_t	portalView = hackedView;
+		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+		// setup global fixup projection vars
+		if ( 1 ) {
+			int vidWidth, vidHeight;
+			idVec2 shiftScale;
+
+			renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+			float pot;
+			int	 w = vidWidth;
+			pot = MakePowerOfTwo( w );
+			shiftScale.x = (float)w / pot;
+
+			int	 h = vidHeight;
+			pot = MakePowerOfTwo( h );
+			shiftScale.y = (float)h / pot;
+
+			hackedView.shaderParms[4] = shiftScale.x;
+			hackedView.shaderParms[5] = shiftScale.y;
+		}
+
+		gameRenderWorld->RenderScene( &portalView );
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+
+		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
+	}
+#endif // _PORTALSKY
+
 	gameRenderWorld->RenderScene( &hackedView );
 
 	if ( player->spectating ) {
@@ -477,7 +526,8 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 				renderSystem->DrawStretchPic( blob->x, blob->y, blob->w, blob->h,blob->s1, blob->t1, blob->s2, blob->t2, blob->material );
 			}
 		}
-		player->DrawHUD( hud );
+
+		/*		player->DrawHUD( hud );*/
 
 		// armor impulse feedback
 		float	armorPulse = ( gameLocal.time - player->lastArmorPulse ) / 250.0f;
@@ -707,6 +757,27 @@ void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
 	if ( g_skipViewEffects.GetBool() ) {
 		SingleView( hud, view );
 	} else {
+
+#ifdef _DENTONMOD
+		// This condition makes sure that, the 2 loops inside run once only when resolution changes or map starts.
+		if( screenHeight != renderSystem->GetScreenHeight() || screenWidth !=renderSystem->GetScreenWidth() ) {
+			int width = 1, height = 1;	
+
+			screenHeight	= renderSystem->GetScreenHeight();
+			screenWidth		= renderSystem->GetScreenWidth();
+
+			while( width < screenWidth ) {
+				width <<= 1;
+			}
+			while( height < screenHeight ) {
+				height <<= 1;
+			}
+			shiftScale_x = screenWidth  / (float)width;
+			shiftScale_y = screenHeight / (float)height;
+		}
+#endif
+
+		/* Render the standard view */
 		if ( player->GetInfluenceMaterial() || player->GetInfluenceEntity() ) {
 			InfluenceVision( hud, view );
 		} else if ( gameLocal.time < dvFinishTime ) {
@@ -716,7 +787,169 @@ void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
 		} else {
 			SingleView( hud, view );
 		}
-		ScreenFade();
+
+#ifdef _DENTONMOD
+		/* Render bloom */
+		int bloomType = r_bloom.GetInteger();
+		if (bloomType != 0 && !player->objectiveSystemOpen) {
+
+			float blur_str, blur_cut, src_str, src_cut;
+
+			renderSystem->CaptureRenderToImage( "_currentRender" );
+			//------------------------------------------------
+			// Maha_x's Shift Sensitivity - Modified for compatibilty by Clone JCDenton
+			//------------------------------------------------
+
+			bool disableShiftSensitivity = ( r_bloom_shiftSensitivity_delay.GetInteger() == -1 );
+			if( !disableShiftSensitivity && (bloomType == 1 || bloomType == 2) && gameLocal.time > shiftSensitivityDelay ) { 
+				renderSystem->CropRenderSize(2, 2, true, true);
+				shiftSensitivityDelay = gameLocal.time + r_bloom_shiftSensitivity_delay.GetInteger(); 
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/AFX/AFXweight" ) );
+				renderSystem->CaptureRenderToImage( "_afxweight" );
+				renderSystem->UnCrop();
+			}
+			//------------------------------------------------
+
+			//-------------------------------------------------
+			// User configurable buffer size - By Clone JC Denton
+			//-------------------------------------------------
+
+			int bufferMult = 5 - r_bloom_buffer.GetInteger();
+			int blurMtrIndex;
+			if( bufferMult < 5 ) {
+				if( bufferMult <= 0 ) {
+					bufferMult = 1;
+					blurMtrIndex = 4;
+				}
+				else {
+					blurMtrIndex = 4 - bufferMult;
+					bufferMult = 1<<bufferMult;
+				}
+				renderSystem->CropRenderSize(1024/bufferMult, 512/bufferMult, true, true);
+			}
+			else {
+				renderSystem->CropRenderSize(512, 256, true, true);
+				blurMtrIndex = 3;
+			}
+			//-------------------------------------------------
+			//renderSystem->CropRenderSize(256, 128, true, true);
+
+			renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
+			renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale_y, shiftScale_x, 0, declManager->FindMaterial( "_currentRender" ) );
+
+			int bloomContrast = r_bloom_contrast.GetInteger();
+
+			if( bloomType == 2 && bloomContrast > 0 ) {
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );
+
+				if( !disableShiftSensitivity ) {
+					renderSystem->SetColor4( r_bloom_contrast_mult.GetFloat(), r_bloom_contrast_min.GetFloat(), 1.0f, 1.0f );
+				} else {
+					renderSystem->SetColor4( r_bloom_contrast_mult.GetFloat(), r_bloom_contrast_mult.GetFloat(), 1.0f, 1.0f );
+				}
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/AFX/AFXmodulate" ) );
+			} 
+			else if( bloomType > 2 ) {
+				blur_str = r_bloom_blur_mult.GetFloat();
+				blur_cut = blur_str - (int)blur_str;
+				src_str = r_bloom_src_mult.GetFloat();
+				src_cut = src_str - (int)src_str;
+
+				if( bloomContrast == 1) {
+					renderSystem->CaptureRenderToImage( "_fsfx_input" );
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/blend_modulate_2x" ) );
+				} else if( bloomContrast == 2 ) {
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/invert_dst" ) );
+
+					renderSystem->SetColor4( 0.1f, 0.1f, 0.1f, 1.0f);
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/add_color" ) );
+
+					renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f);
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/invert_dst" ) );
+
+					renderSystem->CaptureRenderToImage( "_fsfx_input" );
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/blend_add" ) );
+				}
+			}
+
+			if( bloomType == 1 && bloomContrast > 0 ) {
+				//Unlike other bloomType, we are using the blurred image for obtaining bloom contrast.
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( blurxMaterial[blurMtrIndex] ) );
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( bluryMaterial[blurMtrIndex] ) );
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );	
+
+				if( !disableShiftSensitivity ) {
+					renderSystem->SetColor4(r_bloom_contrast_mult.GetFloat(), r_bloom_contrast_min.GetFloat(), 1, 1);
+				} else {
+					renderSystem->SetColor4(r_bloom_contrast_mult.GetFloat(), r_bloom_contrast_mult.GetFloat(), 1, 1);
+				}
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/AFX/AFXmodulate" ) );
+			}
+
+			for( int i=0; i < r_bloom_blurIterations.GetInteger(); i++ ) {
+				// Two pass gaussian filter					
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( blurxMaterial[blurMtrIndex] ) );
+				renderSystem->CaptureRenderToImage( "_fsfx_input" );
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( bluryMaterial[blurMtrIndex] ) );
+			}
+
+
+			if( bloomType > 2 ) {
+				if ((blur_str == 0.0f) || (blur_cut > 0.0f)) {
+					renderSystem->SetColor4( 0, 0, 0, 1.0f - blur_cut);
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1, 1, declManager->FindMaterial( "_white" ) );
+					blur_str -= blur_cut;
+				} else {
+					blur_str -= 1.0f;
+				} 
+
+				renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
+
+				if( blur_str >= 1.0f ) {									// two new lines, minor fix by Clone JCD	
+					renderSystem->CaptureRenderToImage( "_fsfx_input" );	// Need to capture the current image before drawing blend_add
+					while (blur_str >= 1.0f) {
+						renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/blend_add" ) );
+						blur_str -= 1.0f;
+					}
+				}
+			}
+			renderSystem->CaptureRenderToImage( "_fsfx_input" );
+
+			renderSystem->UnCrop();
+
+			if( bloomType <= 2) {
+				renderSystem->SetColor4( r_bloom_blur_mult.GetFloat(), r_bloom_src_mult.GetFloat(), 1.0f, 1.0f );
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/AFX/AFXadd" ) );
+			}
+			else {
+				if ((src_str == 0.0f) || (src_cut > 0.0f)) {
+					renderSystem->SetColor4( src_cut, src_cut, src_cut, 1.0f);
+					src_str -= src_cut;
+				} else {
+					src_str -= 1.0f;
+				}
+
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale_y, shiftScale_x, 0, declManager->FindMaterial( "_currentRender" ) );
+
+				renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
+				while (src_str >= 1.0f) {
+					renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale_y, shiftScale_x, 0, declManager->FindMaterial( "textures/fsfx/current_blend_add" ) );
+					src_str -= 1.0f;
+				}
+				renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, declManager->FindMaterial( "textures/fsfx/blend_add" ) );
+			}
+
+		}	
+#endif
+			ScreenFade();
+	}
+
+	/* Render the hud on top of everything */
+	if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() && !player->objectiveSystemOpen && !player->spectating ) {
+		player->DrawHUD( hud );
 	}
 
 	if ( net_clientLagOMeter.GetBool() && lagoMaterial && gameLocal.isClient ) {

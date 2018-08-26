@@ -2180,7 +2180,12 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 	}
 
 	int	damage = damageDef->GetInt( "damage" ) * damageScale;
-	damage = GetDamageForLocation( damage, location );
+
+	// By Clone JCD For Improved damage behaviour
+	if (health > 0){ // Make sure that an actor is alive when we go for Damage location
+		damage = GetDamageForLocation( damage, location ); 
+//		gameLocal.Printf(" \n damage applied: %d", damage );
+	}
 
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );
@@ -2191,7 +2196,15 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
+    
+			//Improved Gibbing System by Clone JC Denton
+
+			int healthToGib = spawnArgs.GetInt ("gibHealth"); // GibHealth is suppossed to be declared in entityDef
+
+			if (healthToGib == 0)	// If its not there, set it to default value
+				healthToGib = -20 ;
+
+			if ( ( health < healthToGib ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
 				Gib( dir, damageDefName );
 			}
 		} else {

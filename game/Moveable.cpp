@@ -75,6 +75,10 @@ idMoveable::idMoveable( void ) {
 	unbindOnDeath		= false;
 	allowStep			= false;
 	canDamage			= false;
+
+/*#ifdef _DENTONMOD
+	entDamageEffects	= NULL;
+#endif*/
 }
 
 /*
@@ -274,7 +278,7 @@ bool idMoveable::Collide( const trace_t &collision, const idVec3 &velocity ) {
 	v = -( velocity * collision.c.normal );
 	if ( v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.time > nextSoundTime ) {
 		f = v > BOUNCE_SOUND_MAX_VELOCITY ? 1.0f : idMath::Sqrt( v - BOUNCE_SOUND_MIN_VELOCITY ) * ( 1.0f / idMath::Sqrt( BOUNCE_SOUND_MAX_VELOCITY - BOUNCE_SOUND_MIN_VELOCITY ) );
-		if ( StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL ) ) {
+		if ( StartSound( "snd_bounce", SND_CHANNEL_BODY, 0, false, NULL ) ) {
 			// don't set the volume unless there is a bounce sound as it overrides the entire channel
 			// which causes footsteps on ai's to not honor their shader parms
 			SetSoundVolume( f );
@@ -562,6 +566,9 @@ idBarrel::idBarrel() {
 	additionalRotation = 0.0f;
 	additionalAxis.Identity();
 	fl.networkSync = true;
+/*#ifdef _DENTONMOD
+	entDamageEffects	= NULL;
+#endif*/
 }
 
 /*
@@ -677,6 +684,11 @@ void idBarrel::Think( void ) {
 	}
 
 	BarrelThink();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*
@@ -840,6 +852,11 @@ idExplodingBarrel::Think
 void idExplodingBarrel::Think( void ) {
 	idBarrel::BarrelThink();
 
+	#ifdef _DENTONMOD
+		if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+			UpdateParticles();
+	#endif
+
 	if ( lightDefHandle >= 0 ){
 		if ( state == BURNING ) {
 			// ramp the color up over 250 ms
@@ -868,10 +885,17 @@ void idExplodingBarrel::Think( void ) {
 		return;
 	}
 
+	// This condition fixes the problem where particleRenderEntity is used for explosion effect 
+	// and it still tries to track the physics origin even after physics is put to rest.
+#ifdef _DENTONMOD
+	if ( particleModelDefHandle >= 0 && state == BURNING ){
+#else
 	if ( particleModelDefHandle >= 0 ){
+#endif
 		particleRenderEntity.origin = physicsObj.GetAbsBounds().GetCenter();
 		particleRenderEntity.axis = mat3_identity;
 		gameRenderWorld->UpdateEntityDef( particleModelDefHandle, &particleRenderEntity );
+
 	}
 }
 
@@ -952,11 +976,6 @@ void idExplodingBarrel::ExplodingEffects( void ) {
 		Show();
 	}
 
-	temp = spawnArgs.GetString( "model_detonate" );
-	if ( *temp != '\0' ) {
-		AddParticles( temp, false );
-	}
-
 	temp = spawnArgs.GetString( "mtr_lightexplode" );
 	if ( *temp != '\0' ) {
 		AddLight( temp, false );
@@ -965,6 +984,11 @@ void idExplodingBarrel::ExplodingEffects( void ) {
 	temp = spawnArgs.GetString( "mtr_burnmark" );
 	if ( *temp != '\0' ) {
 		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, 96.0f, temp );
+	}
+	// put the explosion particle effect to the end -- By Clone JCD
+	temp = spawnArgs.GetString( "model_detonate" );
+	if ( *temp != '\0' ) {
+		AddParticles( temp, false );
 	}
 }
 
@@ -975,18 +999,36 @@ idExplodingBarrel::Killed
 */
 void idExplodingBarrel::Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
 
+	// This simple condition causes a barrel to explode when shot while burning
+#ifdef _DENTONMOD
+	if ( IsHidden() || state == EXPLODING ) {
+#else
 	if ( IsHidden() || state == EXPLODING || state == BURNING ) {
+#endif
 		return;
 	}
 
 	float f = spawnArgs.GetFloat( "burn" );
+
+#ifdef _DENTONMOD
+	int explodeHealth = spawnArgs.GetInt( "explode_health" );
+
+	if ( f > 0.0f && state == NORMAL && health > explodeHealth ) {
+#else
 	if ( f > 0.0f && state == NORMAL ) {
+#endif
 		state = BURNING;
 		PostEventSec( &EV_Explode, f );
 		StartSound( "snd_burn", SND_CHANNEL_ANY, 0, false, NULL );
 		AddParticles( spawnArgs.GetString ( "model_burn", "" ), true );
 		return;
 	} else {
+#ifdef _DENTONMOD
+		if( state == BURNING && health > explodeHealth ) { 
+			return;
+		}
+#endif
+
 		state = EXPLODING;
 		if ( gameLocal.isServer ) {
 			idBitMsg	msg;
@@ -1000,8 +1042,12 @@ void idExplodingBarrel::Killed( idEntity *inflictor, idEntity *attacker, int dam
 
 	// do this before applying radius damage so the ent can trace to any damagable ents nearby
 	Hide();
-	physicsObj.SetContents( 0 );
-
+#ifdef _DENTONMOD
+	BecomeInactive(TH_PHYSICS); // This causes the physics not to update after explosion
+#else					
+	physicsObj.SetContents( 0 ); // Set physics content 0 after spawining debris.
+#endif
+	
 	const char *splash = spawnArgs.GetString( "def_splash_damage", "damage_explosion" );
 	if ( splash && *splash ) {
 		gameLocal.RadiusDamage( GetPhysics()->GetOrigin(), this, attacker, this, this, splash );
@@ -1042,8 +1088,12 @@ void idExplodingBarrel::Killed( idEntity *inflictor, idEntity *attacker, int dam
 		}
 		kv = spawnArgs.MatchPrefix( "def_debris", kv );
 	}
+#ifdef _DENTONMOD
+	physicsObj.SetContents( 0 );
+#endif
 
 	physicsObj.PutToRest();
+
 	CancelEvents( &EV_Explode );
 	CancelEvents( &EV_Activate );
 
@@ -1071,11 +1121,16 @@ void idExplodingBarrel::Damage( idEntity *inflictor, idEntity *attacker, const i
 	if ( !damageDef ) {
 		gameLocal.Error( "Unknown damageDef '%s'\n", damageDefName );
 	}
+#ifndef _DENTONMOD	// Following condition means, if inflictor's got a radius damage then explode immediately, 
+                   // which could cause explosions when barrel's health is greater than 0 so I am disabling it.
 	if ( damageDef->FindKey( "radius" ) && GetPhysics()->GetContents() != 0 && GetBindMaster() == NULL ) {
 		PostEventMS( &EV_Explode, 400 );
 	} else {
+#endif
 		idEntity::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
+#ifndef _DENTONMOD
 	}
+#endif
 }
 
 /*

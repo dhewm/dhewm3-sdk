@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Force_Constant.h"
 #include "Entity.h"
 
+#include "tracer.h"
 /*
 ===============================================================================
 
@@ -82,6 +83,9 @@ public :
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
+#ifdef _DENTONMOD
+	void					setTracerEffect( dnTracerEffect *effect) { tracerEffect = effect; }
+#endif
 protected:
 	idEntityPtr<idEntity>	owner;
 
@@ -89,9 +93,15 @@ protected:
 		bool				detonate_on_world			: 1;
 		bool				detonate_on_actor			: 1;
 		bool				randomShaderSpin			: 1;
-		bool				isTracer					: 1;
-		bool				noSplashDamage				: 1;
+		// bool				isTracer					: 1; // what about this?
+		// bool				noSplashDamage				: 1; // and this?
+		bool				noSplashDamage				: 1; 
+		bool				impact_fx_played			: 1; // keeps track of fx played on collided body - BY JCD
 	} projectileFlags;
+
+#ifdef _DENTONMOD
+	dnTracerEffect *tracerEffect;
+#endif
 
 	float					thrust;
 	int						thrust_end;
@@ -123,6 +133,7 @@ protected:
 
 private:
 	bool					netSyncPhysics;
+	const idDeclEntityDef	*damageDef; // stores Damage Def -- By Clone JCD
 
 	void					AddDefaultDamageEffect( const trace_t &collision, const idVec3 &velocity );
 
@@ -263,7 +274,11 @@ private:
 	idPhysics_RigidBody		physicsObj;
 	const idDeclParticle *	smokeFly;
 	int						smokeFlyTime;
+	int						nextSoundTime;		// BY Clone JCD 
+	int						soundTimeDifference;	// BY Clone JCD 
+	bool					continuousSmoke;		//By Clone JCD
 	const idSoundShader *	sndBounce;
+	const idSoundShader *	sndRest;
 
 
 	void					Event_Explode( void );

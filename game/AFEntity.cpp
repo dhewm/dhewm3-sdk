@@ -126,6 +126,11 @@ idMultiModelAF::Think
 void idMultiModelAF::Think( void ) {
 	RunPhysics();
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 
@@ -389,11 +394,19 @@ void idAFAttachment::Damage( idEntity *inflictor, idEntity *attacker, const idVe
 idAFAttachment::AddDamageEffect
 ================
 */
+#ifdef _DENTONMOD
+void idAFAttachment::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt ) {
+#else
 void idAFAttachment::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName ) {
+#endif
 	if ( body ) {
 		trace_t c = collision;
 		c.c.id = JOINT_HANDLE_TO_CLIPMODEL_ID( attachJoint );
+#ifdef _DENTONMOD
+		body->AddDamageEffect( c, velocity, damageDefName, soundEnt );
+#else
 		body->AddDamageEffect( c, velocity, damageDefName );
+#endif
 	}
 }
 
@@ -454,9 +467,13 @@ idAfAttachment::Think
 */
 void idAFAttachment::Think( void ) {
 	idAnimatedEntity::Think();
+
+#ifndef _DENTONMOD
+	// This has been taken care of by idAnimatedEntity, so we wont need it now
 	if ( thinkFlags & TH_UPDATEPARTICLES ) {
 		UpdateDamageEffects();
 	}
+#endif
 }
 
 /*
@@ -634,6 +651,10 @@ void idAFEntity_Base::Think( void ) {
 		Present();
 		LinkCombat();
 	}
+#ifdef _DENTONMOD
+	if (thinkFlags & TH_UPDATEWOUNDPARTICLES)
+		UpdateDamageEffects();
+#endif
 }
 
 /*
@@ -1092,7 +1113,13 @@ void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const
 		return;
 	}
 	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
-	if ( health < -20 && spawnArgs.GetBool( "gib" ) ) {
+	                                                  // New Gibbing System By Clone JCD
+	int healthToGib = spawnArgs.GetInt ("gibHealth"); // GibHealth is suppossed to be declared in entityDef
+	
+	if (healthToGib == 0)	// If its not there, set it to default value
+		healthToGib = -20 ;
+
+	if ( health < healthToGib && spawnArgs.GetBool( "gib" ) ) {
 		Gib( dir, damageDefName );
 	}
 }

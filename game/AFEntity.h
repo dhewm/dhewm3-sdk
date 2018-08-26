@@ -124,7 +124,11 @@ public:
 	virtual void			AddForce( idEntity *ent, int id, const idVec3 &point, const idVec3 &force );
 
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+#ifdef _DENTONMOD
+	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt=NULL );
+#else
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
+#endif
 
 	void					SetCombatModel( void );
 	idClipModel *			GetCombatModel( void ) const;

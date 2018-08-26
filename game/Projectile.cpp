@@ -38,6 +38,10 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Projectile.h"
 
+#include "framework/DeclEntityDef.h"
+#include "BrittleFracture.h"
+#include "Moveable.h"
+
 /*
 ===============================================================================
 
@@ -203,7 +207,7 @@ void idProjectile::Restore( idRestoreGame *savefile ) {
 
 
 	//Reinitialize the damage Def--- By Clone JC Denton
-	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage", false ) );
+	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage" ) );
 
 }
 
@@ -432,7 +436,7 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 
 // Find and store the damage def only once- --- New  //un noted code change from original sdk
 // place this line before checking the fuse- for beam weapons
-	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage", false ) );
+	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage" ) );
 
 	if ( !gameLocal.isClient ) {
 		if ( fuse <= 0 ) {
@@ -2222,7 +2226,7 @@ idVec3 idBFGProjectile::GetAimDir( idEntity *aimAtEnt ) {
 idBFGProjectile::FireSecProjAtTarget
 ================
 */
-idProjectile* idBFGProjectile::FireSecProj( idVec3 &dir ) { 
+idProjectile* idBFGProjectile::FireSecProj( const idVec3 &dir ) { 
 	idProjectile	*proj;
 	idEntity		*ent;
 	idEntity		*ownerEnt;

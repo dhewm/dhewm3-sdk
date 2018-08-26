@@ -36,6 +36,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Fx.h"
 
+#include "framework/DeclEntityDef.h"
+
 /*
 ===============================================================================
 
@@ -1159,7 +1161,7 @@ void idTeleporter::Event_DoAction( idEntity *activator ) {
 	bool forceChangeXpos; //ivan
 
 	angle = spawnArgs.GetFloat( "angle" );
-	idAngles a( 0, spawnArgs.GetFloat( "angle" ), 0 );
+	idAngles a( 0, angle, 0 );
 	
 	//ivan start
 	//was: activator->Teleport( GetPhysics()->GetOrigin(), a, NULL );
@@ -1372,7 +1374,8 @@ idDamagingFx *idDamagingFx::StartDamagingFx( int type, idEntity *victimEnt ) {
 		nfx	= static_cast<idDamagingFx*>(ent);
 		nfx->dmgfxType = type;
 		//gameLocal.Printf("Spawned %s\n", defName );
-		StartFxUtility( nfx, &(victimEnt->GetPhysics()->GetAbsBounds().GetCenter()), &mat3_identity, victimEnt, true, false );
+		idVec3 origin = victimEnt->GetPhysics()->GetAbsBounds().GetCenter();
+		StartFxUtility( nfx, &origin, &mat3_identity, victimEnt, true, false );
 		return nfx;
 	}else{
 		gameLocal.Error( "Could not spawn idDamagingFx" );

@@ -1,9 +1,12 @@
 // Created by Ivan_the_B
 //
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
 #include "../Game_local.h"
+
+#include "AI_bot.h"
+#include "Moveable.h"
+#include "gamesys/SysCvar.h"
+#include "script/Script_Thread.h"
 
 /*
 ===============================================================================
@@ -1061,9 +1064,9 @@ void idAI_Bot::ShowOnlyCurrentWeapon( void ) {
 	for( i = 0; i < weapons.Num(); i++ ) {
 		ent = weapons[ i ].ent.GetEntity();
 		if (i == currentWeapon ) {
-			weapons[ i ].ent.GetEntity()->Show();
+			ent->Show();
 		}else{
-			weapons[ i ].ent.GetEntity()->Hide();
+			ent->Hide();
 		}
 	}
 }
@@ -1302,7 +1305,7 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 	float				attack_cone;
 	float				projectile_spread;
 	float				diff;
-	float				angle;
+	float				angle = 0.0f;
 	float				spin;
 	idAngles			ang;
 	int					num_projectiles;
@@ -1416,6 +1419,7 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			dir = axis[ 0 ] + axis[ 2 ] * ( angle * idMath::Sin( spin ) ) - axis[ 1 ] * ( angle * idMath::Cos( spin ) );
 		}else if( fireMode == AI_FIREMODE_2D_STEP_SPREAD){
+			// FIXME: DG: angle might not be properly initialized (if num_projectiles == 1); I added the angle = 0 to the variable definition
 			dir = (axis[ 0 ] * (1-angle*firemodeCounterPos) ) + ( axis[ 2 ] * angle*firemodeCounter );
 			//upd counter
 			if(firemodeCounter >= 0){

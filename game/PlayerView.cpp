@@ -499,7 +499,7 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 
 		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
 	}
-#endif _PORTALSKY
+#endif // _PORTALSKY
 
 	gameRenderWorld->RenderScene( &hackedView );
 
@@ -811,7 +811,7 @@ void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
 		int bloomType = r_bloom.GetInteger();
 		if (bloomType != 0 && !player->objectiveSystemOpen) {
 
-			float blur_str, blur_cut, src_str, src_cut;
+			float blur_str = 0.0f, blur_cut = 0.0f, src_str = 0.0f, src_cut = 0.0f;
 
 			renderSystem->CaptureRenderToImage( "_currentRender" );
 			//------------------------------------------------

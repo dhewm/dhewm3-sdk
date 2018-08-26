@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __PHYSICS_PLAYER_H__
 
 #include "physics/Physics_Actor.h"
+#include "physics/Physics_Monster.h" // DG: for monsterMoveResult_t, used by hq2 code below
 
 /*
 ===================================================================================

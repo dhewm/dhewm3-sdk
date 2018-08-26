@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 #include "physics/Physics.h"
+#include "gamesys/SaveGame.h"
 
 #include "physics/Force_Spring.h"
 

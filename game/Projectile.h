@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Entity.h"
 
 #ifdef _DENTONMOD
-//#include "tracer.h"
+#include "tracer.h"
 #ifndef _DENTONMOD_PROJECTILE_CPP
 #define _DENTONMOD_PROJECTILE_CPP
 #endif
@@ -265,7 +265,7 @@ private:
 	idStr					secProjName;
 
 	idVec3					GetAimDir( idEntity *aimAtEnt ); 
-	idProjectile*			FireSecProj( idVec3 &dir ); 
+	idProjectile*			FireSecProj( const idVec3 &dir ); 
 	//ivan end
 
 	void					FreeBeams();

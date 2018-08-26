@@ -38,6 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Misc.h"
 #include "WorldSpawn.h"
 #include "Sound.h"
+#include "Trigger.h"
 
 #include "Target.h"
 

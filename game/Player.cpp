@@ -7725,6 +7725,8 @@ void idPlayer::AdjustBodyAngles( void ) {
 	float	forwardBlend;
 	float	downBlend;
 
+	upBlend = forwardBlend = downBlend = 0.0f; // DG: just make sure they're initialized
+
 	if ( health < 0 ) {
 		return;
 	}
@@ -10663,7 +10665,7 @@ void idPlayer::WritePlayerStateToSnapshot( idBitMsgDelta &msg ) const {
 	msg.WriteInt( stepUpTime );
 	msg.WriteFloat( stepUpDelta );
 	*/
-	msg.WriteLong( inventory.weapons );//new
+	msg.WriteInt( inventory.weapons );//new
 	//	msg.WriteShort( inventory.weapons );
 	msg.WriteByte( inventory.armor );
 
@@ -10688,7 +10690,7 @@ void idPlayer::ReadPlayerStateFromSnapshot( const idBitMsgDelta &msg ) {
 	stepUpTime = msg.ReadInt();
 	stepUpDelta = msg.ReadFloat();
 	*/
-	inventory.weapons = msg.ReadLong();//new
+	inventory.weapons = msg.ReadInt();//new
 	//	inventory.weapons = msg.ReadShort();
 	inventory.armor = msg.ReadByte();
 

@@ -1,11 +1,11 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
-
 #ifdef _WATER_PHYSICS
 
 #include "../Game_local.h"
 
+#include "Entity.h"
+
+#include "Physics_Liquid.h"
 
 CLASS_DECLARATION( idPhysics_Static, idPhysics_Liquid )
 END_CLASS
@@ -114,7 +114,7 @@ idPhysics_Liquid::GetPressure
 */
 idVec3 idPhysics_Liquid::GetPressure( const idVec3 &point ) const {
 	idVec3 pressure;
-	idVec3 &depth = this->GetDepth(point);
+	const idVec3 &depth = this->GetDepth(point);
 
 	pressure = depth * this->density;
 

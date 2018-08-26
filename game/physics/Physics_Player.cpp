@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/platform.h"
 #include "gamesys/SysCvar.h"
 #include "Entity.h"
+#include "Actor.h"
+#include "Item.h"
+#include "physics/Physics_Liquid.h"
+#include "Moveable.h"
 
 #include "physics/Physics_Player.h"
 
@@ -1320,7 +1324,7 @@ void idPhysics_Player::CheckDuck( void ) {
 		maxZ = pm_deadheight.GetFloat();
 	} else {
 		// stand up when up against a ladder
-		if ( command.upmove < 0 && !ladder || current.movementType == PM_ANIM_CROUCH ) { // un credited changes from original sdk
+		if ( (command.upmove < 0 && !ladder) || current.movementType == PM_ANIM_CROUCH ) { // un credited changes from original sdk
 			// duck
 			current.movementFlags |= PMF_DUCKED;
 		} else {

@@ -688,6 +688,7 @@ extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
 extern const int	CINEMATIC_SKIP_DELAY;
 
+/* DG: having includes here seems to confuse the compiler
 #ifdef _WATER_PHYSICS //un noted change from original sdk
 #include "physics/Physics_Liquid.h"
 #include "Liquid.h"
@@ -698,5 +699,6 @@ extern const int	CINEMATIC_SKIP_DELAY;
 #endif
 
 #include "ai/AI_bot.h" //ivan
+*/
 
 #endif	/* !__GAME_LOCAL_H__ */

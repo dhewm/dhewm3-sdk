@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "SmokeParticles.h"
 #include "WorldSpawn.h"
 
+#include "renderer/ModelManager.h"
+
 #include "Weapon.h"
 
 /***********************************************************************
@@ -3533,7 +3535,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 	idVec3 muzzle_pos;
 
 	float muzzleDistFromView;
-	float traceDist, muzzleToTargetDist;
+	float traceDist = 0.0f, muzzleToTargetDist = 0.0f;
 	idVec3 muzzleDir;
 
 	beam			= projectileDict.GetFloat( "fuse" ) <= 0 || projectileDict.GetBool( "rail_beam");

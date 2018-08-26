@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Player.h"
 #include "WorldSpawn.h"
 
+#include "physics/Physics_Liquid.h"
+
 #include "physics/Physics_AF.h"
 
 CLASS_DECLARATION( idPhysics_Base, idPhysics_AF )
@@ -6015,8 +6017,8 @@ void idPhysics_AF::AddGravity( void ) {
 
 #ifdef _WATER_PHYSICS // un credited changes from original sdk
 	idVec3 grav( this->liquidDensity * this->gravityVector );
-	float waterLevel,wDensity;
-	bool inWater,bodyBuoyancy;
+	float waterLevel, wDensity = 0.0f; // DG: make sure to init this
+	bool inWater, bodyBuoyancy = false; // DG: make sure to init this
 
 	if( this->SetWaterLevelf() == 1.0f ) {
 		wDensity = this->water->GetDensity();

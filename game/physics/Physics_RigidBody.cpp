@@ -32,6 +32,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "gamesys/SysCvar.h"
 #include "Entity.h"
 #include "Player.h"
+#include "Moveable.h"
+
+#include "physics/Physics_Liquid.h"
 
 #include "physics/Physics_RigidBody.h"
 
@@ -165,7 +168,7 @@ bool idPhysics_RigidBody::GetBuoyancy( const idVec3 &pos, const idMat3 &rotation
 	// return true if the body is in water, false otherwise
 
 	idVec3 tbCenter(pos);
-	idBounds bounds = this->GetBounds();
+	//idBounds bounds = this->GetBounds();
 	idTraceModel tm = *this->GetClipModel()->GetTraceModel();
 	int i,count;
 

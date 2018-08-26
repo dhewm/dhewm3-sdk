@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "gamesys/SysCvar.h"
 #include "ai/AI.h"
+#include "ai/AI_bot.h"
 #include "Entity.h"
 #include "Fx.h"
 #include "Game_local.h"

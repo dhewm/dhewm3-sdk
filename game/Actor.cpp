@@ -36,6 +36,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Actor.h"
 
+#include "Fx.h" // DG: for hq2
+
 
 /***********************************************************************
 

@@ -1,10 +1,11 @@
-
-#include "../idlib/precompiled.h"
-#pragma hdrstop
-
 #ifdef _DENTONMOD
 
 #include "Game_local.h"
+#include "Entity.h"
+#include "renderer/ModelManager.h"
+#include "SmokeParticles.h"
+
+#include "tracer.h"
 
 /*
 ===============================================================================

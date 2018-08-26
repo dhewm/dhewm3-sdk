@@ -4516,7 +4516,7 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 	float				attack_cone;
 	float				projectile_spread;
 	float				diff;
-	float				angle;
+	float				angle = 0.0f;
 	float				spin;
 	idAngles			ang;
 	int					num_projectiles;
@@ -4623,6 +4623,8 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			dir = axis[ 0 ] + axis[ 2 ] * ( angle * idMath::Sin( spin ) ) - axis[ 1 ] * ( angle * idMath::Cos( spin ) );
 		}else if( fireMode == AI_FIREMODE_2D_STEP_SPREAD){
+			// FIXME: DG: if num_projectiles == 1, angle is not properly initialized
+			//            (I initialized it to 0 above, but not sure that's the appropriate value)
 			dir = (axis[ 0 ] * (1-angle*firemodeCounterPos) ) + ( axis[ 2 ] * angle*firemodeCounter );
 			//upd counter
 			if(firemodeCounter >= 0){

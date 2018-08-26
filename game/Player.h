@@ -41,6 +41,13 @@ If you have questions concerning this license or the applicable additional terms
 
 class idAI;
 
+#ifndef _DENTONMOD_PLAYER_CPP //un noted change from original sdk
+#define _DENTONMOD_PLAYER_CPP //un noted change from original sdk
+#endif
+
+#define SHOW_MOVING_CROSSHAIR //un noted change from original sdk
+//#define AUTOUPD_RESPAWN_POS
+
 /*
 ===============================================================================
 
@@ -64,7 +71,7 @@ const int	LAND_RETURN_TIME = 300;
 const int	FOCUS_TIME = 300;
 const int	FOCUS_GUI_TIME = 500;
 
-const int MAX_WEAPONS = 16;
+const int MAX_WEAPONS = 32; //16 //un noted change from original sdk
 
 const int DEAD_HEARTRATE = 0;			// fall to as you die
 const int LOWHEALTH_HEARTRATE_ADJ = 20; //
@@ -80,6 +87,24 @@ const int SAVING_THROW_TIME = 5000;		// maximum one "saving throw" every five se
 
 extern const int ASYNC_PLAYER_INV_AMMO_BITS;
 extern const int ASYNC_PLAYER_INV_CLIP_BITS;
+
+//ivan start
+const int NUM_SLOTS = 2;
+const float LOOK_BLEND_TIME = 100.0f;
+const float VIEWPOS_LEFT_MAX = 20.0f;		//max 'viewpos' value
+const float VIEWPOS_MOUSE_STEP = 2.0f;		//mouse sensibility for 'viewpos'
+const float PITCH_MOUSE_ALLOWED = 70.0f;	//degrees - max 89. This is not used by the new Abuse-style aim.
+const float CAMERA_SENSIBILITY = 0.05f;		//max 1 ( = instant ) //sensibility does not depend on distance from target pos
+const float CAMERA_DEFAULT_DISTANCE = 350.0f; //remember to upd default value of the cvar if you change this. Not striclty needed, but could be handy for the user. 
+const float CAMERA_DEFAULT_HEIGHT = 50.0f;    //remember to upd default value of the cvar if you change this. Not striclty needed, but could be handy for the user. 
+const float CAMERA_MIN_Z_SPEED_NEG = 0.5f;	
+const float CAMERA_MAX_Z_DELTA_POS = 460.0f;	
+const float CAMERA_MAX_Z_DELTA_NEG = -130.0f; 
+const float CAMERA_MIN_Y_SPEED = 0.5f;		//max 1 //speed depends on distance from target pos
+const float CAMERA_MAX_Y_DELTA = 330.0f; 
+const float CAMERA_MIN_X_SPEED = 0.3f;		//max 1 //speed depends on distance from target pos
+const float CAMERA_MAX_X_DELTA = 400.0f; 
+//ivan end
 
 struct idItemInfo {
 	idStr name;
@@ -121,6 +146,11 @@ enum {
 	INFLUENCE_LEVEL2,			// no gun, hud, movement
 	INFLUENCE_LEVEL3,			// slow player movement
 };
+
+typedef struct { //un noted change from original sdk
+	char		name[64];
+	idList<int>	toggleList;
+} WeaponToggle_t;
 
 class idInventory {
 public:
@@ -175,17 +205,20 @@ public:
 	void					GetPersistantData( idDict &dict );
 	void					RestoreInventory( idPlayer *owner, const idDict &dict );
 	bool					Give( idPlayer *owner, const idDict &spawnArgs, const char *statname, const char *value, int *idealWeapon, bool updateHud );
-	void					Drop( const idDict &spawnArgs, const char *weapon_classname, int weapon_index );
+	void					Drop( const idDict &spawnArgs, const char *weapon_classname, int weapon_index, bool* ammoRemoved = NULL ); //ivan - ammoRemoved added
+	int						NumWeapForAmmoType( const idDict &spawnArgs, ammo_t ammoType ); //ivan
 	ammo_t					AmmoIndexForAmmoClass( const char *ammo_classname ) const;
 	int						MaxAmmoForAmmoClass( idPlayer *owner, const char *ammo_classname ) const;
 	int						WeaponIndexForAmmoClass( const idDict & spawnArgs, const char *ammo_classname ) const;
 	ammo_t					AmmoIndexForWeaponClass( const char *weapon_classname, int *ammoRequired );
 	const char *			AmmoPickupNameForIndex( ammo_t ammonum ) const;
-	void					AddPickupName( const char *name, const char *icon );
+//	void					AddPickupName( const char *name, const char *icon ); //un noted change from original sdk
+	void					AddPickupName( const char *name, const char *icon, idPlayer* owner ); //new, dont know what it does.
 
 	int						HasAmmo( ammo_t type, int amount );
 	bool					UseAmmo( ammo_t type, int amount );
-	int						HasAmmo( const char *weapon_classname );			// looks up the ammo information for the weapon class first
+	int						HasAmmo( const char *weapon_classname, bool includeClip = false, idPlayer* owner = NULL );			//new _D3XP //un noted change from original sdk
+	//int						HasAmmo( const char *weapon_classname );			// looks up the ammo information for the weapon class first
 
 	void					UpdateArmor( void );
 
@@ -194,6 +227,15 @@ public:
 	int						onePickupTime;
 	idList<idItemInfo>		pickupItemNames;
 	idList<idObjectiveInfo>	objectiveNames;
+
+	//ivan start
+	int						nextWeaponPickup;
+	int						weaponSlot[ NUM_SLOTS ]; 
+
+	int						GetSlotByWeap( int i );
+	int						FindFreeSlot( void );
+	void					AssignWeapToSlot( int w, int slot );
+	//ivan end
 };
 
 typedef struct {
@@ -214,8 +256,20 @@ public:
 		EVENT_ABORT_TELEPORTER,
 		EVENT_POWERUP,
 		EVENT_SPECTATE,
+		EVENT_PICKUPNAME, //new, for use with inventory::AddPickupName //un noted change from original sdk
 		EVENT_MAXEVENTS
 	};
+
+	//ivan start
+	enum {
+		FORCEDMOVE_STATE_DISABLED,
+		FORCEDMOVE_STATE_WAITING,
+		FORCEDMOVE_STATE_BLOCKED,
+		FORCEDMOVE_STATE_GOINGFW,
+		FORCEDMOVE_STATE_ABORTING
+	};
+	//ivan end
+
 
 	usercmd_t				usercmd;
 
@@ -350,7 +404,7 @@ public:
 	void					SetupWeaponEntity( void );
 	void					SelectInitialSpawnPoint( idVec3 &origin, idAngles &angles );
 	void					SpawnFromSpawnSpot( void );
-	void					SpawnToPoint( const idVec3	&spawn_origin, const idAngles &spawn_angles );
+	void					SpawnToPoint( const idVec3	&spawn_origin, const idAngles &spawn_angles, bool quickRespawn = false ); //ivan - quickRespawn added
 	void					SetClipModel( void );	// spectator mode uses a different bbox size
 
 	void					SavePersistantInfo( void );
@@ -400,13 +454,13 @@ public:
 
 	float					DefaultFov( void ) const;
 	float					CalcFov( bool honorZoom );
-	void					CalculateViewWeaponPos( idVec3 &origin, idMat3 &axis );
+	//void					CalculateViewWeaponPos( idVec3 &origin, idMat3 &axis ); //un noted change from original sdk
 	idVec3					GetEyePosition( void ) const;
 	void					GetViewPos( idVec3 &origin, idMat3 &axis ) const;
 	void					OffsetThirdPersonView( float angle, float range, float height, bool clip );
 
 	bool					Give( const char *statname, const char *value );
-	bool					GiveItem( idItem *item );
+	bool					GiveItem( idItem *item ); 
 	void					GiveItem( const char *name );
 	void					GiveHealthPool( float amt );
 
@@ -433,8 +487,39 @@ public:
 	void					NextWeapon( void );
 	void					NextBestWeapon( void );
 	void					PrevWeapon( void );
-	void					SelectWeapon( int num, bool force );
-	void					DropWeapon( bool died ) ;
+	void					SelectWeapon( int num, bool force , const bool toggleWeapons = false ); //un noted change from original sdk
+	
+	//ivan start
+	//was: void					DropWeapon( bool died );
+	bool					DropWeapon( bool died, bool selectNext=true );
+	bool					StartForcedMov( idEntity *destinationEntity, int inhibitInputDelay = 0, bool canAbort = true, bool totalForce = false, bool forceStart = false );
+	void					BlockForcedMov( void );
+	void					UpdForcedMov( void );
+	void					StopForcedMov( void );
+	void					AddPossibleInteract( int flags );
+	void					AddWeaponInteract( int flags, int weaponNum ); //, const char * weaponName
+	bool					WeaponItemCanGiveAmmo( int weaponNum ); //idItem *item
+	int						GetWeaponNumByItem( idItem *item );
+	void					SetYCameraForced( float ypos );
+	void					SetYCameraFree( void );
+	void					UpdateCameraDistance( float distance, bool blend = true );
+	void					UpdateCameraHeight( float height, bool blend = true );
+	void					DropNotSelectedWeapon( int weapNum );
+	void					AddLifes( int num ); 
+	void					AddScore( int num ); 
+	void					AddSecretFound( void ); 
+	void					SaveCheckPointPos( idEntity* checkEnt, bool useEntOrigin );
+	float					GetIdealCameraDistance( void );
+	void					SetLock2D( bool on );
+	void					SpawnAllWeapons( void ); //cheat fix
+	bool					SpawnInsteadOfGiving( const char *classname, int offsetYmult = 1, int offsetZmult = 0); //cheat fix
+	void					ShowInfo( const char *text, float time = 6.0f );
+	void					HideInfo( void );
+
+	void					Event_HideInfo( void );
+	void					Event_GetWaterLevel( void );
+	//ivan end
+
 	void					StealWeapon( idPlayer *player );
 	void					AddProjectilesFired( int count );
 	void					AddProjectileHits( int count );
@@ -452,7 +537,8 @@ public:
 	void					AdjustHeartRate( int target, float timeInSecs, float delay, bool force );
 	void					SetCurrentHeartRate( void );
 	int						GetBaseHeartRate( void );
-	void					UpdateAir( void );
+	//void					UpdateAir( void );
+	void					UpdateWaterAir( void );
 
 	virtual bool			HandleSingleGuiCommand( idEntity *entityGui, idLexer *src );
 	bool					GuiActive( void ) { return focusGUIent != NULL; }
@@ -500,6 +586,13 @@ public:
 	bool					IsRespawning( void );
 	bool					IsInTeleport( void );
 
+	// New------------------
+#ifdef _DENTONMOD_PLAYER_CPP
+	void					SetWeaponZoom( bool _Status );
+	void					SetProjectileType( int type );
+	int						GetProjectileType( void );
+#endif// _DENTONMOD_PLAYER_CPP
+
 	idEntity				*GetInfluenceEntity( void ) { return influenceEntity; };
 	const idMaterial		*GetInfluenceMaterial( void ) { return influenceMaterial; };
 	float					GetInfluenceRadius( void ) { return influenceRadius; };
@@ -521,10 +614,76 @@ public:
 	virtual	void			HidePlayerIcons( void );
 	bool					NeedsIcon( void );
 
+	//idStr					GetCurrentWeapon(); // new
+
 	bool					SelfSmooth( void );
 	void					SetSelfSmooth( bool b );
 
 private:
+	//ivan start
+	//const char *			interactShownWeaponName;
+	int						interactShownWeaponNum;
+	int						interactFlag;
+	int						lastCheckPoint;
+	bool					skipMouseUpd;
+	int						health_lost;	//stat
+	//bool					allowPickupWeapons;	//can interact this frame
+	int						currentSlot;
+	int						numLives;
+	int						score;
+	bool					hq2QuickRespawning;
+	idVec3					safeRespawnPos;
+	float					safeRespawnCameraDist;
+	float					safeRespawnCameraHeight;
+#ifdef AUTOUPD_RESPAWN_POS
+	idVec3					tempRespawnPos;
+	int						nextRespPosTime;
+#endif
+
+#ifdef SHOW_MOVING_CROSSHAIR
+	bool					reqDefaultCrossPos;
+	float					coffx; //was int
+	int						cposx;
+	int						cposy;
+	void					UpdateCrosshairPos( void );	
+	void					UpdateAimFromCrosshair( void );	
+#endif
+	
+	//controls & direction
+	bool					save_walk_dir;	//save the current walking direction 
+	bool					keep_walk_dir;	//don't change the walking direction 
+	bool					fw_toggled;		
+	bool					fw_inverted;
+	bool					blendModelYaw;
+	float					old_viewAngles_yaw;
+    float					viewPos; // This determines which what the player will face. <= 0 faces right. > 0 faces left //TODO: float really needed?	
+	int						inhibitInputTime;
+	int						inhibitAimCrouchTime;
+
+	//camera
+	bool					skipCameraZblend;	//skip blending next frame
+	bool					enableCameraYblend;	//start blending to the new pos
+	bool					enableCameraXblend;	//start blending to the new distance
+	bool					forceCameraY;
+	float					forcedCameraYpos;
+	float					idealCameraDistance; //this usually equals pm_thirdPersonRange. 
+	float					idealCameraHeight; //this usually equals pm_thirdPersonHeight. 
+	idVec3					oldCameraPos;
+
+	//forced movement
+	bool					forcedMovCanBeAborted;
+	bool					forcedMovTotalForce;
+	bool					forcedMovIncreasingX;
+	bool					forcedMovWasLocked;
+	int						forcedMovState;
+	idEntity *				forcedMovTarget;
+	idVec3					forcedMovDelta;
+	idVec3					forcedMovOldOrg;
+
+	//slide move or whatever
+	bool					animBasedMovement;	
+	//ivan end
+	
 	jointHandle_t			hipJoint;
 	jointHandle_t			chestJoint;
 	jointHandle_t			headJoint;
@@ -533,25 +692,33 @@ private:
 
 	idList<aasLocation_t>	aasLocation;		// for AI tracking the player
 
-	int						bobFoot;
+	/*
+	int						bobFoot; //un noted change from original sdk
 	float					bobFrac;
 	float					bobfracsin;
 	int						bobCycle;			// for view bobbing and footstep generation
+	*/
 	float					xyspeed;
-	int						stepUpTime;
+	/*
+	int						stepUpTime; //un noted change from original sdk
 	float					stepUpDelta;
+	*/
 	float					idealLegsYaw;
 	float					legsYaw;
 	bool					legsForward;
 	float					oldViewYaw;
+	/*
+	//commented out by ivan 
 	idAngles				viewBobAngles;
 	idVec3					viewBob;
+	*/
 	int						landChange;
 	int						landTime;
 
 	int						currentWeapon;
 	int						idealWeapon;
 	int						previousWeapon;
+	int						quickWeapon;		// Since previousWeapon does not work in a best way for quick swap - Clone JCD 
 	int						weaponSwitchTime;
 	bool					weaponEnabled;
 	bool					showWeaponViewModel;
@@ -618,6 +785,7 @@ private:
 	idVec3					smoothedOrigin;
 	idAngles				smoothedAngles;
 
+	idHashTable<WeaponToggle_t>	weaponToggles; // new //un noted change from original sdk
 	// mp
 	bool					ready;					// from userInfo
 	bool					respawning;				// set to true while in SpawnToPoint for telefrag checks
@@ -633,14 +801,27 @@ private:
 	bool					MPAimHighlight;
 	bool					isTelefragged;			// proper obituaries
 
+#ifdef _DENTONMOD_PLAYER_CPP
+	struct weaponZoom_s {
+		bool				oldZoomStatus	: 1;
+		bool				startZoom		: 1;
+	} weaponZoom;
+
+	byte					projectileType[ MAX_WEAPONS ];
+#endif //_DENTONMOD_PLAYER_CPP
+
 	idPlayerIcon			playerIcon;
 
 	bool					selfSmooth;
 
+	idEntityPtr<idActor>	friendsCommonEnemy; //ivan
+
+	void					GetMoveDelta( const idMat3 &oldaxis, const idMat3 &axis, idVec3 &delta ); //ivan
 	void					LookAtKiller( idEntity *inflictor, idEntity *attacker );
 
 	void					StopFiring( void );
 	void					FireWeapon( void );
+	void					WeaponSpecialFunction( bool keyTapped ); // New //un noted change from original sdk
 	void					Weapon_Combat( void );
 	void					Weapon_NPC( void );
 	void					Weapon_GUI( void );
@@ -675,7 +856,12 @@ private:
 	void					ExtractEmailInfo( const idStr &email, const char *scan, idStr &out );
 	void					UpdateObjectiveInfo( void );
 
+	bool					WeaponAvailable( const char* name ); //new //un noted change from original sdk
+	
 	void					UseVehicle( void );
+
+	void					Event_WeaponAvailable( const char* name ); // new //un noted change from original sdk
+	void					Event_GetImpulseKey( void ); // new
 
 	void					Event_GetButtons( void );
 	void					Event_GetMove( void );
@@ -695,7 +881,68 @@ private:
 	void					Event_LevelTrigger( void );
 	void					Event_Gibbed( void );
 	void					Event_GetIdealWeapon( void );
+
+	//ivan start
+	void					Event_HudEvent( const char* name ); 
+	void					Event_SetHudParm( const char *key, const char *val ); 
+	void					Event_GetHudFloat( const char *key);
+	void					Event_ShowStats( void );
+	void					Event_DropWeapon( int weapNum );
+	void					Event_FreeCamera( void );
+	void					Event_ForceCameraY( float ypos );
+	void					Event_DoubleJumpEnabled( int on );
+	void					Event_WallJumpEnabled( int on );
+	void					Event_SetSkin( const char *skinname );
+	void					Event_SetFullBodyAnimOn( int anim_movement );
+	void					Event_SetFullBodyAnimOff( void );
+
+	//smart AI start
+	void					Event_ForceUpdateNpcStatus( void ); 
+	void					Event_SetCommonEnemy( idEntity *enemy ); 
+	void					Event_GetCommonEnemy( void );
+	//smart AI end
+
+	//bool					CanPickupWeapons( void );
+	void					AddWeaponToSlots( idStr weaponName, bool select );
+	void					AddWeaponToSlots( int weaponNum, bool select );
+	bool					SetCurrentSlot( int newslot );
+	void					SetupSlots( void );
+	void					Interact( void );
+	void					SetSlideMoveState( void );
+	void					Hq2QuickRespawn( void );
+	void					ShowPossibleInteract( void );
+	//ivan end	
 };
+
+// New------------------
+#ifdef _DENTONMOD_PLAYER_CPP
+
+
+/*
+==================
+idPlayer::setZoom	
+
+Called By Weapon script, used for weapon zooming
+==================
+*/
+
+ID_INLINE void idPlayer::SetWeaponZoom( bool status ) {
+	weaponZoom.startZoom = status;
+}
+
+ID_INLINE void idPlayer::SetProjectileType( int type ) {
+	projectileType[ currentWeapon ] = type;
+}
+
+ID_INLINE int idPlayer::GetProjectileType( void ) {
+	return projectileType[ currentWeapon ];
+}
+
+
+
+// New------------------
+#endif // _DENTONMOD_PLAYER_CPP
+
 
 ID_INLINE bool idPlayer::IsReady( void ) {
 	return ready || forcedReady;
@@ -728,5 +975,11 @@ ID_INLINE bool idPlayer::SelfSmooth( void ) {
 ID_INLINE void idPlayer::SetSelfSmooth( bool b ) {
 	selfSmooth = b;
 }
+
+//ivan start
+ID_INLINE float idPlayer::GetIdealCameraDistance( void ) {
+	return idealCameraDistance;
+}
+//ivan end
 
 #endif /* !__GAME_PLAYER_H__ */

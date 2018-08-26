@@ -55,6 +55,311 @@ CLASS_DECLARATION( idEntity, idTarget )
 END_CLASS
 
 
+//ivan start
+/*
+===============================================================================
+
+idTarget_PlayerUtils
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_PlayerUtils )
+	EVENT( EV_Activate, idTarget_PlayerUtils::Event_Activate )
+END_CLASS
+
+
+/*
+================
+idTarget_PlayerUtils::Event_Activate
+================
+*/
+void idTarget_PlayerUtils::Event_Activate( idEntity *activator ) {
+	int actionId;
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player ) {
+		if( spawnArgs.GetInt( "actionId", "0", actionId ) ){
+			switch( actionId ) {
+				default :				
+				case PU_ACTION_FREE_CAM: {
+					player->SetYCameraFree();
+					break;
+				}
+				case PU_ACTION_FORCE_CAM: {
+					player->SetYCameraForced( GetPhysics()->GetOrigin().y );
+					break;
+				}
+				case PU_ACTION_DISTANCE: {
+					player->UpdateCameraDistance( spawnArgs.GetFloat( "cameraDist", "350" ), !spawnArgs.GetBool("noBlend") ); 
+					break;
+				}
+				case PU_ACTION_UNLOCK_PL: {
+					player->SetLock2D( false );
+					break;
+				}
+				case PU_ACTION_LOCK_PL: {
+					player->SetLock2D( true );
+					break;
+				}
+				case PU_ACTION_ADDSCORE: {
+					player->AddScore( spawnArgs.GetInt("score", "0") );
+					break;
+				}	
+				case PU_ACTION_CAM_HEIGHT: {
+					player->UpdateCameraHeight( spawnArgs.GetFloat( "cameraHeight", "50" ), !spawnArgs.GetBool("noBlend") ); 
+					break;
+				}
+				case PU_ACTION_INFOTXT: {
+					const char *infoText = spawnArgs.GetString( "infoText" );
+					if ( *infoText != '\0' ) {
+						player->ShowInfo( infoText, spawnArgs.GetFloat( "time", "6" ) );
+					}
+					break;
+				}
+			}
+		} 
+	}
+}
+
+#if 0
+/*
+===============================================================================
+
+idTarget_CheckPoint
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_CheckPoint )
+	EVENT( EV_Activate, idTarget_CheckPoint::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_CheckPoint::Event_Activate
+================
+*/
+void idTarget_CheckPoint::Event_Activate( idEntity *activator ) {
+	
+	//is it a player?
+	if ( activator->IsType( idPlayer::Type ) ){
+		static_cast< idPlayer* >( activator )->SaveCheckPointPos();
+	}
+}
+#endif
+
+
+/*
+===============================================================================
+
+idTarget_EnableTargets
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_EnableTargets )
+	EVENT( EV_Activate, idTarget_EnableTargets::Event_Activate )
+END_CLASS
+/*
+================
+idTarget_EnableTargets::idTarget_EnableTargets
+================
+*/
+idTarget_EnableTargets::idTarget_EnableTargets( void ) {
+	toggle = false;
+	enable = false;
+}
+
+/*
+================
+idTarget_EnableTargets::Save
+================
+*/
+void idTarget_EnableTargets::Save( idSaveGame *savefile ) const {
+	savefile->WriteBool( toggle );
+	savefile->WriteBool( enable );
+}
+
+/*
+================
+idTarget_EnableTargets::Restore
+================
+*/
+void idTarget_EnableTargets::Restore( idRestoreGame *savefile ) {
+	savefile->ReadBool( toggle );
+	savefile->ReadBool( enable );
+}
+
+/*
+================
+idTarget_EnableTargets::Spawn
+================
+*/
+void idTarget_EnableTargets::Spawn( void ) {
+	toggle = spawnArgs.GetBool( "toggle", "0" );
+	enable = spawnArgs.GetBool( "enable", "1" );
+}
+
+
+
+/*
+================
+idTarget_EnableTargets::Event_Activate
+================
+*/
+void idTarget_EnableTargets::Event_Activate( idEntity *activator ) {
+	idEntity	*ent;
+	int			i;
+	
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( !ent ) {
+			continue;
+		}
+		if( enable ){
+			//gameLocal.Printf("idTarget_EnableTargets enable\n");
+			if ( ent->RespondsTo( EV_Enable ) ) {
+				ent->ProcessEvent( &EV_Enable );
+			} 	
+		}else{
+			//gameLocal.Printf("idTarget_EnableTargets disable\n");
+			if ( ent->RespondsTo( EV_Disable ) ) {
+				ent->ProcessEvent( &EV_Disable );
+			} 	
+		}
+	}
+
+	if( toggle ){ enable = !enable; }
+}
+
+
+/*
+===============================================================================
+
+idTarget_Secret
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_Secret )
+	EVENT( EV_Activate, idTarget_Secret::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_Secret::idTarget_Secret
+================
+*/
+idTarget_Secret::idTarget_Secret( void ) {
+	found = false;
+}
+
+/*
+================
+idTarget_Secret::Save
+================
+*/
+void idTarget_Secret::Save( idSaveGame *savefile ) const {
+	savefile->WriteBool( found );
+}
+
+/*
+================
+idTarget_Secret::Restore
+================
+*/
+void idTarget_Secret::Restore( idRestoreGame *savefile ) {
+	savefile->ReadBool( found );
+}
+
+
+/*
+================
+idTarget_Secret::Spawn
+================
+*/
+void idTarget_Secret::Spawn( void ) {
+	gameLocal.secrets_spawned_counter++;
+}
+
+/*
+================
+idTarget_Secret::Event_Activate
+================
+*/
+void idTarget_Secret::Event_Activate( idEntity *activator ) {
+	if( found ){ return; }
+	found = true;
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player ) {
+		player->AddSecretFound();
+	}
+}
+
+/*
+===============================================================================
+
+idTarget_NoLockPath
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_NoLockPath )
+	EVENT( EV_Activate, idTarget_NoLockPath::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_NoLockPath::Event_Activate
+================
+*/
+void idTarget_NoLockPath::Event_Activate( idEntity *activator ) {
+	spawnArgs.SetBool( "allowLock", !spawnArgs.GetBool( "allowLock", "0" ) ); //just for this entity, the default is "no lock"
+}
+
+/*
+===============================================================================
+
+idTarget_SetPlatPos
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_SetPlatPos )
+	EVENT( EV_Activate, idTarget_SetPlatPos::Event_Activate )
+END_CLASS
+/*
+================
+idTarget_SetPlatPos::idTarget_SetPlatPos
+================
+*/
+idTarget_SetPlatPos::idTarget_SetPlatPos( void ) {
+}
+
+/*
+================
+idTarget_SetPlatPos::Event_Activate
+================
+*/
+void idTarget_SetPlatPos::Event_Activate( idEntity *activator ) {
+	idEntity	*ent;
+	int			i;
+	int		useDestPos = spawnArgs.GetInt( "useDestPos", "0" );
+
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( !ent ) {
+			continue;
+		}
+
+		if ( ent->RespondsTo( EV_GoToBinaryPos ) ) {
+			ent->ProcessEvent( &EV_GoToBinaryPos, useDestPos );
+		} 	
+	}
+}
+//ivan end
+
 /*
 ===============================================================================
 
@@ -618,7 +923,7 @@ void idTarget_Give::Event_Activate( idEntity *activator ) {
 				d2.Copy( *dict );
 				d2.Set( "name", va( "givenitem_%i", giveNum++ ) );
 				idEntity *ent = NULL;
-				if ( gameLocal.SpawnEntityDef( d2, &ent ) && ent && ent->IsType( idItem::Type ) ) {
+				if ( gameLocal.SpawnEntityDef( d2, &ent ) && ent && ent->IsType( idItem::Type ) ) { 
 					idItem *item = static_cast<idItem*>(ent);
 					item->GiveToPlayer( gameLocal.GetLocalPlayer() );
 				}
@@ -1561,10 +1866,15 @@ idTarget_Tip::Event_Activate
 */
 void idTarget_Tip::Event_GetPlayerPos( void ) {
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if ( player ) {
+	
+	//ivan start
+	//was: if ( player ) {
+	if ( player && player->IsTipVisible() ) {
+	//ivan end
 		playerPos = player->GetPhysics()->GetOrigin();
 		PostEventMS( &EV_TipOff, 100 );
 	}
+	//else job already done!
 }
 
 /*
@@ -1576,11 +1886,13 @@ void idTarget_Tip::Event_Activate( idEntity *activator ) {
 	idPlayer *player = gameLocal.GetLocalPlayer();
 	if ( player ) {
 		if ( player->IsTipVisible() ) {
-			PostEventSec( &EV_Activate, 5.1f, activator );
+			PostEventSec( &EV_Activate, 0.5f, activator ); //ivan - was 5.1
 			return;
 		}
-		player->ShowTip( spawnArgs.GetString( "text_title" ), spawnArgs.GetString( "text_tip" ), false );
-		PostEventMS( &EV_GetPlayerPos, 2000 );
+		player->ShowTip( spawnArgs.GetString( "text_title" ), spawnArgs.GetString( "text_tip" ), true ); //ivan - was: false
+		
+		//ivan - was: PostEventMS( &EV_GetPlayerPos, 2000 ); 
+		PostEventMS( &EV_GetPlayerPos, spawnArgs.GetInt( "minTimeMs", "2000" ) ); 
 	}
 }
 
@@ -1591,16 +1903,19 @@ idTarget_Tip::Event_TipOff
 */
 void idTarget_Tip::Event_TipOff( void ) {
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if ( player ) {
+	//ivan start
+	//was: if ( player ) {
+	if ( player && player->IsTipVisible() ) {
+	//ivan end
 		idVec3 v = player->GetPhysics()->GetOrigin() - playerPos;
-		if ( v.Length() > 96.0f ) {
+		if ( v.Length() > 300.0f ) { //ivan - was 96.0f
 			player->HideTip();
 		} else {
 			PostEventMS( &EV_TipOff, 100 );
 		}
 	}
+	//else job already done!
 }
-
 
 /*
 ===============================================================================

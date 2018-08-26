@@ -163,6 +163,10 @@ const idEventDef AI_CanReachEntity( "canReachEntity", "E", 'd' );
 const idEventDef AI_CanReachEnemy( "canReachEnemy", NULL, 'd' );
 const idEventDef AI_GetReachableEntityPosition( "getReachableEntityPosition", "e", 'v' );
 
+//ivan start - from ROE
+const idEventDef AI_MoveToPositionDirect( "moveToPositionDirect", "v" );
+//ivan end
+
 CLASS_DECLARATION( idActor, idAI )
 	EVENT( EV_Activate,							idAI::Event_Activate )
 	EVENT( EV_Touch,							idAI::Event_Touch )
@@ -292,6 +296,9 @@ CLASS_DECLARATION( idActor, idAI )
 	EVENT( AI_CanReachEntity,					idAI::Event_CanReachEntity )
 	EVENT( AI_CanReachEnemy,					idAI::Event_CanReachEnemy )
 	EVENT( AI_GetReachableEntityPosition,		idAI::Event_GetReachableEntityPosition )
+	//ivan start - from ROE
+	EVENT( AI_MoveToPositionDirect,				idAI::Event_MoveToPositionDirect )
+	//ivan end
 END_CLASS
 
 /*
@@ -338,7 +345,7 @@ void idAI::Event_FindEnemy( int useFOV ) {
 				continue;
 			}
 
-			if ( CanSee( actor, useFOV != 0 ) ) {
+			if ( AllowSeeActor( actor ) && CanSee( actor, useFOV != 0 ) ) { //ivan - AllowSeeActor() added
 				idThread::ReturnEntity( actor );
 				return;
 			}
@@ -382,7 +389,7 @@ void idAI::Event_FindEnemyAI( int useFOV ) {
 
 		delta = physicsObj.GetOrigin() - actor->GetPhysics()->GetOrigin();
 		dist = delta.LengthSqr();
-		if ( ( dist < bestDist ) && CanSee( actor, useFOV != 0 ) ) {
+		if ( ( dist < bestDist ) && AllowSeeActor( actor ) && CanSee( actor, useFOV != 0 ) ) { //ivan - AllowSeeActor() added
 			bestDist = dist;
 			bestEnemy = actor;
 		}
@@ -1287,6 +1294,12 @@ void idAI::Event_CanSeeEntity( idEntity *ent ) {
 		return;
 	}
 
+	/*
+	//ivan comment - damn we cannot know if he is trying to find an enemy
+	//assume he is not.
+	AllowSeeActor() &&
+	*/
+
 	bool cansee = CanSee( ent, false );
 	idThread::ReturnInt( cansee );
 }
@@ -1848,6 +1861,10 @@ void idAI::Event_Burn( void ) {
 	renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
 	SpawnParticles( "smoke_burnParticleSystem" );
 	UpdateVisuals();
+	
+	//ivan start - turn off dmgfxs on burn
+	StopDamageFxs();
+	//ivan end
 }
 
 /*
@@ -2031,6 +2048,11 @@ void idAI::Event_RestoreMove( void ) {
 	}
 
 	if ( GetMovePos( goalPos ) ) {
+		//ivan start
+		if(isXlocked){
+			goalPos.x = fastXpos;
+		}
+		//ivan end
 		CheckObstacleAvoidance( goalPos, dest );
 	}
 }
@@ -2432,9 +2454,65 @@ void idAI::Event_LocateEnemy( void ) {
 	}
 
 	enemyEnt->GetAASLocation( aas, lastReachableEnemyPos, areaNum );
-	SetEnemyPosition();
+	idAI::SetEnemyPosition(); //ivan - force call to idAI:: to avoid updating the lastVisibleEnemyTime value
+	//was SetEnemyPosition();
 	UpdateEnemyPosition();
 }
+
+//ivan start
+
+/*
+=====================
+idAI::Event_EnemyCanBeEngaged
+=====================
+
+void idAI::Event_EnemyCanBeEngaged( idEntity *ent ) {
+	
+	idVec3	entPos; 
+	const idVec3 &org = physicsObj.GetOrigin();
+	float dX, dY, dZ;
+
+	if( !ent ){
+		idThread::ReturnInt( false );
+		return;
+	}
+
+	//upd deltas stuff
+	entPos = ent->GetPhysics()->GetOrigin();
+
+	dX = idMath::Fabs( entPos.x - org.x );
+	dY = idMath::Fabs( entPos.y - org.y );
+	dZ = idMath::Fabs( entPos.z - org.z );
+	//gameLocal.Printf("dX: %f\n", dX);
+	//gameLocal.Printf("dY: %f\n", dY);
+	//gameLocal.Printf("dZ: %f\n", dZ);
+
+	//Inhibit Attacks based on deltas
+
+	if ( isXlocked && !updXlock ){ //if locked but cannot change he can fire regardless X pos
+		if ( (dY < AI_Y_DELTA_CANSEE_MAX) && (dZ < AI_Z_DELTA_CANSEE_MAX) ){
+			//gameLocal.Printf("AI_INHIBIT_ATTACK = false;\n");
+			idThread::ReturnInt( true );
+			return;
+		}else{ //don't let it attack if too far on Z or Y axis (out of screen!).
+			//gameLocal.Printf("AI_INHIBIT_ATTACK = true;\n");
+			idThread::ReturnInt( false );
+			return;
+		}
+	}else{
+		if ( (dX < AI_X_DELTA_CANSEE_MAX) && (dY < AI_Y_DELTA_CANSEE_MAX) && (dZ < AI_Z_DELTA_CANSEE_MAX) ){
+			//gameLocal.Printf("AI_INHIBIT_ATTACK = false;\n");
+			idThread::ReturnInt( true );
+			return;
+		}else{ //don't let it attack if too far on Z or Y axis (out of screen!) or if not near enough on X axis.
+			//gameLocal.Printf("AI_INHIBIT_ATTACK = true;\n");
+			idThread::ReturnInt( false );
+			return;
+		}
+	}	
+}
+*/
+//ivan end
 
 /*
 ================
@@ -2706,3 +2784,18 @@ void idAI::Event_GetReachableEntityPosition( idEntity *ent ) {
 
 	idThread::ReturnVector( pos );
 }
+
+//ivan start - from ROE
+
+/*
+================
+idAI::Event_MoveToPositionDirect
+================
+*/
+void idAI::Event_MoveToPositionDirect( const idVec3 &pos ) {
+	StopMove( MOVE_STATUS_DONE );
+	DirectMoveToPosition( pos );
+}
+
+
+//ivan end

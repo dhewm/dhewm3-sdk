@@ -365,6 +365,12 @@ const idEventDef AI_SetNextState( "setNextState", "s" );
 const idEventDef AI_SetState( "setState", "s" );
 const idEventDef AI_GetState( "getState", NULL, 's' );
 const idEventDef AI_GetHead( "getHead", NULL, 'e' );
+//ivan start
+const idEventDef AI_IsOnScreen( "isOnScreen", NULL, 'd' );
+const idEventDef AI_IsXlocked( "isXlocked", NULL, 'd' );
+//ivan end
+
+
 
 CLASS_DECLARATION( idAFEntity_Gibbable, idActor )
 	EVENT( AI_EnableEyeFocus,			idActor::Event_EnableEyeFocus )
@@ -408,6 +414,10 @@ CLASS_DECLARATION( idAFEntity_Gibbable, idActor )
 	EVENT( AI_SetState,					idActor::Event_SetState )
 	EVENT( AI_GetState,					idActor::Event_GetState )
 	EVENT( AI_GetHead,					idActor::Event_GetHead )
+	//ivan start
+	EVENT( AI_IsOnScreen,				idActor::Event_IsOnScreen )
+	EVENT( AI_IsXlocked,				idActor::Event_IsXlocked )
+	//ivan end
 END_CLASS
 
 /*
@@ -417,6 +427,10 @@ idActor::idActor
 */
 idActor::idActor( void ) {
 	viewAxis.Identity();
+
+	//ivan start
+	force_torso_override = false; 
+	//ivan end
 
 	scriptThread		= NULL;		// initialized by ConstructScriptObject, which is called by idEntity::Spawn
 
@@ -458,6 +472,14 @@ idActor::idActor( void ) {
 
 	enemyNode.SetOwner( this );
 	enemyList.SetOwner( this );
+
+	//ivan start
+	isXlocked			= false; 
+	isOnScreen			= false; 
+	updXlock			= false; 
+	//ignoredByAI			= false;
+	fastXpos			= 0.0f;
+	//ivan end
 }
 
 /*
@@ -628,6 +650,12 @@ void idActor::Spawn( void ) {
 	finalBoss = spawnArgs.GetBool( "finalBoss" );
 
 	FinishSetup();
+
+	//ivan start
+	fastXpos = GetPhysics()->GetOrigin().x; //ivan - remember initial pos.
+	isXlocked = spawnArgs.GetBool( "isXlocked", "1" ); //ivan
+	updXlock =	spawnArgs.GetBool( "updXlock", "1" ); //ivan
+	//ivan end
 }
 
 /*
@@ -869,6 +897,23 @@ void idActor::Save( idSaveGame *savefile ) const {
 		savefile->WriteString( "" );
 	}
 
+	//ivan start
+	savefile->WriteBool( isXlocked ); 
+	savefile->WriteBool( isOnScreen ); 
+	savefile->WriteBool( updXlock );
+	//savefile->WriteBool( ignoredByAI );
+	savefile->WriteFloat( fastXpos );
+	savefile->WriteBool( force_torso_override ); 
+
+	//dmgfx start
+	savefile->WriteInt( dmgFxEntities.Num() );
+	for( i = 0; i < dmgFxEntities.Num(); i++ ) {
+		dmgFxEntities[ i ].Save( savefile );
+	}
+	//dmgfx end
+
+	//ivan end
+
 }
 
 /*
@@ -977,6 +1022,25 @@ void idActor::Restore( idRestoreGame *savefile ) {
 	if ( statename.Length() > 0 ) {
 		idealState = GetScriptFunction( statename );
 	}
+
+	//ivan start
+	savefile->ReadBool( isXlocked ); 
+	savefile->ReadBool( isOnScreen ); 
+	savefile->ReadBool( updXlock ); 
+	//savefile->ReadBool( ignoredByAI ); 
+	savefile->ReadFloat( fastXpos ); 
+	savefile->ReadBool( force_torso_override );
+
+	//dmgfx start
+	dmgFxEntities.Clear();
+	savefile->ReadInt( num );
+	dmgFxEntities.SetNum( num );
+	for( i = 0; i < num; i++ ) {
+		dmgFxEntities[ i ].Restore( savefile );
+	}
+	//dmgfx end
+
+	//ivan end
 }
 
 /*
@@ -2135,6 +2199,10 @@ void idActor::Gib( const idVec3 &dir, const char *damageDefName ) {
 		head.GetEntity()->Hide();
 	}
 	StopSound( SND_CHANNEL_VOICE, false );
+
+	//ivan start - turn off dmgfxs on gib
+	StopDamageFxs();
+	//ivan end
 }
 
 
@@ -2179,8 +2247,25 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
 	}
 
+	//ivan start
+	if(damageDef->GetBool( "ignore_friends" )){
+		if(team == attacker->spawnArgs.GetInt( "team", "0" )){
+			return;
+		}
+	}
+
+	if( !gibbed ){
+		CheckDamageFx( damageDef ); //damaging fx
+	}
+	//ivan end
+
 	int	damage = damageDef->GetInt( "damage" ) * damageScale;
-	damage = GetDamageForLocation( damage, location );
+
+	// By Clone JCD For Improved damage behaviour
+	if (health > 0){ // Make sure that an actor is alive when we go for Damage location	
+		damage = GetDamageForLocation( damage, location ); 
+//		gameLocal.Printf(" \n damage applied: %d", damage );
+	}
 
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );
@@ -2191,7 +2276,15 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
+    
+			//Improved Gibbing System by Clone JC Denton
+
+			int healthToGib = spawnArgs.GetInt ("gibHealth"); // GibHealth is suppossed to be declared in entityDef
+																
+			if (healthToGib == 0)					// If its not there, set it to default value
+				healthToGib = -20 ;
+			
+			if ( ( health < healthToGib ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
 				Gib( dir, damageDefName );
 			}
 		} else {
@@ -2611,6 +2704,14 @@ void idActor::Event_PlayAnim( int channel, const char *animname ) {
 		torsoAnim.idleAnim = false;
 		torsoAnim.PlayAnim( anim );
 		flags = torsoAnim.GetAnimFlags();
+
+		//ivan test
+		if (force_torso_override){
+			legsAnim.animBlendFrames = torsoAnim.lastAnimBlendFrames;
+			SyncAnimChannels( ANIMCHANNEL_LEGS, ANIMCHANNEL_TORSO, torsoAnim.lastAnimBlendFrames );
+		}else
+		//ivan end
+
 		if ( !flags.prevent_idle_override ) {
 			if ( headAnim.IsIdle() ) {
 				headAnim.animBlendFrames = torsoAnim.lastAnimBlendFrames;
@@ -3276,3 +3377,97 @@ idActor::Event_GetHead
 void idActor::Event_GetHead( void ) {
 	idThread::ReturnEntity( head.GetEntity() );
 }
+
+//ivan start
+
+/*
+=====================
+idActor::Event_IsOnScreen
+=====================
+*/
+void idActor::Event_IsOnScreen( void ) {
+	idThread::ReturnInt( isOnScreen );
+}
+
+/*
+=====================
+idActor::Event_IsXlocked
+=====================
+*/
+void idActor::Event_IsXlocked( void ) {
+	idThread::ReturnInt( isXlocked );
+}
+
+
+/*
+=====================
+idActor::CheckDamageFx
+=====================
+*/
+void idActor::CheckDamageFx( const idDict *damageDef ){ 
+	if( !damageDef ){ return; }
+	if( !spawnArgs.GetBool( "allowDmgfxs", "0" ) ){
+		return;
+	}	
+	int dmgFxType = damageDef->GetInt( "dmgFxType", "0" ); //default is "0" -> no fx
+	if( dmgFxType > DMGFX_NONE && dmgFxType < NUM_DMGFX_TYPES ){ 
+		StartDamageFx( dmgFxType ); 
+	}
+}
+
+/*
+=====================
+idActor::StartDamageFx
+=====================
+*/
+void idActor::StartDamageFx( int type ){ 
+	int i;
+	idDamagingFx* tempFx;
+
+	if( type <= DMGFX_NONE || type >= NUM_DMGFX_TYPES ){ 
+		gameLocal.Warning("StartDamageFx: invalid dmgFxType");
+		return;
+	}
+
+	//remove invalid ones
+	for( i = dmgFxEntities.Num() - 1; i >= 0; i-- ) {
+		if ( !dmgFxEntities[ i ].GetEntity() ) {
+			dmgFxEntities.RemoveIndex( i );
+		}
+	}
+
+	//check if the effect is already active --> restart it
+	for( i = dmgFxEntities.Num() - 1; i >= 0; i-- ) {
+		tempFx = dmgFxEntities[ i ].GetEntity();
+		if( tempFx->GetDmgFxType() == type ){
+			tempFx->Restart();
+			return;
+		}
+	}
+
+	//start a new one
+	tempFx = idDamagingFx::StartDamagingFx( type, this );
+	if( tempFx ){
+		idEntityPtr<idDamagingFx> &newFxPtr = dmgFxEntities.Alloc();
+        newFxPtr = tempFx;
+	}
+}
+
+/*
+=====================
+idActor::StopDamageFxs
+=====================
+*/
+void idActor::StopDamageFxs( void ){ 
+	int i;
+	idDamagingFx* tempFx;
+
+	//set the end time
+	for( i = dmgFxEntities.Num() - 1; i >= 0; i-- ) {
+		tempFx = dmgFxEntities[ i ].GetEntity();
+		if ( tempFx ) {
+			tempFx->FadeOutFx();
+		}
+	}
+}
+//ivan end

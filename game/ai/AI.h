@@ -50,6 +50,19 @@ const float	AI_FLY_DAMPENING			= 0.15f;
 const float	AI_HEARING_RANGE			= 2048.0f;
 const int	DEFAULT_FLY_OFFSET			= 68;
 
+//ivan start
+const float	AI_X_DELTA_LOCK_MIN			= 20.0f;
+#define AI_X_DELTA_CANSEE_MAX AI_X_DELTA_LOCK_MIN
+
+//values must match the ones in the defs!
+enum {
+	AI_FIREMODE_DEFAULT				= 0,	//default: 3D spread
+	AI_FIREMODE_2D_STEP_SPREAD		= 1,	//turrican style spread
+	AI_FIREMODE_2D_PARALLEL_SPREAD	= 2,	//parallel projs. Spread is the offset
+	AI_FIREMODE_2D_RANDOM_SPREAD	= 3		//similar to default, but spread is 2D
+};
+//ivan end
+
 #define ATTACK_IGNORE			0
 #define ATTACK_ON_DAMAGE		1
 #define ATTACK_ON_ACTIVATE		2
@@ -159,6 +172,13 @@ extern const idEventDef AI_DisableGravity;
 extern const idEventDef AI_TriggerParticles;
 extern const idEventDef AI_RandomPath;
 
+//ivan start - added so that idAI_bot can redefine them
+extern const idEventDef AI_CanHitEnemyFromAnim;
+extern const idEventDef AI_LaunchMissile;
+extern const idEventDef AI_CanHitEnemyFromJoint;
+//ivan end
+
+
 class idPathCorner;
 
 typedef struct particleEmitter_s {
@@ -244,11 +264,12 @@ private:
 };
 
 class idAI : public idActor {
+
 public:
 	CLASS_PROTOTYPE( idAI );
 
 							idAI();
-							~idAI();
+	virtual					~idAI(); //ivan - virtual added
 
 	void					Save( idSaveGame *savefile ) const;
 	void					Restore( idRestoreGame *savefile );
@@ -259,7 +280,7 @@ public:
 	void					TalkTo( idActor *actor );
 	talkState_t				GetTalkState( void ) const;
 
-	bool					GetAimDir( const idVec3 &firePos, idEntity *aimAtEnt, const idEntity *ignore, idVec3 &aimDir ) const;
+	virtual bool			GetAimDir( const idVec3 &firePos, idEntity *aimAtEnt, const idEntity *ignore, idVec3 &aimDir ) const; //ivan - virtual added
 
 	void					TouchedByFlashlight( idActor *flashlight_owner );
 
@@ -278,6 +299,37 @@ public:
 	static bool				PredictTrajectory( const idVec3 &firePos, const idVec3 &target, float projectileSpeed, const idVec3 &projGravity, const idClipModel *clip, int clipmask, float max_height, const idEntity *ignore, const idEntity *targetEntity, int drawtime, idVec3 &aimDir );
 
 protected:
+
+	
+	//ivan start
+	/*
+	bool					isXlocked;
+	bool					updXlock;
+	float					lockedXpos;
+	*/
+
+	int						fireMode;
+	bool					noPush;
+
+	//TODO: use an idVec3 instead
+	float					deltaXfromEnemy;
+	//float					deltaYfromEnemy;
+	//float					deltaZfromEnemy;
+
+	//bool					modelCallBackDone; //not saved
+
+	void					UpdateXlock( idActor *enemyEnt );
+	void					UpdateInhibitAttack( idActor *enemyEnt );
+	//bool					AllowSeeEnemy( idActor *enemyEnt );
+	bool					AllowSeeActor( idActor *actor );
+	/*
+	bool					UpdateRenderEntity( renderEntity_s *renderEntity, const renderView_t *renderView );
+	static bool				ModelCallback( renderEntity_s *renderEntity, const renderView_t *renderView );
+*/
+
+	//ivan end
+	
+
 	// navigation
 	idAAS *					aas;
 	int						travelFlags;
@@ -419,6 +471,10 @@ protected:
 	idScriptBool			AI_DEST_UNREACHABLE;
 	idScriptBool			AI_HIT_ENEMY;
 	idScriptBool			AI_PUSHED;
+	//ivan start
+	idScriptBool			AI_INHIBIT_ATTACK; 
+	idScriptBool			AI_INHIBIT_MOVE; 
+	//ivan end
 
 	//
 	// ai/ai.cpp
@@ -432,12 +488,12 @@ protected:
 	bool					CheckForEnemy( void );
 	void					EnemyDead( void );
 	virtual bool			CanPlayChatterSounds( void ) const;
-	void					SetChatSound( void );
-	void					PlayChatter( void );
+	virtual void			SetChatSound( void ); //ivan - virtual added 
+	virtual	void			PlayChatter( void ); //ivan - virtual added
 	virtual void			Hide( void );
 	virtual void			Show( void );
 	idVec3					FirstVisiblePointOnPath( const idVec3 origin, const idVec3 &target, int travelFlags ) const;
-	void					CalculateAttackOffsets( void );
+	virtual void			CalculateAttackOffsets( void ); //ivan - virtual added
 	void					PlayCinematic( void );
 
 	// movement
@@ -503,15 +559,17 @@ protected:
 	// enemy management
 	void					ClearEnemy( void );
 	bool					EnemyPositionValid( void ) const;
-	void					SetEnemyPosition( void );
+	virtual void			SetEnemyPosition( void ); //ivan - virtual added
 	void					UpdateEnemyPosition( void );
 	void					SetEnemy( idActor *newEnemy );
+	void					UpdateIsOnScreen( void );  // un noted changes from original sdk
+	void					RunPhysicsWrapper( void ); // un noted changes from original sdk
 
 	// attacks
-	void					CreateProjectileClipModel( void ) const;
-	idProjectile			*CreateProjectile( const idVec3 &pos, const idVec3 &dir );
+	virtual void			CreateProjectileClipModel( void ) const; //ivan - virtual added
+	virtual idProjectile	*CreateProjectile( const idVec3 &pos, const idVec3 &dir ); //ivan - virtual added
 	void					RemoveProjectile( void );
-	idProjectile			*LaunchProjectile( const char *jointname, idEntity *target, bool clampToAttackCone );
+	virtual idProjectile	*LaunchProjectile( const char *jointname, idEntity *target, bool clampToAttackCone ); //ivan - virtual added
 	virtual void			DamageFeedback( idEntity *victim, idEntity *inflictor, int &damage );
 	void					DirectDamage( const char *meleeDefName, idEntity *ent );
 	bool					TestMelee( void ) const;
@@ -521,10 +579,10 @@ protected:
 	void					PushWithAF( void );
 
 	// special effects
-	void					GetMuzzle( const char *jointname, idVec3 &muzzle, idMat3 &axis );
-	void					InitMuzzleFlash( void );
-	void					TriggerWeaponEffects( const idVec3 &muzzle );
-	void					UpdateMuzzleFlash( void );
+	virtual void			GetMuzzle( const char *jointname, idVec3 &muzzle, idMat3 &axis ); //ivan - virtual added
+	virtual	void			InitMuzzleFlash( void ); //ivan - virtual added
+	virtual void			TriggerWeaponEffects( const idVec3 &muzzle ); //ivan - virtual added
+	virtual	void			UpdateMuzzleFlash( void ); //ivan - virtual added
 	virtual bool			UpdateAnimationControllers( void );
 	void					UpdateParticles( void );
 	void					TriggerParticles( const char *jointName );
@@ -664,6 +722,10 @@ protected:
 	void					Event_CanReachEntity( idEntity *ent );
 	void					Event_CanReachEnemy( void );
 	void					Event_GetReachableEntityPosition( idEntity *ent );
+
+	//ivan start - from ROE
+	void					Event_MoveToPositionDirect( const idVec3 &pos );
+	//ivan end
 };
 
 class idCombatNode : public idEntity {

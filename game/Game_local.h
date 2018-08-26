@@ -294,6 +294,24 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+#ifdef _PORTALSKY//un noted change from original sdk
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyAcive();
+#endif
+
+	//ivan start
+	int						secrets_spawned_counter;
+	int						secrets_found_counter;
+	int						enemies_spawned_counter;
+	int						enemies_killed_counter;
+
+	//max distance values for projectiles 
+	float					projSeeDistance;
+	//ivan end
+
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -370,7 +388,14 @@ public:
 	void					SetSkill( int value );
 	gameState_t				GameState( void ) const;
 	idEntity *				SpawnEntityType( const idTypeInfo &classdef, const idDict *args = NULL, bool bIsClientReadSnapshot = false );
-	bool					SpawnEntityDef( const idDict &args, idEntity **ent = NULL, bool setDefaults = true );
+	
+	//ivan start
+	bool					SpawnEntityDef_old( const idDict &customArgs, idEntity **ent, bool setDefaults, const idDeclEntityDef *def, const char	*classname ); //this was the old SpawnEntityDef!
+	bool		 			SpawnEntityDef_random( const idDict &customArgs, idEntity **ent, bool setDefaults, const idDeclEntityDef *def, const char	*classname );
+	void					RemoveBadKeysForRandom( idDict &args );
+	//ivan end
+
+	bool		 			SpawnEntityDef( const idDict &args, idEntity **ent = NULL, bool setDefaults = true );
 	int						GetSpawnId( const idEntity *ent ) const;
 
 	const idDeclEntityDef *	FindEntityDef( const char *name, bool makeDefault = true ) const;
@@ -386,6 +411,10 @@ public:
 
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
+
+#ifdef _PORTALSKY //un noted change from original sdk
+	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
+#endif
 
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;
@@ -447,6 +476,10 @@ public:
 	int						GetGibTime() { return nextGibTime; };
 
 	bool					NeedRestart();
+	
+	//ivan start
+	void					UpdateSeeDistances( float distance ); 
+	//ivan end
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
@@ -654,5 +687,16 @@ typedef enum {
 extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
 extern const int	CINEMATIC_SKIP_DELAY;
+
+#ifdef _WATER_PHYSICS //un noted change from original sdk
+#include "physics/Physics_Liquid.h"
+#include "Liquid.h"
+#endif
+
+#ifdef _DENTONMOD
+#include "tracer.h"
+#endif
+
+#include "ai/AI_bot.h" //ivan
 
 #endif	/* !__GAME_LOCAL_H__ */

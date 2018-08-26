@@ -33,6 +33,17 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Force_Constant.h"
 #include "Entity.h"
 
+#ifdef _DENTONMOD
+//#include "tracer.h"
+#ifndef _DENTONMOD_PROJECTILE_CPP
+#define _DENTONMOD_PROJECTILE_CPP
+#endif
+#endif
+
+//ivan start
+//#define PROJECTILE_SIDECOLLISIONS
+//ivan end
+
 /*
 ===============================================================================
 
@@ -56,6 +67,7 @@ public :
 	void					Restore( idRestoreGame *savefile );
 
 	void					Create( idEntity *owner, const idVec3 &start, const idVec3 &dir );
+
 	virtual void			Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire = 0.0f, const float launchPower = 1.0f, const float dmgPower = 1.0f );
 	virtual void			FreeLightDef( void );
 
@@ -82,16 +94,30 @@ public :
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
-protected:
+#ifdef _DENTONMOD
+	void					setTracerEffect( dnTracerEffect *effect) { tracerEffect = effect; }
+#endif
+
+protected:	
 	idEntityPtr<idEntity>	owner;
 
 	struct projectileFlags_s {
 		bool				detonate_on_world			: 1;
 		bool				detonate_on_actor			: 1;
 		bool				randomShaderSpin			: 1;
-		bool				isTracer					: 1;
-		bool				noSplashDamage				: 1;
+		bool				noSplashDamage				: 1; 
+		bool				impact_fx_played			: 1; // keeps track of fx played on collided body - BY JCD
+		//ivan start
+#ifdef PROJECTILE_SIDECOLLISIONS
+		bool				useSideCollisions			: 1;
+#endif
+		bool				autoCameraFuse				: 1;
+		//ivan end
 	} projectileFlags;
+
+#ifdef _DENTONMOD
+	dnTracerEffect *tracerEffect;
+#endif
 
 	float					thrust;
 	int						thrust_end;
@@ -121,11 +147,20 @@ protected:
 
 	projectileState_t		state;
 
+	//ivan start
+	//bool					useSideCollisions;
+	void					CheckCameraFuse( void );
+	void					FireRailTracer( const idVec3 &endPos, const idVec3 &dir, const idVec3 &velocity, const char * damageDefName ); //ivan
+#ifdef PROJECTILE_SIDECOLLISIONS
+	void					SideCollisionCheck( void );
+#endif
+	//ivan end
+
 private:
 	bool					netSyncPhysics;
+	const idDeclEntityDef	*damageDef; // stores Damage Def -- By Clone JCD
 
 	void					AddDefaultDamageEffect( const trace_t &collision, const idVec3 &velocity );
-
 	void					Event_Explode( void );
 	void					Event_Fizzle( void );
 	void					Event_RadiusDamage( idEntity *ignore );
@@ -222,6 +257,16 @@ private:
 	qhandle_t				secondModelDefHandle;
 	int						nextDamageTime;
 	idStr					damageFreq;
+	
+	//ivan start
+	int						nextProjTime;
+	int						nextProjTargetNum;
+	const idDict *			secProjDef;
+	idStr					secProjName;
+
+	idVec3					GetAimDir( idEntity *aimAtEnt ); 
+	idProjectile*			FireSecProj( idVec3 &dir ); 
+	//ivan end
 
 	void					FreeBeams();
 	void					Event_RemoveBeams();
@@ -261,9 +306,13 @@ public :
 private:
 	idEntityPtr<idEntity>	owner;
 	idPhysics_RigidBody		physicsObj;
-	const idDeclParticle *	smokeFly;
+	const idDeclParticle *	smokeFly; 
 	int						smokeFlyTime;
+	int						nextSoundTime;		// BY Clone JCD 
+	int						soundTimeDifference;	// BY Clone JCD 
+	bool					continuousSmoke;		//By Clone JCD
 	const idSoundShader *	sndBounce;
+	const idSoundShader *	sndRest;
 
 
 	void					Event_Explode( void );

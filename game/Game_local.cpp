@@ -244,6 +244,14 @@ void idGameLocal::Clear( void ) {
 	lastGUIEnt = NULL;
 	lastGUI = 0;
 
+	//ivan start
+	secrets_found_counter	= 0;
+	secrets_spawned_counter = 0;
+	enemies_killed_counter	= 0;
+	enemies_spawned_counter = 0;
+	projSeeDistance = 0.0f;
+	//ivan end
+
 	memset( clientEntityStates, 0, sizeof( clientEntityStates ) );
 	memset( clientPVS, 0, sizeof( clientPVS ) );
 	memset( clientSnapshots, 0, sizeof( clientSnapshots ) );
@@ -252,6 +260,11 @@ void idGameLocal::Clear( void ) {
 	savedEventQueue.Init();
 
 	memset( lagometer, 0, sizeof( lagometer ) );
+
+#ifdef _PORTALSKY //un noted change from original sdk
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
 }
 
 /*
@@ -307,6 +320,14 @@ void idGameLocal::Init( void ) {
 
 	InitConsoleCommands();
 
+	//Ivan start - execute the default.cfg HardQore config file only the first time
+    if(!hardqore2_bind_run_once.GetBool()) {
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta hardqore2_bind_run_once 1\n" );
+		cmdSystem->ExecuteCommandBuffer();
+	}
+	//Ivan end		
+	
 	// load default scripts
 	program.Startup( SCRIPT_DEFAULT );
 
@@ -536,6 +557,11 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
 
+#ifdef _PORTALSKY //un noted change from original sdk
+	portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
+#endif
+
 	savegame.WriteBool( mapCycleLoaded );
 	savegame.WriteInt( spawnCount );
 
@@ -568,6 +594,14 @@ void idGameLocal::SaveGame( idFile *f ) {
 
 	savegame.WriteBool( influenceActive );
 	savegame.WriteInt( nextGibTime );
+
+	//ivan start
+	savegame.WriteInt( secrets_spawned_counter );
+	savegame.WriteInt( secrets_found_counter );
+	savegame.WriteInt( enemies_spawned_counter );
+	savegame.WriteInt( enemies_killed_counter );
+	savegame.WriteFloat( projSeeDistance );
+	//ivan end
 
 	// spawnSpots
 	// initialSpots
@@ -713,7 +747,6 @@ void idGameLocal::Error( const char *fmt, ... ) const {
 		common->Error( "%s", text );
 	}
 }
-
 /*
 ===============
 gameError
@@ -890,7 +923,8 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	firstFreeIndex	= MAX_CLIENTS;
 
 	// reset the random number generator.
-	random.SetSeed( isMultiplayer ? randseed : 0 );
+	//ivan -was: random.SetSeed( isMultiplayer ? randseed : 0 );
+	random.SetSeed( randseed );
 
 	camera			= NULL;
 	world			= NULL;
@@ -905,6 +939,19 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	framenum		= 0;
 	sessionCommand = "";
 	nextGibTime		= 0;
+
+	//ivan start
+	secrets_found_counter	= 0;
+	secrets_spawned_counter = 0;
+	enemies_killed_counter	= 0;
+	enemies_spawned_counter = 0;
+	projSeeDistance = 0.0f;
+	//ivan end
+
+#ifdef  _PORTALSKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
 
 	vacuumAreaNum = -1;		// if an info_vacuum is spawned, it will set this
 
@@ -1353,6 +1400,11 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
 
+#ifdef _PORTALSKY //un noted change from original sdk
+	portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+#endif
+
 	savegame.ReadBool( mapCycleLoaded );
 	savegame.ReadInt( spawnCount );
 
@@ -1388,6 +1440,14 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 
 	savegame.ReadBool( influenceActive );
 	savegame.ReadInt( nextGibTime );
+
+	//ivan start
+	savegame.ReadInt( secrets_spawned_counter );
+	savegame.ReadInt( secrets_found_counter );
+	savegame.ReadInt( enemies_spawned_counter );
+	savegame.ReadInt( enemies_killed_counter );
+	savegame.ReadFloat( projSeeDistance );
+	//ivan end
 
 	// spawnSpots
 	// initialSpots
@@ -1998,6 +2058,25 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			pvs.FreeCurrentPVS( playerConnectedAreas );
 			pvs.FreeCurrentPVS( otherPVS );
 			playerConnectedAreas = newPVS;
+
+#ifdef _PORTALSKY //un noted change from original sdk
+		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
+		if ( portalSkyEnt.GetEntity() ) {
+			idEntity *skyEnt = portalSkyEnt.GetEntity();
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerPVS, otherPVS );
+			pvs.FreeCurrentPVS( playerPVS );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerPVS = newPVS;
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
+			pvs.FreeCurrentPVS( playerConnectedAreas );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerConnectedAreas = newPVS;
+		}
+#endif
 		}
 	}
 }
@@ -2205,6 +2284,20 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 			if ( view ) {
 				gameRenderWorld->SetRenderView( view );
 			}
+
+			/*
+			//ivan start - update AI seeing distance and start camera blending.
+
+			if ( pm_thirdPersonRange.IsModified() ){
+				this->Printf("pm_thirdPersonRange.IsModified()\n");
+				UpdateAIseeDistance();
+				player->UpdateCameraDistance();
+
+				//remove the modified flag
+				//pm_thirdPersonRange.ClearModified();
+			}
+			//ivan end
+			*/
 		}
 
 		// clear any debug lines from a previous frame
@@ -3005,6 +3098,7 @@ idEntity *idGameLocal::SpawnEntityType( const idTypeInfo &classdef, const idDict
 	return static_cast<idEntity *>(obj);
 }
 
+//ivan start
 /*
 ===================
 idGameLocal::SpawnEntityDef
@@ -3015,6 +3109,183 @@ returning false if not found
 */
 bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDefaults ) {
 	const char	*classname;
+	
+	if ( ent ) {
+		*ent = NULL;
+	}
+
+	//get classname and check if there is a matching def
+	args.GetString( "classname", NULL, &classname );
+	const idDeclEntityDef *def = FindEntityDef( classname, false );
+	if ( !def ) {
+		Warning( "Unknown classname '%s'%s.", classname, args.GetString( "name" ) );
+		return false;
+	} //here def and classname are valid
+
+	//note: this checks the "random_class" key in the def
+	if( def->dict.GetBool( "random_class", "0" ) || args.GetBool( "random_class", "0" ) ){ //|| args.GetBool( "random_class", "0" )
+		return SpawnEntityDef_random( args, ent, setDefaults, def, classname );
+	}else{
+		return SpawnEntityDef_old( args, ent, setDefaults, def, classname );
+	}
+}
+
+/*
+================
+idGameLocal::SpawnEntityDef_random
+================
+*/
+void idGameLocal::RemoveBadKeysForRandom( idDict &args ){ //also called by idRandomSpawner
+	args.Delete( "model" );			//only use default
+	args.Delete( "anim" );			//only use default
+	args.Delete( "size" );			//only use default
+	args.Delete( "spawnclass" );	//only use default
+	args.Delete( "scriptobject" );	//only use default
+	//NOTE: "name" is always kept!
+}
+
+/*
+================
+idGameLocal::SpawnEntityDef_random
+================
+*/
+bool idGameLocal::SpawnEntityDef_random( const idDict &customArgs, idEntity **ent, bool setDefaults, const idDeclEntityDef *def, const char	*classname ) {
+	const idDict &defArgs = def->dict; //args from the temporary def
+	idDict newArgs; //args to populate for the new entity
+
+	Printf( "*** idGameLocal::RandomEntityClass *** \n" );
+
+	//get the def containing the list
+	const idDict *	rndListArgs = FindEntityDefDict( defArgs.GetString( "def_rndlist" ), false ); 
+	if ( !rndListArgs ) {
+		Warning( "No def_rndlist found on %s.", customArgs.GetString( "name" ) );
+		return false;
+	}
+
+	//get new classname
+	const char	*classname_new = rndListArgs->RandomPrefix( "def", random );
+	if ( *classname_new == '\0' ) {
+		Printf( "No new classname found for %s!\n", customArgs.GetString( "name" ) );
+		return false; //cannot spawn
+	}
+
+	Printf( "New classname is '%s'!\n", classname_new );
+
+	//check if there is a matching def
+	const idDeclEntityDef *def_new = FindEntityDef( classname_new, false );
+	if ( !def_new ) {
+		Warning( "Unknown classname '%s' for %s.", classname_new, customArgs.GetString( "name" ) );
+		return false;
+	}
+
+	//add key/value pairs set in the editor or whatever (origin, ...)
+	newArgs.Copy( customArgs ); 
+
+	//upd calssname
+	newArgs.Set( "classname", classname_new );
+
+	//delete keys that should never overwrite def's ones
+	RemoveBadKeysForRandom( newArgs );
+
+	//make sure this is not set even if someone add it in the editor
+	//NOTE: otherwise, when spawner is set, it would TRY to be random, but ALL the spawnargs would overwrite everything.
+	newArgs.Delete( "random_class" );
+
+	//debug
+	newArgs.Print();
+
+	return SpawnEntityDef_old( newArgs, ent, setDefaults, def_new, classname_new ); 
+}
+
+
+/*
+===================
+idGameLocal::SpawnEntityDef
+
+Finds the spawn function for the entity and calls it,
+returning false if not found
+===================
+*/
+
+bool idGameLocal::SpawnEntityDef_old( const idDict &args, idEntity **ent, bool setDefaults, const idDeclEntityDef *def, const char	*classname ) { 
+	//const char	*classname;
+	const char	*spawn;
+	idTypeInfo	*cls;
+	idClass		*obj;
+	idStr		error;
+	const char  *name;
+
+	/* //un noted change from original sdk
+	if ( ent ) {
+		*ent = NULL;
+	}
+	*/
+	
+	spawnArgs = args;
+
+	if ( spawnArgs.GetString( "name", "", &name ) ) {
+		sprintf( error, " on '%s'", name);
+	}
+
+	/* //un noted change from original sdk
+	spawnArgs.GetString( "classname", NULL, &classname );
+
+	const idDeclEntityDef *def = FindEntityDef( classname, false );
+
+	if ( !def ) {
+		Warning( "Unknown classname '%s'%s.", classname, error.c_str() );
+		return false;
+	}
+	*/
+
+	spawnArgs.SetDefaults( &def->dict );
+
+	// check if we should spawn a class object
+	spawnArgs.GetString( "spawnclass", NULL, &spawn );
+	if ( spawn ) {
+
+		cls = idClass::GetClass( spawn );
+		if ( !cls ) {
+			Warning( "Could not spawn '%s'.  Class '%s' not found%s.", classname, spawn, error.c_str() );
+			return false;
+		}
+
+		obj = cls->CreateInstance();
+		if ( !obj ) {
+			Warning( "Could not spawn '%s'. Instance could not be created%s.", classname, error.c_str() );
+			return false;
+		}
+
+		obj->CallSpawn();
+
+		if ( ent && obj->IsType( idEntity::Type ) ) {
+			*ent = static_cast<idEntity *>(obj);
+		}
+
+		return true;
+	}
+
+	// check if we should call a script function to spawn
+	spawnArgs.GetString( "spawnfunc", NULL, &spawn );
+	if ( spawn ) {
+		const function_t *func = program.FindFunction( spawn );
+		if ( !func ) {
+			Warning( "Could not spawn '%s'.  Script function '%s' not found%s.", classname, spawn, error.c_str() );
+			return false;
+		}
+		idThread *thread = new idThread( func );
+		thread->DelayedStart( 0 );
+		return true;
+	}
+
+	Warning( "%s doesn't include a spawnfunc or spawnclass%s.", classname, error.c_str() );
+	return false;
+}
+	
+/*
+//was: //un noted change from original sdk
+bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDefaults ) {	
+	const char	*classname;
 	const char	*spawn;
 	idTypeInfo	*cls;
 	idClass		*obj;
@@ -3024,6 +3295,7 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 	if ( ent ) {
 		*ent = NULL;
 	}
+	
 
 	spawnArgs = args;
 
@@ -3083,6 +3355,9 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 	Warning( "%s doesn't include a spawnfunc or spawnclass%s.", classname, error.c_str() );
 	return false;
 }
+*/
+
+//ivan end
 
 /*
 ================
@@ -3127,7 +3402,7 @@ bool idGameLocal::InhibitEntitySpawn( idDict &spawnArgs ) {
 		spawnArgs.GetBool( "not_medium", "0", result );
 	} else {
 		spawnArgs.GetBool( "not_hard", "0", result );
-	}
+	} 
 
 	const char *name;
 	if ( g_skill.GetInteger() == 3 ) {
@@ -3142,7 +3417,7 @@ bool idGameLocal::InhibitEntitySpawn( idDict &spawnArgs ) {
 		if ( idStr::Icmp( name, "weapon_bfg" ) == 0 || idStr::Icmp( name, "weapon_soulcube" ) == 0 ) {
 			result = true;
 		}
-	}
+	} 
 
 	return result;
 }
@@ -3223,7 +3498,8 @@ void idGameLocal::SpawnMapEntities( void ) {
 		args = mapEnt->epairs;
 
 		if ( !InhibitEntitySpawn( args ) ) {
-			// precache any media specified in the map entity
+
+                        // precache any media specified in the map entity
 			CacheDictionaryMedia( &args );
 
 			SpawnEntityDef( args );
@@ -3588,6 +3864,8 @@ void idGameLocal::RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEnt
 		ent = entityList[ e ];
 		assert( ent );
 
+		//gameLocal.Printf("Splash found: %s\n", ent->GetName() ); //un noted change from original sdk
+
 		if ( !ent->fl.takedamage ) {
 			continue;
 		}
@@ -3634,6 +3912,7 @@ void idGameLocal::RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEnt
 			}
 
 			ent->Damage( inflictor, attacker, dir, damageDefName, damageScale, INVALID_JOINT );
+			//gameLocal.Printf("Splash damaged: %s\n", ent->GetName() ); //un noted change from original sdk
 		}
 	}
 
@@ -3706,7 +3985,11 @@ void idGameLocal::RadiusPush( const idVec3 &origin, const float radius, const fl
 		// scale the push for the inflictor
 		if ( ent == inflictor || ( ent->IsType( idAFAttachment::Type ) && static_cast<idAFAttachment*>(ent)->GetBody() == inflictor ) ) {
 			scale = inflictorScale;
-		} else {
+	    } //Denton
+		else if ( ent->IsType (idAFEntity_Base::Type) && static_cast<idAFEntity_Base*>(ent)->IsActiveAF()) {	// Only scale push when ragdoll is active - BY Clone JCD
+				scale = ent->spawnArgs.GetFloat ("ragdoll_push_scale", "1.0");	// Scales down ragdoll push based on def's value
+		}
+		else {
 			scale = 1.0f;
 		}
 
@@ -4275,6 +4558,26 @@ void idGameLocal::ThrottleUserInfo( void ) {
 	mpGame.ThrottleUserInfo();
 }
 
+#ifdef _PORTALSKY //un noted change from original sdk
+/*
+=================
+idGameLocal::SetPortalSkyEnt
+=================
+*/
+void idGameLocal::SetPortalSkyEnt( idEntity *ent ) {
+	portalSkyEnt = ent;
+}
+
+/*
+=================
+idGameLocal::IsPortalSkyAcive
+=================
+*/
+bool idGameLocal::IsPortalSkyAcive() {
+	return portalSkyActive;
+}
+#endif
+
 /*
 ===========
 idGameLocal::SelectTimeGroup
@@ -4362,9 +4665,72 @@ void idGameLocal::SwitchTeam( int clientNum, int team ) {
 	}
 }
 
+#ifdef _WATER_PHYSICS //un noted change from original sdk
+/*
+===============
+idGameLocal::GetMapLoadingGUI    6th venom
+
+Uses a new instance of a sound world just for the map loading sequence.
+This could even be made map specific if the "gui" string is pulled apart
+and uses as the basis for the shader name.
+===============
+*/
+idSoundWorld * loadSoundWorld = NULL;
+void idGameLocal::GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] ) {
+
+if ( !loadSoundWorld ) {
+      loadSoundWorld = soundSystem->AllocSoundWorld( NULL );
+   }
+if ( loadSoundWorld ) {
+      soundSystem->SetMute( false );
+      soundSystem->SetPlayingSoundWorld( loadSoundWorld );
+ //     loadSoundWorld->PlayShaderDirectly( "music_"+ *gui );
+      loadSoundWorld->PlayShaderDirectly( gui );
+   }
+}
+
+#else
+
 /*
 ===============
 idGameLocal::GetMapLoadingGUI
 ===============
 */
 void idGameLocal::GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] ) { }
+
+#endif
+
+//ivan start
+
+/*
+================
+idGameLocal::UpdateSeeDistances
+================
+
+
+void idGameLocal::UpdateCameraPosition( const idVec3 &cameraPos ){
+	playerCameraOrigin = cameraPos;
+	//TODO: use renderView_t *	renderView;	?
+}
+*/
+
+/*
+================
+idGameLocal::UpdateSeeDistances
+================
+*/
+
+void idGameLocal::UpdateSeeDistances( float distance ) {		
+	
+	//gameLocal.Printf("UpdateSeeDistances: distance %f\n", distance );
+	if( distance < 5.0f){ 
+		gameLocal.Warning("UpdateSeeDistances: distance should be > 5\n");
+		distance = 5.0f; //default min value
+	} 
+
+	//-- upd Proj see distance -- 
+	//note: the radius of the sphere is based on the camera distance, that is, the horizontal distance, which is bigger than the vertical one.
+	projSeeDistance = distance; //was: * 1.4f; 
+}
+
+//ivan end

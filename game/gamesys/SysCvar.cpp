@@ -102,9 +102,11 @@ idCVar g_muzzleFlash(				"g_muzzleFlash",			"1",			CVAR_GAME | CVAR_ARCHIVE | CV
 idCVar g_projectileLights(			"g_projectileLights",		"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show dynamic lights on projectiles" );
 idCVar g_bloodEffects(				"g_bloodEffects",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show blood splats, sprays and gibs" );
 idCVar g_doubleVision(				"g_doubleVision",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show double vision when taking damage" );
+
 idCVar g_monsters(					"g_monsters",				"1",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_decals(					"g_decals",					"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show decals such as bullet holes" );
-idCVar g_knockback(					"g_knockback",				"1000",			CVAR_GAME | CVAR_INTEGER, "" );
+//idCVar g_knockback(					"g_knockback",				"1000",			CVAR_GAME | CVAR_INTEGER, "" );	//disable all knockbacks // un noted changes from original sdk
+idCVar g_knockback(					"g_knockback",				"0",			CVAR_GAME | CVAR_INTEGER, "" );
 idCVar g_skill(						"g_skill",					"1",			CVAR_GAME | CVAR_INTEGER, "" );
 idCVar g_nightmare(					"g_nightmare",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "if nightmare mode is allowed" );
 idCVar g_gravity(					"g_gravity",		DEFAULT_GRAVITY_STRING, CVAR_GAME | CVAR_FLOAT, "" );
@@ -149,6 +151,10 @@ idCVar g_showEnemies(				"g_showEnemies",			"0",			CVAR_GAME | CVAR_BOOL, "draws
 idCVar g_frametime(					"g_frametime",				"0",			CVAR_GAME | CVAR_BOOL, "displays timing information for each game frame" );
 idCVar g_timeentities(				"g_timeEntities",			"0",			CVAR_GAME | CVAR_FLOAT, "when non-zero, shows entities whose think functions exceeded the # of milliseconds specified" );
 
+#ifdef _PORTALSKY
+idCVar g_enablePortalSky(			"g_enablePortalSky",		"1",			CVAR_GAME | CVAR_BOOL, "enables the portal sky" ); // un noted changes from original sdk
+#endif
+
 idCVar ai_debugScript(				"ai_debugScript",			"-1",			CVAR_GAME | CVAR_INTEGER, "displays script calls for the specified monster entity number" );
 idCVar ai_debugMove(				"ai_debugMove",				"0",			CVAR_GAME | CVAR_BOOL, "draws movement information for monsters" );
 idCVar ai_debugTrajectory(			"ai_debugTrajectory",		"0",			CVAR_GAME | CVAR_BOOL, "draws trajectory tests for monsters" );
@@ -162,8 +168,11 @@ idCVar g_dvTime(					"g_dvTime",					"1",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_dvAmplitude(				"g_dvAmplitude",			"0.001",		CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_dvFrequency(				"g_dvFrequency",			"0.5",			CVAR_GAME | CVAR_FLOAT, "" );
 
-idCVar g_kickTime(					"g_kickTime",				"1",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_kickAmplitude(				"g_kickAmplitude",			"0.0001",		CVAR_GAME | CVAR_FLOAT, "" );
+//idCVar g_kickTime(						"g_kickTime",				"1",			CVAR_GAME | CVAR_FLOAT, "" ); // un noted changes from original sdk
+//idCVar g_kickAmplitude(					"g_kickAmplitude",			"0.0001",		CVAR_GAME | CVAR_FLOAT, "" ); // un noted changes from original sdk
+idCVar g_kickTime(					"g_kickTime",				"0",			CVAR_GAME | CVAR_FLOAT, "" ); // un noted changes from original sdk
+idCVar g_kickAmplitude(				"g_kickAmplitude",			"0",		CVAR_GAME | CVAR_FLOAT, "" ); // un noted changes from original sdk
+
 idCVar g_blobTime(					"g_blobTime",				"1",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_blobSize(					"g_blobSize",				"1",			CVAR_GAME | CVAR_FLOAT, "" );
 
@@ -196,6 +205,10 @@ idCVar af_useLinearTime(			"af_useLinearTime",			"1",			CVAR_GAME | CVAR_BOOL, "
 idCVar af_useImpulseFriction(		"af_useImpulseFriction",	"0",			CVAR_GAME | CVAR_BOOL, "use impulse based contact friction" );
 idCVar af_useJointImpulseFriction(	"af_useJointImpulseFriction","0",			CVAR_GAME | CVAR_BOOL, "use impulse based joint friction" );
 idCVar af_useSymmetry(				"af_useSymmetry",			"1",			CVAR_GAME | CVAR_BOOL, "use constraint matrix symmetry" );
+#ifdef _WATER_PHYSICS
+idCVar af_useBodyDensityBuoyancy(	"af_useBodyDensityBuoyancy","0",			CVAR_GAME | CVAR_BOOL, "uses density of each body to calculate buoyancy"); // un noted changes from original sdk
+idCVar af_useFixedDensityBuoyancy(	"af_useFixedDensityBuoyancy","1",			CVAR_GAME | CVAR_BOOL, "if set, use liquidDensity as a fixed density for each body when calculating buoyancy.  If clear, bodies are floated uniformly by a scalar liquidDensity as defined in the decls." ); // un noted changes from original sdk
+#endif
 idCVar af_skipSelfCollision(		"af_skipSelfCollision",		"0",			CVAR_GAME | CVAR_BOOL, "skip self collision detection" );
 idCVar af_skipLimits(				"af_skipLimits",			"0",			CVAR_GAME | CVAR_BOOL, "skip joint limits" );
 idCVar af_skipFriction(				"af_skipFriction",			"0",			CVAR_GAME | CVAR_BOOL, "skip friction" );
@@ -230,13 +243,17 @@ idCVar rb_showInertia(				"rb_showInertia",			"0",			CVAR_GAME | CVAR_BOOL, "sho
 idCVar rb_showVelocity(				"rb_showVelocity",			"0",			CVAR_GAME | CVAR_BOOL, "show the velocity of each rigid body" );
 idCVar rb_showActive(				"rb_showActive",			"0",			CVAR_GAME | CVAR_BOOL, "show rigid bodies that are not at rest" );
 
+#ifdef _WATER_PHYSICS
+idCVar rb_showBuoyancy(				"rb_showBuoyancy",			"0",			CVAR_GAME | CVAR_BOOL, "show rigid body buoyancy information" ); // un noted changes from original sdk
+#endif
+
 // The default values for player movement cvars are set in def/player.def
-idCVar pm_jumpheight(				"pm_jumpheight",			"48",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate hieght the player can jump" );
-idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "maximum height the player can step up without jumping" );
-idCVar pm_crouchspeed(				"pm_crouchspeed",			"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while crouched" );
-idCVar pm_walkspeed(				"pm_walkspeed",				"140",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking" );
-idCVar pm_runspeed(					"pm_runspeed",				"220",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while running" );
-idCVar pm_noclipspeed(				"pm_noclipspeed",			"200",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while in noclip" );
+idCVar pm_jumpheight(				"pm_jumpheight",			"120",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate hieght the player can jump" ); // un noted changes from original sdk
+idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "maximum height the player can step up without jumping" ); // un noted changes from original sdk
+idCVar pm_crouchspeed(				"pm_crouchspeed",			"140",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while crouched" ); // un noted changes from original sdk
+idCVar pm_walkspeed(				"pm_walkspeed",				"260",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking" ); // un noted changes from original sdk
+idCVar pm_runspeed(					"pm_runspeed",				"260",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while running" ); // un noted changes from original sdk
+idCVar pm_noclipspeed(				"pm_noclipspeed",			"300",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while in noclip" ); // un noted changes from original sdk
 idCVar pm_spectatespeed(			"pm_spectatespeed",			"450",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while spectating" );
 idCVar pm_spectatebbox(				"pm_spectatebbox",			"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "size of the spectator bounding box" );
 idCVar pm_usecylinder(				"pm_usecylinder",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "use a cylinder approximation instead of a bounding box for player collision detection" );
@@ -261,16 +278,16 @@ idCVar pm_runroll(					"pm_runroll",				"0.005",		CVAR_GAME | CVAR_NETWORKSYNC |
 idCVar pm_bobup(					"pm_bobup",					"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
 idCVar pm_bobpitch(					"pm_bobpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
 idCVar pm_bobroll(					"pm_bobroll",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "camera distance from player in 3rd person" );
-idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
-idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
-idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" );
-idCVar pm_thirdPerson(				"pm_thirdPerson",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view" );
-idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" );
-idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
-idCVar pm_airTics(					"pm_air",					"1800",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" );
+idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"350",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "camera distance from player in 3rd person" ); // un noted changes from original sdk
+idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"50",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of camera from normal view height in 3rd person" ); // un noted changes from original sdk
+idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"90",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" ); // un noted changes from original sdk
+idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" ); // un noted changes from original sdk
+idCVar pm_thirdPerson(				"pm_thirdPerson",			"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view" ); // un noted changes from original sdk
+idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" ); // un noted changes from original sdk
+idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> ); // un noted changes from original sdk
+idCVar pm_airTics(					"pm_air",					"35000",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" ); //ivan -was "1800"
 
-idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" );
+idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" ); // un noted changes from original sdk
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );
 idCVar g_showProjectilePct(			"g_showProjectilePct",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables display of player hit percentage" );
 idCVar g_showBrass(					"g_showBrass",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables ejected shells from weapon" );
@@ -334,4 +351,35 @@ idCVar mod_validSkins(				"mod_validSkins",			"skins/characters/player/marine_mp
 
 idCVar net_serverDownload(			"net_serverDownload",		"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "enable server download redirects. 0: off 1: redirect to si_serverURL 2: use builtin download. see net_serverDl cvars for configuration" );
 idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_ARCHIVE, "base URL for the download redirection" );
+
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
+
+//un noted changes to add in bloom from old sdk.  was originally denton code
+idCVar r_bloom( "r_bloom", "1", CVAR_GAME | CVAR_INTEGER, "activates bloom with gaussian blur ( Requires DX9 compliant Hardware ). \n 1: Bloom with shift sensitivity and variable blurring \n 2: Bloom with shift sensitivity \n 3: Normal Bloom ");
+idCVar r_bloom_blur_mult( "r_bloom_blur_mult", "0.5", CVAR_GAME | CVAR_FLOAT, "blurred image multiplier for bloom");
+idCVar r_bloom_src_mult( "r_bloom_src_mult", "1.0", CVAR_GAME | CVAR_FLOAT, "source image multiplier for bloom");
+idCVar r_bloom_contrast( "r_bloom_contrast", "1", CVAR_GAME | CVAR_INTEGER, "contrast type. 0: no contrast  1: modulate 2x  2: minus 0.1");
+
+idCVar r_bloom_buffer( "r_bloom_buffer", "4", CVAR_GAME | CVAR_INTEGER, "Bloom buffer image size. \n 1:64x32, 2:128x64, 3:256x128, 4:512x256(default), 5:1024x512"); // New by Clone JCD
+
+idCVar r_bloom_contrast_mult( "r_bloom_contrast_mult", "1.55", CVAR_GAME | CVAR_FLOAT, "Contrast multiplier. \nWorks only with bloom type 1 and bloom type 2.");
+idCVar r_bloom_contrast_min( "r_bloom_contrast_min", "0.1", CVAR_GAME | CVAR_FLOAT, "This is the minimum contrast value when (shift sensitivity based)bloom drops; works only for bloom type 1 and bloom type 2. \nWhen shift sensitivty is turned on bloom contrast varies from (constrast_image x r_bloom_contrast_min) to (constrast_image x r_bloom_contrast_mult).");
+idCVar r_bloom_shiftSensitivity_delay( "r_bloom_shiftSensitivity_delay", "130", CVAR_GAME | CVAR_INTEGER, "Delay in millisecs for shifting the bloom sensitivity. \n0 : No shift sensitivity delay, sensitvity shifts immediately. \n-1 : Disables sensitivity shifting"); // New by Clone JCD
+idCVar r_bloom_blurIterations( "r_bloom_blurIterations", "1", CVAR_GAME | CVAR_INTEGER, "Blur iterations for bloom"); // New by Clone JCD
+
+//Ivan start
+idCVar hardqore2_bind_run_once(		"hardqore2_bind_run_once",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for HardQore 2." );
+idCVar s_music_volume(				"s_music_volume",				"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "In-game music volume." );
+idCVar g_mouselook(					"g_mouselook",					"1",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Use the mouse to aim" );
+//idCVar ai_debugXlock(				"ai_debugXlock",				"0",			CVAR_GAME | CVAR_INTEGER, "print X-lock information for monsters. 1 = few info. 2 = more info." );
+
+//Ivan end
+
+/*
+//Revility Start
+idCVar pm_thirdPersonUp(			"pm_thirdPersonUp",				"1",			CVAR_GAME | CVAR_BOOL , "Allows the camera to follow the player vertically." );			//ivan: default 1
+idCVar pm_thirdPersonGo(			"pm_thirdPersonGo",				"1",			CVAR_GAME | CVAR_BOOL , "Allows the camera to follow the player horizontally." );		
+idCVar pm_thirdPersonCamHeight(		"pm_thirdPersonCamHeight",		"0",			CVAR_GAME | CVAR_FLOAT, "Z height of camera from normal view height in 3rd person" );	
+idCVar pm_thirdPersonCamWay(		"pm_thirdPersonCamWay",			"0",			CVAR_GAME | CVAR_FLOAT, "Y length of camera from normal view position in 3rd person" );	
+//Revility End
+*/

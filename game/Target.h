@@ -47,6 +47,141 @@ public:
 };
 
 
+//ivan start
+/*
+===============================================================================
+
+idTarget_PlayerUtils
+
+===============================================================================
+*/
+
+
+class idTarget_PlayerUtils : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_PlayerUtils );
+
+private:
+	// actions - numbers must match the ones in hq2_targets.def! 
+	enum {
+		PU_ACTION_FREE_CAM	 = 0,
+		PU_ACTION_FORCE_CAM	 = 1,
+		PU_ACTION_DISTANCE	 = 2,
+		PU_ACTION_UNLOCK_PL	 = 3,
+		PU_ACTION_LOCK_PL	 = 4,
+		PU_ACTION_ADDSCORE	 = 5,
+		PU_ACTION_CAM_HEIGHT = 6,
+		PU_ACTION_INFOTXT	 = 7
+	};
+
+	void				Event_Activate( idEntity *activator );
+};
+
+#if 0
+/*
+===============================================================================
+
+idTarget_CheckPoint
+
+===============================================================================
+*/
+
+class idTarget_CheckPoint : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_CheckPoint );
+
+private:
+	void				Event_Activate( idEntity *activator );
+};
+#endif
+
+
+/*
+===============================================================================
+
+idTarget_EnableTargets
+
+===============================================================================
+*/
+
+class idTarget_EnableTargets : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_EnableTargets );
+
+						idTarget_EnableTargets( void );
+	void				Spawn( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+private:
+	bool				toggle;
+	bool				enable;
+	void				Event_Activate( idEntity *activator );
+};
+
+
+/*
+===============================================================================
+
+idTarget_Secret
+
+===============================================================================
+*/
+
+class idTarget_Secret : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_Secret );
+
+						idTarget_Secret( void );
+	void				Spawn( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+	
+private:
+	bool				found;
+	void				Event_Activate( idEntity *activator );
+};
+
+
+/*
+===============================================================================
+
+idTarget_NoLockPath
+
+===============================================================================
+*/
+
+class idTarget_NoLockPath : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_NoLockPath );
+	
+private:
+	void				Event_Activate( idEntity *activator );
+};
+
+/*
+===============================================================================
+
+idTarget_SetPlatPos
+
+===============================================================================
+*/
+
+class idTarget_SetPlatPos : public idTarget {
+public:
+	CLASS_PROTOTYPE( idTarget_SetPlatPos );
+
+						idTarget_SetPlatPos( void );
+
+private:
+	void				Event_Activate( idEntity *activator );
+};
+
+
+//ivan end
+
 /*
 ===============================================================================
 

@@ -302,21 +302,37 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		give_all = false;
 	}
 
+	
 	if ( give_all || ( idStr::Cmpn( name, "weapon", 6 ) == 0 ) ) {
 		if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) {
 			gameLocal.world->spawnArgs.SetBool( "no_Weapons", false );
 			for( i = 0; i < gameLocal.numClients; i++ ) {
 				if ( gameLocal.entities[ i ] ) {
-					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon1" ) );
+					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon0" ) ); //ivan - was: def_weapon1 - 0 is chainsaw
 				}
 			}
 		}
 	}
 
-	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
+	//ivan start - spawn instead of give
+	/*
+	//was 
+	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) ||  ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
 		player->GiveItem( name );
 		return;
 	}
+	*/
+
+	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) ) {
+		player->SpawnInsteadOfGiving( name ); //new!
+		return;
+	}
+
+	if ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) {
+		player->GiveItem( name );
+		return;		
+	}
+	//ivan end
 
 	if ( give_all || idStr::Icmp( name, "health" ) == 0 )	{
 		player->health = player->inventory.maxHealth;
@@ -325,10 +341,24 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		}
 	}
 
-	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
-		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {		
+		
+		//ivan start
+		/*
+		//commented out
+		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1; 
 		player->CacheWeapons();
+		*/
+		
+		//spawning weapons every time player uses 'give all' could be a bad idea.
+		if( give_all ){
+			gameLocal.Printf("Health, armor and ammo given.\nUse 'give weapons' to spawn the weapons.\n");
+		}else{
+			player->SpawnAllWeapons(); 
+		}
 
+		//ivan end
+		
 		if ( !give_all ) {
 			return;
 		}

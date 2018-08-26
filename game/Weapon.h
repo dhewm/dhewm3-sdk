@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Light.h"
 #include "Actor.h"
 
+
 /*
 ===============================================================================
 
@@ -51,6 +52,15 @@ typedef enum {
 	WP_LOWERING
 } weaponStatus_t;
 
+//ivan start - values must match the ones in the defs!
+enum {
+	WP_FIREMODE_DEFAULT				= 0,	//default: 3D spread
+	WP_FIREMODE_2D_STEP_SPREAD		= 1,	//turrican style spread
+	WP_FIREMODE_2D_PARALLEL_SPREAD	= 2,	//parallel projs. Spread is the offset
+	WP_FIREMODE_2D_RANDOM_SPREAD	= 3		//similar to default, but spread is 2D
+};
+//ivan end
+
 typedef int ammo_t;
 static const int AMMO_NUMTYPES = 16;
 
@@ -60,6 +70,61 @@ static const int LIGHTID_WORLD_MUZZLE_FLASH = 1;
 static const int LIGHTID_VIEW_MUZZLE_FLASH = 100;
 
 class idMoveableItem;
+
+//---------------------------------------- New Particle and light support
+
+#ifdef _DENTONMOD
+
+struct particleFlags_s {
+	bool		isActive			: 1;		// Is the particle active	
+	bool		isSmoke				: 1;		// Is this a smoke particle
+	bool		isContinuous		: 1;		// Is the effect continuous
+	bool		isOffset			: 1;		// Is new Offset needed
+	bool		isDir				: 1;		// Is new Direction needed
+	bool		isOnWorldModel		: 1;		// Is this effect intended for world model only
+	bool		isUpdateJoint		: 1; 
+	bool		isViewDir			: 1;		//ivan - use player view dir even if it's using a joint. Thas can be still rotated by the usual "dir" key. 
+};
+
+typedef struct {
+	char			name[64];
+	char			particlename[128];
+	int				startTime;
+	idVec3			offset;			//Sometimes you cant find proper joint, then use offset along with muzzle bone
+	idVec3			dir;
+	jointHandle_t	joint;			//The joint on which to attach the particle
+	
+	particleFlags_s particleFlags;	// flags
+    
+	const idDeclParticle* particle;		//Used for smoke particles
+	renderEntity_t renderEntity;
+	qhandle_t modelDefHandle;
+	//idFuncEmitter*  emitter;		//Used for non-smoke particles
+} WeaponParticle_t;
+
+
+struct lightFlags_s {
+	bool		isActive		: 1;		// Is the particle active	
+	bool		isAlwaysOn		: 1;		// Is this light always on
+	bool		isOffset		: 1;		// Is new Offset needed
+	bool		isDir			: 1;		// Is new Direction needed
+	bool		isOnWorldModel	: 1;		// Is this light intended for world model only
+};
+
+typedef struct {
+	char			name[64];
+	int				startTime; 
+	int				endTime;
+	int				lightHandle;
+	idVec3			offset;			//If weapons does not have bones in proper places for some effect use this
+	idVec3			dir;			//If the desired bone is not pointing in proper direction use this to fix it.
+									// Note that the dir should be vector representing X-axis of the bone.
+	lightFlags_s	lightFlags;
+	jointHandle_t	joint;
+	renderLight_t	light;
+} WeaponLight_t;
+//----------------------------------------------
+#endif
 
 class idWeapon : public idAnimatedEntity {
 public:
@@ -91,7 +156,7 @@ public:
 	void					UpdateGUI( void );
 
 	virtual void			SetModel( const char *modelname );
-	bool					GetGlobalJointTransform( bool viewModel, const jointHandle_t jointHandle, idVec3 &offset, idMat3 &axis );
+	bool					GetGlobalJointTransform( const jointHandle_t jointHandle, idVec3 &offset, idMat3 &axis ); // un noted change from original sdk
 	void					SetPushVelocity( const idVec3 &pushVelocity );
 	bool					UpdateSkin( void );
 
@@ -109,6 +174,8 @@ public:
 	void					OwnerDied( void );
 	void					BeginAttack( void );
 	void					EndAttack( void );
+	void					BeginSpecialFunction( bool );	// Added by Clone JCD 
+	void					EndSpecialFunction( void );		// Added by Clone JCD 
 	bool					IsReady( void ) const;
 	bool					IsReloading( void ) const;
 	bool					IsHolstered( void ) const;
@@ -140,13 +207,20 @@ public:
 	ammo_t					GetAmmoType( void ) const;
 	int						AmmoAvailable( void ) const;
 	int						AmmoInClip( void ) const;
+	int						GetMaxAmmo( void ) const;
 	void					ResetAmmoClip( void );
 	int						ClipSize( void ) const;
 	int						LowAmmo( void ) const;
 	int						AmmoRequired( void ) const;
 
+	int						AmmoCount() const; //new
+	
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
+
+	//ivan start
+	float					GetMouseAimOffsetY( void ){ return mouseAimOffsetY; };
+	//ivan end
 
 	enum {
 		EVENT_RELOAD = idEntity::EVENT_MAXEVENTS,
@@ -159,9 +233,16 @@ public:
 	virtual void			ClientPredictionThink( void );
 
 private:
+	//ivan start
+	float					mouseAimOffsetY;
+	//ivan end
+
+
 	// script control
-	idScriptBool			WEAPON_ATTACK;
+	idScriptBool			WEAPON_ATTACK;	
 	idScriptBool			WEAPON_RELOAD;
+	idScriptBool			WEAPON_SPECIAL;  // For weapon special function, added by clone JCD
+	idScriptBool			WEAPON_SPECIAL_HOLD;  // For weapon special function, added by clone JCD	idScriptBool			WEAPON_RELOAD;
 	idScriptBool			WEAPON_NETRELOAD;
 	idScriptBool			WEAPON_NETENDRELOAD;
 	idScriptBool			WEAPON_NETFIRING;
@@ -179,7 +260,7 @@ private:
 	idEntity				*projectileEnt;
 
 	idPlayer *				owner;
-	idEntityPtr<idAnimatedEntity>	worldModel;
+	//idEntityPtr<idAnimatedEntity>	worldModel; // un noted change from original sdk
 
 	// hiding (for GUIs and NPCs)
 	int						hideTime;
@@ -187,7 +268,7 @@ private:
 	int						hideStartTime;
 	float					hideStart;
 	float					hideEnd;
-	float					hideOffset;
+	//float					hideOffset;// un noted change from original sdk
 	bool					hide;
 	bool					disabled;
 
@@ -198,9 +279,11 @@ private:
 	idVec3					playerViewOrigin;
 	idMat3					playerViewAxis;
 
+	/*
 	// the view weapon render entity parms
 	idVec3					viewWeaponOrigin;
 	idMat3					viewWeaponAxis;
+	*/
 
 	// the muzzle bone's position, used for launching projectiles and trailing smoke
 	idVec3					muzzleOrigin;
@@ -220,16 +303,21 @@ private:
 	int						brassDelay;
 	idStr					icon;
 
+	/* // un noted change from original sdk
 	// view weapon gui light
 	renderLight_t			guiLight;
 	int						guiLightHandle;
+	*/
 
+	/*
 	// muzzle flash
-	renderLight_t			muzzleFlash;		// positioned on view weapon bone
+	renderLight_t			muzzleFlash;		//ivan: now it's positioned on world weapon bone!
 	int						muzzleFlashHandle;
+	*/
 
 	renderLight_t			worldMuzzleFlash;	// positioned on world weapon bone
 	int						worldMuzzleFlashHandle;
+
 
 	idVec3					flashColor;
 	int						muzzleFlashEnd;
@@ -241,12 +329,14 @@ private:
 	// effects
 	bool					hasBloodSplat;
 
+	/* // un noted change from original sdk
 	// weapon kick
 	int						kick_endtime;
 	int						muzzle_kick_time;
 	int						muzzle_kick_maxtime;
 	idAngles				muzzle_kick_angles;
 	idVec3					muzzle_kick_offset;
+	*/
 
 	// ammo management
 	ammo_t					ammoType;
@@ -263,15 +353,35 @@ private:
 	int						zoomFov;			// variable zoom fov per weapon
 
 	// joints from models
-	jointHandle_t			barrelJointView;
-	jointHandle_t			flashJointView;
-	jointHandle_t			ejectJointView;
-	jointHandle_t			guiLightJointView;
-	jointHandle_t			ventLightJointView;
+	//jointHandle_t			barrelJointView; // un noted changes from original sdk
+	//jointHandle_t			flashJointView;
+	//jointHandle_t			ejectJointView;
+	//jointHandle_t			guiLightJointView;
+	//jointHandle_t			ventLightJointView;
 
 	jointHandle_t			flashJointWorld;
 	jointHandle_t			barrelJointWorld;
 	jointHandle_t			ejectJointWorld;
+
+	//ivan start
+	int						maxAmmo;	
+	int						fireMode;
+	//ivan end
+
+
+#ifdef _DENTONMOD
+
+/*	typedef struct {
+		char name[64];
+		jointHandle_t joint;
+	}WeaponJoint_t;
+
+	idHashTable<WeaponJoint_t>		weaponJoints;		
+*/
+	idHashTable<WeaponParticle_t>	weaponParticles;
+	idHashTable<WeaponLight_t>		weaponLights;
+
+#endif //_DENTONMOD
 
 	// sound
 	const idSoundShader *	sndHum;
@@ -286,12 +396,14 @@ private:
 	idMat3					strikeAxis;				// axis of last melee strike
 	int						nextStrikeFx;			// used for sound and decal ( may use for strike smoke too )
 
+	//ivan note: all nozzleGlow stuff is currently not used because ventLightJointView no longer exists + was only for first person.
+	//TODO: remove nozzleGlow stuff or enable it for 3th person.
 	// nozzle effects
 	bool					nozzleFx;			// does this use nozzle effects ( parm5 at rest, parm6 firing )
 										// this also assumes a nozzle light atm
 	int						nozzleFxFade;		// time it takes to fade between the effects
 	int						lastAttack;			// last time an attack occured
-	renderLight_t			nozzleGlow;			// nozzle light
+	renderLight_t			nozzleGlow;			// nozzle light 
 	int						nozzleGlowHandle;	// handle for nozzle light
 
 	idVec3					nozzleGlowColor;	// color of the nozzle glow
@@ -311,15 +423,22 @@ private:
 	// Visual presentation
 	void					InitWorldModel( const idDeclEntityDef *def );
 	void					MuzzleFlashLight( void );
-	void					MuzzleRise( idVec3 &origin, idMat3 &axis );
+	//void					MuzzleRise( idVec3 &origin, idMat3 &axis ); // un noted changes from original sdk
 	void					UpdateNozzleFx( void );
+#ifdef _DENTONMOD
+	void					InitWeaponFx( void );		
+	void					StopWeaponFx( void );		
+	void					UpdateWeaponFx( void );
+	
+	bool					ChangeProjectileDef( int number );// New
+#endif 
+
 	void					UpdateFlashPosition( void );
 
 	// script events
 	void					Event_Clear( void );
 	void					Event_GetOwner( void );
 	void					Event_WeaponState( const char *statename, int blendFrames );
-	void					Event_SetWeaponStatus( float newStatus );
 	void					Event_WeaponReady( void );
 	void					Event_WeaponOutOfAmmo( void );
 	void					Event_WeaponReloading( void );
@@ -353,6 +472,15 @@ private:
 	void					Event_NetReload( void );
 	void					Event_IsInvisible( void );
 	void					Event_NetEndReload( void );
+	void					Event_SetZoom( int status );	//New
+
+	void					Event_GetProjectileType( void );// New
+	void					Event_ChangeProjectileDef( int number );// New
+	void					Event_StartWeaponParticle( const char* name ); // New
+	void					Event_StopWeaponParticle( const char* name );// New
+
+	void					Event_StartWeaponLight( const char* name );// New
+	void					Event_StopWeaponLight( const char* name );// New
 };
 
 ID_INLINE bool idWeapon::IsLinked( void ) {
@@ -360,7 +488,7 @@ ID_INLINE bool idWeapon::IsLinked( void ) {
 }
 
 ID_INLINE bool idWeapon::IsWorldModelReady( void ) {
-	return ( worldModel.GetEntity() != NULL );
+	return true; //ivan - was: ( worldModel.GetEntity() != NULL );
 }
 
 ID_INLINE idPlayer* idWeapon::GetOwner( void ) {

@@ -108,6 +108,10 @@ typedef struct {
 	jointHandle_t			to;
 } copyJoints_t;
 
+//ivan start
+class idDamagingFx; 
+//ivan end
+
 class idActor : public idAFEntity_Gibbable {
 public:
 	CLASS_PROTOTYPE( idActor );
@@ -118,6 +122,14 @@ public:
 
 	idLinkList<idActor>		enemyNode;			// node linked into an entity's enemy list for quick lookups of who is attacking him
 	idLinkList<idActor>		enemyList;			// list of characters that have targeted the player as their enemy
+
+	//ivan start - public stuff also read by other entitites
+	float					fastXpos;
+	bool					isXlocked;
+	bool					isOnScreen;
+	bool					updXlock;
+	//bool					ignoredByAI;
+	//ivan end
 
 public:
 							idActor( void );
@@ -225,6 +237,8 @@ protected:
 	idStrList				damageGroups;		// body damage groups
 	idList<float>			damageScale;		// damage scale per damage gruop
 
+	bool					force_torso_override;	//ivan
+
 	bool						use_combat_bbox;	// whether to use the bounding box for combat collision
 	idEntityPtr<idAFAttachment>	head;
 	idList<copyJoints_t>		copyJoints;			// copied from the body animation to the head model
@@ -263,6 +277,14 @@ protected:
 	int						painTime;
 
 	idList<idAttachInfo>	attachments;
+
+	//ivan start - dmgFxs
+	idList< idEntityPtr<idDamagingFx> >	dmgFxEntities;
+
+	void					StartDamageFx( int type );
+	void					StopDamageFxs( void );
+	void					CheckDamageFx( const idDict *damageDef );
+	//ivan end
 
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 
@@ -318,6 +340,10 @@ private:
 	void					Event_SetState( const char *name );
 	void					Event_GetState( void );
 	void					Event_GetHead( void );
+	//ivan start
+	void					Event_IsOnScreen( void );
+	void					Event_IsXlocked( void );
+	//ivan end
 };
 
 #endif /* !__GAME_ACTOR_H__ */

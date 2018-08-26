@@ -46,6 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 
 extern const idEventDef EV_BecomeNonSolid;
 extern const idEventDef EV_IsAtRest;
+//ivan start
+extern const idEventDef EV_ActivatePhysics; 
+//ivan end
 
 class idMoveable : public idEntity {
 public:
@@ -87,6 +90,15 @@ protected:
 	bool					canDamage;				// only apply damage when this is set
 	int						nextDamageTime;			// next time the movable can hurt the player
 	int						nextSoundTime;			// next time the moveable can make a sound
+
+	//ivan start
+	float					lockedXpos;
+	bool					isXlocked;
+#ifdef _WATER_PHYSICS
+	void					Event_ActivateIfInWater( void );
+#endif
+	void					Event_ActivatePhysics( void );
+	//ivan end
 
 	const idMaterial *		GetRenderModelMaterial( void ) const;
 	void					BecomeNonSolid( void );
@@ -194,6 +206,7 @@ private:
 	void					AddParticles( const char *name, bool burn );
 	void					AddLight( const char *name , bool burn );
 	void					ExplodingEffects( void );
+	void					SpawnDrops( void ); //ivan
 
 	void					Event_Activate( idEntity *activator );
 	void					Event_Respawn();

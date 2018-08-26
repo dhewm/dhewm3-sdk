@@ -113,6 +113,9 @@ const idEventDef EV_Thread_DebugCircle( "debugCircle", "vvvfdf" );
 const idEventDef EV_Thread_DebugBounds( "debugBounds", "vvvf" );
 const idEventDef EV_Thread_DrawText( "drawText", "svfvdf" );
 const idEventDef EV_Thread_InfluenceActive( "influenceActive", NULL, 'd' );
+//Ivan start
+const idEventDef EV_Thread_GetShaderVolume( "getShaderVolume", "s", 'f' );
+//Ivan end
 
 CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_Execute,				idThread::Event_Execute )
@@ -193,6 +196,9 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_DebugBounds,			idThread::Event_DebugBounds )
 	EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 	EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
+	//Ivan start
+	EVENT( EV_Thread_GetShaderVolume,		idThread::Event_GetShaderVolume )
+	//Ivan end
 END_CLASS
 
 idThread			*idThread::currentThread = NULL;
@@ -1841,3 +1847,26 @@ void idThread::Event_InfluenceActive( void ) {
 		idThread::ReturnInt( false );
 	}
 }
+
+//Ivan start
+/*
+================
+idThread::Event_GetShaderVolume
+================
+*/
+void idThread::Event_GetShaderVolume( const char *sound ) {
+	float shader_volume;
+	const idSoundShader *sndShader;
+	const soundShaderParms_t *shaderParms;
+	
+	sndShader = declManager->FindSound( sound );
+	if ( sndShader ) {
+            shaderParms = sndShader->GetParms();
+            shader_volume = shaderParms->volume;
+    }else{
+            shader_volume = 0.0f;
+    }
+
+	ReturnFloat( shader_volume );
+}
+//Ivan end

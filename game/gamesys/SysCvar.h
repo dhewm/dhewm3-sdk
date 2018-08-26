@@ -119,6 +119,10 @@ extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
 
+#ifdef _PORTALSKY // un noted changes from original sdk
+extern idCVar	g_enablePortalSky;
+#endif
+
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;
 
@@ -126,6 +130,12 @@ extern idCVar	af_useLinearTime;
 extern idCVar	af_useImpulseFriction;
 extern idCVar	af_useJointImpulseFriction;
 extern idCVar	af_useSymmetry;
+
+#ifdef _WATER_PHYSICS // un noted changes from original sdk
+extern idCVar	af_useBodyDensityBuoyancy;
+extern idCVar	af_useFixedDensityBuoyancy;
+#endif
+
 extern idCVar	af_skipSelfCollision;
 extern idCVar	af_skipLimits;
 extern idCVar	af_skipFriction;
@@ -159,6 +169,10 @@ extern idCVar	rb_showMass;
 extern idCVar	rb_showInertia;
 extern idCVar	rb_showVelocity;
 extern idCVar	rb_showActive;
+
+#ifdef _WATER_PHYSICS // un noted changes from original sdk
+extern idCVar	rb_showBuoyancy;
+#endif
 
 extern idCVar	pm_jumpheight;
 extern idCVar	pm_stepsize;
@@ -253,5 +267,31 @@ extern idCVar	net_clientLagOMeter;
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
+
+extern idCVar	r_bloom; // un noted changes from original sdk
+extern idCVar	r_bloom_blur_mult;
+extern idCVar	r_bloom_src_mult;
+extern idCVar   r_bloom_contrast;
+extern idCVar   r_bloom_contrast_mult;				// clone_jc_denton
+extern idCVar   r_bloom_contrast_min;				// clone_jc_denton
+extern idCVar   r_bloom_shiftSensitivity_delay;		// clone_jc_denton
+extern idCVar   r_bloom_blurIterations;				// clone_jc_denton
+extern idCVar   r_bloom_buffer;						// clone_jc_denton
+
+//Ivan start
+extern idCVar hardqore2_bind_run_once;
+extern idCVar s_music_volume;
+extern idCVar g_mouselook;
+//extern idCVar ai_debugXlock;
+//Ivan end
+
+/*
+//Revility start
+extern idCVar	pm_thirdPersonUp;
+extern idCVar	pm_thirdPersonGo;
+extern idCVar	pm_thirdPersonCamHeight;
+extern idCVar	pm_thirdPersonCamWay;
+//Revility End
+*/
 
 #endif /* !__SYS_CVAR_H__ */

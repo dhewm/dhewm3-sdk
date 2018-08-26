@@ -429,10 +429,14 @@ void idPathCorner::Event_RandomPath( void ) {
 */
 
 const idEventDef EV_RestoreDamagable( "<RestoreDamagable>" );
+const idEventDef EV_HideBrokenEntities( "<HideBrokenEntities>" );
+const idEventDef EV_ChainBecomeBroken( "<ChainBecomeBroken>", "ee" ); //ivan 
 
 CLASS_DECLARATION( idEntity, idDamagable )
-	EVENT( EV_Activate,			idDamagable::Event_BecomeBroken )
-	EVENT( EV_RestoreDamagable,	idDamagable::Event_RestoreDamagable )
+	EVENT( EV_Activate,				idDamagable::Event_BecomeBroken )
+	EVENT( EV_ChainBecomeBroken,	idDamagable::Event_ChainBecomeBroken ) //ivan
+	EVENT( EV_HideBrokenEntities,	idDamagable::Event_HideBrokenEntities ) //ivan
+	EVENT( EV_RestoreDamagable,		idDamagable::Event_RestoreDamagable )
 END_CLASS
 
 /*
@@ -443,7 +447,36 @@ idDamagable::idDamagable
 idDamagable::idDamagable( void ) {
 	count = 0;
 	nextTriggerTime = 0;
+	//ivan start
+	particleModelDefHandle = -1;
+	lightDefHandle = -1;
+	memset( &particleRenderEntity, 0, sizeof( particleRenderEntity ) );
+	memset( &light, 0, sizeof( light ) );
+	lightTime = 0;
+	hasBrokenModel = false;
+	//ivan end
 }
+
+//ivan start
+/*
+================
+idDamagable::~idDamagable
+================
+*/
+idDamagable::~idDamagable( void ) {
+	count = 0;
+	nextTriggerTime = 0;
+	//ivan start
+	if ( particleModelDefHandle >= 0 ){
+		gameRenderWorld->FreeEntityDef( particleModelDefHandle );
+	}
+	if ( lightDefHandle >= 0 ) {
+		gameRenderWorld->FreeLightDef( lightDefHandle );
+	}
+	//ivan end
+}
+
+//ivan end
 
 /*
 ================
@@ -453,6 +486,14 @@ idDamagable::Save
 void idDamagable::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( count );
 	savefile->WriteInt( nextTriggerTime );
+	//ivan start
+	savefile->WriteInt( particleModelDefHandle );
+	savefile->WriteInt( lightDefHandle );
+	savefile->WriteRenderEntity( particleRenderEntity );
+	savefile->WriteRenderLight( light );
+	savefile->WriteInt( lightTime );
+	savefile->WriteBool( hasBrokenModel );
+	//ivan end
 }
 
 /*
@@ -463,6 +504,14 @@ idDamagable::Restore
 void idDamagable::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( count );
 	savefile->ReadInt( nextTriggerTime );
+	//ivan start
+	savefile->ReadInt( (int &)particleModelDefHandle );
+	savefile->ReadInt( (int &)lightDefHandle );
+	savefile->ReadRenderEntity( particleRenderEntity );
+	savefile->ReadRenderLight( light );
+	savefile->ReadInt( lightTime );
+	savefile->ReadBool( hasBrokenModel );
+	//ivan end
 }
 
 /*
@@ -479,75 +528,398 @@ void idDamagable::Spawn( void ) {
 
 	// make sure the model gets cached
 	spawnArgs.GetString( "broken", "", broken );
-	if ( broken.Length() && !renderModelManager->CheckModel( broken ) ) {
-		gameLocal.Error( "idDamagable '%s' at (%s): cannot load broken model '%s'", name.c_str(), GetPhysics()->GetOrigin().ToString(0), broken.c_str() );
+	if ( broken.Length() ){ //un noted change from original sdk
+		hasBrokenModel = true;
+		if( !renderModelManager->CheckModel( broken ) ) {
+			gameLocal.Error( "idDamagable '%s' at (%s): cannot load broken model '%s'", name.c_str(), GetPhysics()->GetOrigin().ToString(0), broken.c_str() );
+		}
+	}else{
+		hasBrokenModel = false;
 	}
 
 	fl.takedamage = true;
 	GetPhysics()->SetContents( CONTENTS_SOLID );
+
+	//ivan start
+	particleModelDefHandle = -1;
+	lightDefHandle = -1;
+	lightTime = 0;
+	memset( &particleRenderEntity, 0, sizeof( particleRenderEntity ) );
+	memset( &light, 0, sizeof( light ) );
+
+	if( spawnArgs.MatchPrefix( "broken_ent" ) ){
+		PostEventMS( &EV_HideBrokenEntities, 0 );
+	}
+	//ivan end
 }
+
+//ivan start
+
+/*
+================
+idDamagable::Think
+================
+*/
+void idDamagable::Think( void ) {
+	//gameLocal.Printf("idDamagable::Think\n");
+	idEntity::Think();
+
+	//light
+	if ( lightDefHandle >= 0 ){
+		if ( gameLocal.time - lightTime > 250 ) {
+			gameRenderWorld->FreeLightDef( lightDefHandle );
+			lightDefHandle = -1;
+		}
+	}else{
+		BecomeInactive( TH_THINK );
+	}
+}
+
+/*
+================
+idDamagable::AddParticles
+================
+*/
+void idDamagable::AddParticles( const char *name ) {
+	idPhysics *physicsObj = GetPhysics();
+
+	if ( name && *name ) {
+		if ( particleModelDefHandle >= 0 ){
+			gameRenderWorld->FreeEntityDef( particleModelDefHandle );
+		}
+		memset( &particleRenderEntity, 0, sizeof ( particleRenderEntity ) );
+		const idDeclModelDef *modelDef = static_cast<const idDeclModelDef *>( declManager->FindType( DECL_MODELDEF, name ) );
+		if ( modelDef ) {
+			particleRenderEntity.origin = physicsObj->GetAbsBounds().GetCenter();
+			particleRenderEntity.axis = mat3_identity;
+			particleRenderEntity.hModel = modelDef->ModelHandle();
+			float rgb = 1.0f; 
+			particleRenderEntity.shaderParms[ SHADERPARM_RED ] = rgb;
+			particleRenderEntity.shaderParms[ SHADERPARM_GREEN ] = rgb;
+			particleRenderEntity.shaderParms[ SHADERPARM_BLUE ] = rgb;
+			particleRenderEntity.shaderParms[ SHADERPARM_ALPHA ] = rgb;
+			particleRenderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.realClientTime );
+			particleRenderEntity.shaderParms[ SHADERPARM_DIVERSITY ] = gameLocal.random.RandomInt( 90 ); 
+			if ( !particleRenderEntity.hModel ) {
+				particleRenderEntity.hModel = renderModelManager->FindModel( name );
+			}
+			particleModelDefHandle = gameRenderWorld->AddEntityDef( &particleRenderEntity );
+		}
+	}
+}
+
+/*
+================
+idDamagable::AddLight
+================
+*/
+void idDamagable::AddLight( const char *name ) {
+	idPhysics *physicsObj = GetPhysics(); 
+
+	if ( lightDefHandle >= 0 ){
+		gameRenderWorld->FreeLightDef( lightDefHandle );
+	}
+	memset( &light, 0, sizeof ( light ) );
+	light.axis = mat3_identity;
+	light.lightRadius.x = spawnArgs.GetFloat( "light_radius" );
+	light.lightRadius.y = light.lightRadius.z = light.lightRadius.x;
+	light.origin = physicsObj->GetOrigin();
+	light.origin.z += 128;
+	light.pointLight = true;
+	light.shader = declManager->FindMaterial( name );
+	light.shaderParms[ SHADERPARM_RED ] = 2.0f;
+	light.shaderParms[ SHADERPARM_GREEN ] = 2.0f;
+	light.shaderParms[ SHADERPARM_BLUE ] = 2.0f;
+	light.shaderParms[ SHADERPARM_ALPHA ] = 2.0f;
+	lightDefHandle = gameRenderWorld->AddLightDef( &light );
+	lightTime = gameLocal.realClientTime;
+	BecomeActive( TH_THINK );
+}
+
+/*
+================
+idExplodingBarrel::ExplodingEffects
+================
+*/
+void idDamagable::ExplodingEffects( void ) {
+	const char *temp;
+
+	StartSound( "snd_explode", SND_CHANNEL_ANY, 0, false, NULL );
+
+	temp = spawnArgs.GetString( "mtr_lightexplode" );
+	if ( *temp != '\0' ) {
+		AddLight( temp );
+	}
+
+	temp = spawnArgs.GetString( "mtr_burnmark" );
+	if ( *temp != '\0' ) {
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, 96.0f, temp );
+	}
+	// put the explosion particle effect to the end -- By Clone JCD
+	temp = spawnArgs.GetString( "model_detonate" );
+	if ( *temp != '\0' ) {
+		AddParticles( temp );
+	}
+}
+
+/*
+================
+idDamagable::SpawnDebris
+================
+*/
+void idDamagable::SpawnDebris( const char *prefix ) {
+	idPhysics *physicsObj = GetPhysics(); //ivan
+
+	//revility breakables start
+	const idKeyValue *kv = spawnArgs.MatchPrefix( prefix );   
+	while ( kv ) {
+		const idDict *debris_args = gameLocal.FindEntityDefDict( kv->GetValue(), false );
+		if ( debris_args ) {
+			idEntity *ent;
+			idVec3 dir;
+			idDebris *debris;
+			//if ( first ) {
+			dir = physicsObj->GetAxis()[1]; //ivan -> fix
+			//   first = false;
+			//} else {
+			dir.x += gameLocal.random.CRandomFloat() * 4.0f;
+			dir.y += gameLocal.random.CRandomFloat() * 4.0f;
+			//dir.z = gameLocal.random.RandomFloat() * 8.0f;
+			//}
+			dir.Normalize();
+
+			gameLocal.SpawnEntityDef( *debris_args, &ent, false );
+			if ( !ent || !ent->IsType( idDebris::Type ) ) {
+				gameLocal.Error( "'projectile_debris' is not an idDebris" );
+			}
+
+			debris = static_cast<idDebris *>(ent);
+			debris->Create( this, physicsObj->GetOrigin(), dir.ToMat3() ); //ivan -> fix
+			debris->Launch();
+			debris->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = ( gameLocal.time + 1500 ) * 0.001f;
+			debris->UpdateVisuals();
+
+		}
+		kv = spawnArgs.MatchPrefix( prefix, kv );
+	}      
+	//revility breakables end
+}
+
+/*
+================
+idDamagable::BrokenEntitiesVisible
+================
+*/
+void idDamagable::BrokenEntitiesVisible( bool show ) {
+	idEntity *ent;
+
+	//hide or show the broken entitites
+	const idKeyValue *kv = spawnArgs.MatchPrefix( "broken_ent" );   
+	while ( kv ) {
+		ent = gameLocal.FindEntity( kv->GetValue().c_str() );
+		if ( ent ) {
+			if(show){
+				ent->Show();
+				if ( ent->IsType( idLight::Type ) ) {
+					static_cast<idLight *>( ent )->On();
+				}
+			}
+			else{
+				ent->Hide();
+				if ( ent->IsType( idLight::Type ) ) {
+					static_cast<idLight *>( ent )->Off();
+				}
+			}
+		}else{
+			gameLocal.Warning( "Couldn't find entity '%s' specified in '%s' key in entity '%s'", kv->GetValue().c_str(), kv->GetKey().c_str(), name.c_str() );
+		}
+		
+		//loop
+		kv = spawnArgs.MatchPrefix( "broken_ent", kv );
+	}
+
+	//hide or show the fixed entitites
+	kv = spawnArgs.MatchPrefix( "fixed_ent" );   
+	while ( kv ) {
+		ent = gameLocal.FindEntity( kv->GetValue().c_str() );
+		if ( ent ) {
+			if(show){
+				ent->Hide();
+				if ( ent->IsType( idLight::Type ) ) {
+					static_cast<idLight *>( ent )->Off();
+				}
+			}
+			else{
+				ent->Show();
+				if ( ent->IsType( idLight::Type ) ) {
+					static_cast<idLight *>( ent )->On();
+				}
+			}
+		}else{
+			gameLocal.Warning( "Couldn't find entity '%s' specified in '%s' key in entity '%s'", kv->GetValue().c_str(), kv->GetKey().c_str(), name.c_str() );
+		}
+		
+		//loop
+		kv = spawnArgs.MatchPrefix( "fixed_ent", kv );
+	}
+}
+
+/*
+================
+idDamagable::SpawnDrops
+================
+*/
+void idDamagable::SpawnDrops( void ){
+	idVec3 offset;
+	idStr offsetKey;
+	const idKeyValue *kv = spawnArgs.MatchPrefix( "def_dropItem", NULL );
+	while( kv ) {
+
+		//get the offset
+		offsetKey = kv->GetKey().c_str() + 4;
+		offsetKey += "Offset";
+		offset = spawnArgs.GetVector( offsetKey.c_str(), "0 0 0" );
+
+		idMoveableItem::DropItem( kv->GetValue().c_str(), GetPhysics()->GetAbsBounds().GetCenter() + offset, GetPhysics()->GetAxis(), vec3_origin, 0, 0, false ); //don't drop to floor so offset is respected
+		kv = spawnArgs.MatchPrefix( "def_dropItem", kv );
+	}
+}
+//ivan end
 
 /*
 ================
 idDamagable::BecomeBroken
 ================
 */
-void idDamagable::BecomeBroken( idEntity *activator ) {
-	float	forceState;
-	int		numStates;
-	int		cycle;
+void idDamagable::BecomeBroken( idEntity *activator, idEntity *chainInflictor ) {
+	float	forceShader7Val;
+	int		numShader7States;
+	int		cycleShader7State;
 	float	wait;
+	bool	lastStep; //ivan 
+	//idStr	broken;
 
 	if ( gameLocal.time < nextTriggerTime ) {
 		return;
 	}
 
+	//reset next trigger time //un noted change from original sdk
 	spawnArgs.GetFloat( "wait", "0.1", wait );
 	nextTriggerTime = gameLocal.time + SEC2MS( wait );
+
+	//check if it's the last step
+	lastStep = false; //ivan
 	if ( count > 0 ) {
 		count--;
-		if ( !count ) {
-			fl.takedamage = false;
+		if ( !count ) { //this was the last step! //un noted change from original sdk
+			fl.takedamage = false; //ivan note: make sure we don't take damage for the last step
+			lastStep = true;  //ivan
 		} else {
 			health = spawnArgs.GetInt( "health", "5" );
 		}
 	}
 
-	idStr	broken;
+	//ivan start
+	if( lastStep ){
+		
+		//gameLocal.Printf("lastStep\n");
 
-	spawnArgs.GetString( "broken", "", broken );
-	if ( broken.Length() ) {
-		SetModel( broken );
+		if ( hasBrokenModel ) {
+			SetModel( spawnArgs.GetString( "broken", "" ) );
+		}else{
+			if ( spawnArgs.GetBool( "deadHidden", "1" ) ) { //hide only if we don't have a broken model
+				Hide();
+			}
+			if ( !spawnArgs.GetBool( "deadSolid", "1" ) ) {
+			  GetPhysics()->SetContents( 0 );
+			}
+		}
+
+		//splash damage
+		const char *splash = spawnArgs.GetString( "def_splash_damage", "" ); //damagable_exploding_base
+		if ( splash && *splash ) {
+			int oldContents;
+			oldContents = GetPhysics()->GetContents();
+			GetPhysics()->SetContents( 0 ); //allows RadiusDamage to go through us
+
+			//ivan - ignore the chain inflictor!
+			//was: gameLocal.RadiusDamage( GetPhysics()->GetOrigin(), this, activator, this, this, splash );
+			//note: chainInflictor can be null. We are ignored anyway, because takedamage is false when we are here. :)
+			gameLocal.RadiusDamage( GetPhysics()->GetOrigin(), this, activator, chainInflictor, this, splash ); 
+		
+
+			if( oldContents ){
+				GetPhysics()->SetContents( oldContents );
+			}
+		}
+
+		ExplodingEffects();
+		SpawnDebris( "def_expl_debris" );
+		BrokenEntitiesVisible( true ); //Triggering targets could be enough if 1-time only...
+		SpawnDrops(); //drop items
+
+	}//end lastStep
+	else{ //intermediate step
+		//gameLocal.Printf("intermediate step\n");
+
+		if ( hasBrokenModel ) {
+			SetModel( spawnArgs.GetString( "broken", "" ) );
+		}
+
+		SpawnDebris( "def_dmg_debris" );
+	}
+	//ivan end
+
+	//shaders stuff //un noted change from original sdk
+	spawnArgs.GetInt( "numstates", "1", numShader7States ); //un noted change from original sdk
+	spawnArgs.GetInt( "cycle", "0", cycleShader7State );
+	spawnArgs.GetFloat( "forcestate", "0", forceShader7Val ); //un noted change from original sdk
+
+	// set the state parm
+	if ( cycleShader7State ) { //un noted change from original sdk
+		renderEntity.shaderParms[ SHADERPARM_MODE ]++;
+		if ( renderEntity.shaderParms[ SHADERPARM_MODE ] > numShader7States ) { //un noted change from original sdk
+			renderEntity.shaderParms[ SHADERPARM_MODE ] = 0;
+		}
+	} else if ( forceShader7Val ) { //un noted change from original sdk
+		renderEntity.shaderParms[ SHADERPARM_MODE ] = forceShader7Val; //un noted change from original sdk
+	} else {
+		renderEntity.shaderParms[ SHADERPARM_MODE ] = gameLocal.random.RandomInt( numShader7States ) + 1; //un noted change from original sdk
 	}
 
 	// offset the start time of the shader to sync it to the gameLocal time
-	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
-
-	spawnArgs.GetInt( "numstates", "1", numStates );
-	spawnArgs.GetInt( "cycle", "0", cycle );
-	spawnArgs.GetFloat( "forcestate", "0", forceState );
-
-	// set the state parm
-	if ( cycle ) {
-		renderEntity.shaderParms[ SHADERPARM_MODE ]++;
-		if ( renderEntity.shaderParms[ SHADERPARM_MODE ] > numStates ) {
-			renderEntity.shaderParms[ SHADERPARM_MODE ] = 0;
-		}
-	} else if ( forceState ) {
-		renderEntity.shaderParms[ SHADERPARM_MODE ] = forceState;
-	} else {
-		renderEntity.shaderParms[ SHADERPARM_MODE ] = gameLocal.random.RandomInt( numStates ) + 1;
+	//ivan start
+	//setting SHADERPARM_TIMEOFFSET to local time is not a good ideas for flares... 
+	//was: renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+	if( spawnArgs.GetBool( "updParm4", "1" ) ){
+		renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
 	}
 
-	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
+	//cancel pending events?
+	//CancelEvents( &EV_ChainBecomeBroken );
+	//we don't need. Even if this happens, nextTriggerTime will save us. 
+
+	//ivan end
 
 	ActivateTargets( activator );
 
-	if ( spawnArgs.GetBool( "hideWhenBroken" ) ) {
-		Hide();
-		PostEventMS( &EV_RestoreDamagable, nextTriggerTime - gameLocal.time );
-		BecomeActive( TH_THINK );
+	if ( lastStep ){ //ivan
+		if( spawnArgs.GetBool( "restore" ) ) { //lastStep added - was: "hideWhenBroken"
+			//Hide(); //ivan - we are already hidden if we should.
+			
+			//ivan -  extra delay for restore
+			wait = SEC2MS( spawnArgs.GetFloat( "restoreDelay", "1" ) ) + gameLocal.time;
+			if( wait > nextTriggerTime ){ nextTriggerTime = wait; }
+
+			PostEventMS( &EV_RestoreDamagable, nextTriggerTime - gameLocal.time );
+			BecomeActive( TH_THINK );
+		}
 	}
+	//ivan start
+	else{ //reset health and start from the beginning!
+		health = spawnArgs.GetInt( "health", "5" );
+	}
+	//ivan end
 }
 
 /*
@@ -556,12 +928,38 @@ idDamagable::Killed
 ================
 */
 void idDamagable::Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
+	int chainDelay; //un noted change from original sdk
+	//gameLocal.Printf("idDamagable::Killed by %s from %s\n", inflictor->GetName(), attacker->GetName() );
+
 	if ( gameLocal.time < nextTriggerTime ) {
 		health += damage;
 		return;
 	}
 
-	BecomeBroken( attacker );
+	//ivan start 
+	//was: BecomeBroken( attacker );
+
+	chainDelay = 0;
+	if( inflictor && inflictor->IsType( idDamagable::Type ) ){ //in a chain
+		chainDelay = SEC2MS( spawnArgs.GetFloat( "chainDelay", "0" ) );
+	}
+
+	if( chainDelay > 0 ){
+		//gameLocal.Printf("chain detected\n");
+		
+		PostEventMS( &EV_ChainBecomeBroken, chainDelay, attacker, inflictor ); //delayed
+		nextTriggerTime = gameLocal.time + 1; //make sure not triggered or killed again this frame
+	}else{
+		BecomeBroken( attacker, NULL );
+	}
+
+	//add score only if player is the killer
+	if ( attacker && attacker->IsType( idPlayer::Type ) ) {
+		static_cast< idPlayer* >( attacker )->AddScore( spawnArgs.GetInt( "score", "12" ) ); 
+	}
+
+	//ivan end
+	
 }
 
 /*
@@ -570,8 +968,28 @@ idDamagable::Event_BecomeBroken
 ================
 */
 void idDamagable::Event_BecomeBroken( idEntity *activator ) {
-	BecomeBroken( activator );
+	BecomeBroken( activator , NULL );
 }
+
+/*
+================
+idDamagable::Event_ChainBecomeBroken
+================
+*/
+void idDamagable::Event_ChainBecomeBroken( idEntity *activator, idEntity *chainInflictor ) {
+	BecomeBroken( activator, chainInflictor ); //un noted change from original sdk
+}
+
+/*
+================
+idDamagable::Event_HideBrokenEntities
+================
+*/
+void idDamagable::Event_HideBrokenEntities( void ) {
+	BrokenEntitiesVisible( false ); //un noted change from original sdk
+}
+
+
 
 /*
 ================
@@ -580,6 +998,29 @@ idDamagable::Event_RestoreDamagable
 */
 void idDamagable::Event_RestoreDamagable( void ) {
 	health = spawnArgs.GetInt( "health", "5" );
+	
+	//ivan start - fix
+	//gameLocal.Printf("idDamagable::Event_RestoreDamagable\n");
+
+	if ( hasBrokenModel ) { //we have a broken model
+		//restore the not-broken one
+		idStr model;
+		spawnArgs.GetString( "model", "", model );
+		if ( model.Length() ) { 
+			SetModel( model );
+		}
+	}
+	
+	BrokenEntitiesVisible( false ); //hide broken entities
+
+	GetPhysics()->SetContents( CONTENTS_SOLID ); //solid
+
+	fl.takedamage = true;
+
+	spawnArgs.GetInt( "count", "1", count ); //reset count!
+
+	renderEntity.shaderParms[ SHADERPARM_MODE ] = 0; //reset SHADERPARM_MODE
+	//ivan end
 	Show();
 }
 
@@ -646,14 +1087,64 @@ CLASS_DECLARATION( idEntity, idSpring )
 	EVENT( EV_PostSpawn,	idSpring::Event_LinkSpring )
 END_CLASS
 
+
+//ivan start
+/*
+================
+idSpring::idSpring
+================
+*/
+idSpring::idSpring( void ){
+	ent1 = NULL;
+	ent2  = NULL;
+	id1 = 0;
+	id2 = 0;
+	p1 = vec3_origin;
+	p2 = vec3_origin;
+	//spring;
+}
+
+/*
+================
+idSpring::Save
+================
+*/
+void idSpring::Save( idSaveGame *savefile ) const {
+	savefile->WriteObject( ent1 );
+	savefile->WriteObject( ent2 );
+	savefile->WriteInt( id1 );
+	savefile->WriteInt( id2 );
+	savefile->WriteVec3( p1 ); 
+	savefile->WriteVec3( p2 ); 
+
+	savefile->WriteStaticObject( spring );
+}
+
+/*
+================
+idSpring::Restore
+================
+*/
+void idSpring::Restore( idRestoreGame *savefile ) {
+	savefile->ReadObject( reinterpret_cast<idClass *&>( ent1 ) ); 
+	savefile->ReadObject( reinterpret_cast<idClass *&>( ent2 ) ); 
+	savefile->ReadInt( id1 );
+	savefile->ReadInt( id2 );
+	savefile->ReadVec3( p1 ); 
+	savefile->ReadVec3( p2 ); 
+
+	savefile->ReadStaticObject( spring );
+
+	PostEventMS( &EV_PostSpawn, 0 ); //initialize the spring asap but not now!
+}
+//ivan end
+
 /*
 ================
 idSpring::Think
 ================
 */
 void idSpring::Think( void ) {
-	idVec3 start, end, origin;
-	idMat3 axis;
 
 	// run physics
 	RunPhysics();
@@ -662,21 +1153,26 @@ void idSpring::Think( void ) {
 		// evaluate force
 		spring.Evaluate( gameLocal.time );
 
-		start = p1;
-		if ( ent1->GetPhysics() ) {
-			axis = ent1->GetPhysics()->GetAxis();
-			origin = ent1->GetPhysics()->GetOrigin();
-			start = origin + start * axis;
-		}
+		if( g_debugMover.GetBool() ){ //ivan
+			idVec3 start, end, origin;
+			idMat3 axis;
+			
+			start = p1;
+			if ( ent1->GetPhysics() ) {
+				axis = ent1->GetPhysics()->GetAxis();
+				origin = ent1->GetPhysics()->GetOrigin();
+				start = origin + start * axis;
+			}
 
-		end = p2;
-		if ( ent2->GetPhysics() ) {
-			axis = ent2->GetPhysics()->GetAxis();
-			origin = ent2->GetPhysics()->GetOrigin();
-			end = origin + p2 * axis;
+			end = p2;
+			if ( ent2->GetPhysics() ) {
+				axis = ent2->GetPhysics()->GetAxis();
+				origin = ent2->GetPhysics()->GetOrigin();
+				end = origin + p2 * axis;
+			}
+			
+			gameRenderWorld->DebugLine( idVec4(1, 1, 0, 1), start, end, 0, true );
 		}
-
-		gameRenderWorld->DebugLine( idVec4(1, 1, 0, 1), start, end, 0, true );
 	}
 
 	Present();
@@ -807,7 +1303,13 @@ idForceField::Spawn
 void idForceField::Spawn( void ) {
 	idVec3 uniform;
 	float explosion, implosion, randomTorque;
+	float dist_offset, dist_radius, oldVelocityPct; //ivan
 
+	if ( spawnArgs.GetFloat( "randomTorque", "0", randomTorque ) ) {
+		forceField.RandomTorque( randomTorque );
+	}
+
+	// -- direction type --
 	if ( spawnArgs.GetVector( "uniform", "0 0 0", uniform ) ) {
 		forceField.Uniform( uniform );
 	} else if ( spawnArgs.GetFloat( "explosion", "0", explosion ) ) {
@@ -816,18 +1318,47 @@ void idForceField::Spawn( void ) {
 		forceField.Implosion( implosion );
 	}
 
-	if ( spawnArgs.GetFloat( "randomTorque", "0", randomTorque ) ) {
-		forceField.RandomTorque( randomTorque );
+	//ivan start
+
+	// -- magnitude type --
+	if ( spawnArgs.GetBool( "increase_w_dist", "0" ) ) {
+		forceField.SetMagnitudeType( FORCEFIELD_MAGNITUDE_DISTANCE );
+	} else if ( spawnArgs.GetBool( "decrease_w_dist", "0" ) ) {
+		forceField.SetMagnitudeType( FORCEFIELD_MAGNITUDE_DISTANCE_INV );
+	} else {
+		forceField.SetMagnitudeType( FORCEFIELD_MAGNITUDE_FIXED );
 	}
 
+	// -- magnitude settings --
+	dist_offset = spawnArgs.GetFloat( "dist_offset", "0" );
+	dist_radius = spawnArgs.GetFloat( "dist_radius", "0" );
+	if( dist_offset < 0.0f ){ dist_offset = 0.0f; }
+	if( dist_radius <= 0.0f ){ 
+		//dist_radius = (GetPhysics()->GetBounds()[1].z - GetPhysics()->GetBounds()[0].z); //* 0.8f//(maxs + -mins)/2  height
+		float maxs_lenght = GetPhysics()->GetBounds()[1].z;
+		float mins_lenght = -GetPhysics()->GetBounds()[0].z;
+		dist_radius = (maxs_lenght > mins_lenght) ? maxs_lenght : mins_lenght; //use the bigger one
+	} 
+	//gameLocal.Printf("%s - dist_radius: %f\n",GetName(), dist_radius);
+	forceField.SetDistanceBounds( dist_offset, dist_radius );
+
+	//ivan end
+
+	// -- apply type --	
 	if ( spawnArgs.GetBool( "applyForce", "0" ) ) {
 		forceField.SetApplyType( FORCEFIELD_APPLY_FORCE );
 	} else if ( spawnArgs.GetBool( "applyImpulse", "0" ) ) {
 		forceField.SetApplyType( FORCEFIELD_APPLY_IMPULSE );
 	} else {
 		forceField.SetApplyType( FORCEFIELD_APPLY_VELOCITY );
+		//ivan start
+		if ( spawnArgs.GetFloat( "oldVelocityPct", "0", oldVelocityPct ) ) {
+			forceField.SetOldVelocityPct( oldVelocityPct );
+		} 
+		//ivan end
 	}
 
+	// -- other -- //un noted change from original sdk
 	forceField.SetPlayerOnly( spawnArgs.GetBool( "playerOnly", "0" ) );
 	forceField.SetMonsterOnly( spawnArgs.GetBool( "monsterOnly", "0" ) );
 
@@ -1819,7 +2350,10 @@ idFuncSmoke::Event_Activate
 */
 void idFuncSmoke::Event_Activate( idEntity *activator ) {
 	if ( thinkFlags & TH_UPDATEPARTICLES ) {
-		restart = false;
+		//ivan start - ensure correct behaviour
+		restart = !restart;
+		//was: restart = false;
+		//ivan end
 		return;
 	} else {
 		BecomeActive( TH_UPDATEPARTICLES );
@@ -2292,6 +2826,9 @@ void idBeam::ReadFromSnapshot( const idBitMsgDelta &msg ) {
 	}
 }
 
+#ifdef _WATER_PHYSICS //un noted change from original sdk
+//idLiquid has been removed
+#else
 
 /*
 ===============================================================================
@@ -2354,7 +2891,7 @@ void idLiquid::Event_Touch( idEntity *other, trace_t *trace ) {
 	model->IntersectBounds( other->GetPhysics()->GetBounds().Translate( pos ), -10.0f );
 */
 }
-
+#endif //un noted change from original sdk
 
 /*
 ===============================================================================
@@ -3156,3 +3693,513 @@ void idPhantomObjects::Think( void ) {
 		BecomeInactive( TH_THINK );
 	}
 }
+
+//ivan start
+/*
+===============================================================================
+
+	idProjLauncher
+
+===============================================================================
+*/
+
+const idEventDef EV_FireProjectile( "fireProjectile", "v", 'e' ); 
+const idEventDef EV_FireProjAtTarget( "fireProjAtTarget", "E", 'e' ); //E = NULL ok too
+
+CLASS_DECLARATION( idEntity, idProjLauncher )
+	EVENT( EV_Activate,				idProjLauncher::Event_Activate )
+	EVENT( EV_FireProjectile,		idProjLauncher::Event_FireProjectile ) //ff 1.1
+	EVENT( EV_FireProjAtTarget,		idProjLauncher::Event_FireProjAtTarget ) //ff 1.1
+END_CLASS
+
+/*
+===============
+idProjLauncher::idProjLauncher
+===============
+*/
+idProjLauncher::idProjLauncher() {
+	projectileDef		= NULL;
+	projectileName		= "";
+}
+
+/*
+===============
+idProjLauncher::Save
+===============
+*/
+void idProjLauncher::Save( idSaveGame *savefile ) const {
+	savefile->WriteString( projectileName );
+	//projectileDef is not saved!
+}
+
+/*
+===============
+idProjLauncher::Restore
+===============
+*/
+void idProjLauncher::Restore( idRestoreGame *savefile ) {
+	savefile->ReadString( projectileName );
+	if ( projectileName.Length() ) {
+		projectileDef = gameLocal.FindEntityDefDict( projectileName );
+	} else {
+		projectileDef = NULL;
+	}
+}
+
+/*
+===============
+idProjLauncher::Spawn
+===============
+*/
+void idProjLauncher::Spawn( void ) {
+	idEntity *ent;
+	const char *clsname;
+
+	//find the def
+	if ( spawnArgs.GetString( "def_projectile", "", projectileName ) && projectileName.Length() ) {
+		projectileDef = gameLocal.FindEntityDefDict( projectileName );
+
+		if ( !projectileDef->GetNumKeyVals() ) {
+			gameLocal.Warning( "No projectile defined in '%s'", projectileName.c_str() );
+			projectileDef = NULL;
+			projectileName = "";
+			return;
+		}
+	}else{
+		projectileDef = NULL;
+		projectileName = "";
+		return;
+	}
+
+	//try to spawn and check if it's ok
+	gameLocal.SpawnEntityDef( *projectileDef, &ent, false );
+	if ( !ent ) {
+		clsname = projectileDef->GetString( "classname" );
+		gameLocal.Error( "Could not spawn entityDef '%s'", clsname );
+	}
+		
+	if ( !ent->IsType( idProjectile::Type ) ) {
+		clsname = ent->GetClassname();
+		gameLocal.Error( "'%s' is not an idProjectile", clsname );
+	}
+
+	//proj is ok, delete it
+	delete ent;
+	ent = NULL;
+}
+
+/*
+=====================
+idProjLauncher::GetAimDir
+=====================
+*/
+idVec3 idProjLauncher::GetAimDir( idEntity *aimAtEnt ) {
+	idVec3	mainTargetPos;
+	idVec3	secTargetPos; //not used, but necessary
+	idVec3	aimDir;
+	idVec3	firePos;
+
+	firePos = GetPhysics()->GetOrigin();
+
+	if ( aimAtEnt ) { //target entity ok!
+		if ( aimAtEnt->IsType( idPlayer::Type ) ) { //player - head
+			static_cast<idPlayer *>( aimAtEnt )->GetAIAimTargets( aimAtEnt->GetPhysics()->GetOrigin(), mainTargetPos, secTargetPos );
+		} else if ( aimAtEnt->IsType( idActor::Type ) ) { //AI - chest
+			static_cast<idActor *>( aimAtEnt )->GetAIAimTargets( aimAtEnt->GetPhysics()->GetOrigin(), secTargetPos, mainTargetPos );
+		} else { //center
+			mainTargetPos = aimAtEnt->GetPhysics()->GetAbsBounds().GetCenter();
+			//secTargetPos = vec3_origin;
+		}
+		
+		aimDir = mainTargetPos - firePos;
+		aimDir.Normalize();
+
+	} else { //no valid aimAtEnt entity!
+		aimDir = GetPhysics()->GetAxis().ToAngles().ToForward();
+	}
+
+	return aimDir;
+}
+
+/*
+================
+idProjLauncher::FireProjectile
+================
+*/
+idProjectile* idProjLauncher::FireProjectile( idVec3 &dir ) {
+	idProjectile	*proj;
+	idEntity		*ent;
+	idEntity		*owner;
+	idVec3			firePos;
+
+	if ( gameLocal.isClient ) { return NULL; }
+
+	if ( !projectileDef ) { return NULL; }
+
+	gameLocal.SpawnEntityDef( *projectileDef, &ent, false );
+
+	if ( !ent || !ent->IsType( idProjectile::Type ) ) {
+		gameLocal.Error( "'%s' was not able to fire the projectile", GetName() );
+	}
+
+	if ( projectileDef->GetBool( "net_instanthit" ) ) {
+		ent->fl.networkSync = false;
+	}
+
+	firePos = GetPhysics()->GetOrigin();
+	
+	owner = GetBindMaster();
+	if(!owner){ owner = this; }
+
+	proj = static_cast<idProjectile *>(ent);
+	proj->Create( owner, firePos, dir );
+	proj->Launch( firePos, dir, vec3_origin ); //0.0f, 1.0f, 1.0f 
+	return proj;
+}
+/*
+================
+idProjLauncher::Event_Activate
+================
+*/
+void idProjLauncher::Event_Activate( idEntity *activator ) { //triggered
+	idVec3 dir;
+	dir = GetPhysics()->GetAxis().ToAngles().ToForward();
+	
+	FireProjectile( dir );
+}
+
+/*
+================
+idProjLauncher::Event_FireProjectile
+================
+*/
+void idProjLauncher::Event_FireProjectile( idAngles &fireAng ) {
+	idProjectile	*proj;
+	idVec3			dir;
+
+	dir = fireAng.ToForward();
+	proj = FireProjectile( dir );
+
+	idThread::ReturnEntity( proj );
+}
+
+/*
+================
+idProjLauncher::Event_FireProjAtTarget
+================
+*/
+void idProjLauncher::Event_FireProjAtTarget( idEntity* aimAtEnt ) {
+	idProjectile	*proj;
+	idVec3			dir;
+
+	dir = GetAimDir( aimAtEnt );
+	proj = FireProjectile( dir );
+
+	idThread::ReturnEntity( proj );
+}
+
+/*
+================
+idProjLauncher::FireProjAtTarget
+================
+*/
+/*
+idProjectile* idProjLauncher::FireProjAtTarget( idEntity* aimAtEnt ) {
+	idProjectile	*proj;
+	idVec3			dir;
+
+	dir = GetAimDir( aimAtEnt );
+	proj = FireProjectile( dir );
+
+	return proj;
+}
+*/
+
+
+/*
+===============================================================================
+
+idRandomSpawner
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idRandomSpawner )
+	EVENT( EV_Activate,	idRandomSpawner::Event_Activate )
+END_CLASS
+
+/*
+===============
+idRandomSpawner::idRandomSpawner
+===============
+*/
+idRandomSpawner::idRandomSpawner() {
+	commonSpawnArgs.Clear();
+	rndListLenght = 0;
+}
+
+/*
+===============
+idRandomSpawner::Save
+===============
+*/
+void idRandomSpawner::Save( idSaveGame *savefile ) const {
+	savefile->WriteDict( &commonSpawnArgs );
+	savefile->WriteInt( rndListLenght); 
+}
+
+/*
+===============
+idRandomSpawner::Restore
+===============
+*/
+void idRandomSpawner::Restore( idRestoreGame *savefile ) {
+	savefile->ReadDict( &commonSpawnArgs );
+	savefile->ReadInt( rndListLenght);
+}
+
+/*
+===============
+idRandomSpawner::Spawn
+===============
+*/
+void idRandomSpawner::Spawn( void ) {
+	const idKeyValue *kv;
+	rndListLenght = 0;
+
+	Hide();
+	GetPhysics()->SetContents( 0 );
+
+	//check out list
+	//get the def containing the list
+	const idDict *	rndListArgs = gameLocal.FindEntityDefDict( spawnArgs.GetString( "def_rndlist" ), false ); 
+	if ( !rndListArgs ) {
+		gameLocal.Warning( "No valid 'def_rndlist' found on %s.", GetName() );
+		return;
+	}
+
+	//count how many
+	for( kv = rndListArgs->MatchPrefix( "def", NULL ); kv != NULL; kv = rndListArgs->MatchPrefix( "def", kv ) ) {
+		rndListLenght++;
+	}
+
+	if ( rndListLenght == 0 ) {
+		gameLocal.Warning( "%s 's list is empty (check 'def_rndlist' key).", GetName() );
+		return;
+	}
+
+
+	//-- setup common spawnArgs --
+	commonSpawnArgs.Copy( spawnArgs );	
+	gameLocal.RemoveBadKeysForRandom( commonSpawnArgs ); //this will be also done at spawn time, but don't waste space...
+	commonSpawnArgs.Delete( "name" );			//will be given by the game
+	commonSpawnArgs.Delete( "triggerOnSpawn" );			//this setting is just for me
+	commonSpawnArgs.Set( "random_class", "1" ); //enable the random behaviour
+
+	//remove the editor ones: they are useless and waste a lot of memory!
+	for( kv = spawnArgs.MatchPrefix( "editor", NULL ); kv != NULL; kv = spawnArgs.MatchPrefix( "editor", kv ) ) {
+		commonSpawnArgs.Delete( kv->GetKey().c_str() );
+	}
+
+	/*
+	//what should we have now:
+	- "random_class" "1"
+	- "targetX"		(copied from this entity)
+	- "def_rndlist"	(copied from this entity)
+	- "use_aas"		(copied from this entity)
+	- "angle"		(copied from this entity)
+	- editor keys	(copied from this entity)
+	*/
+
+	//debug
+	//gameLocal.Printf( "*** idRandomSpawner::ReadKeysFromTargets - commonSpawnArgs: *** \n" );
+	//commonSpawnArgs.Print();
+}
+
+/*
+================
+idRandomSpawner::Event_Activate
+================
+*/
+void idRandomSpawner::Event_Activate( idEntity *activator ) {
+	gameLocal.Printf( "*** idRandomSpawner::Event_Activate: *** \n" );
+	idEntity *ent;
+	if ( rndListLenght > 0 ) {
+		gameLocal.SpawnEntityDef( commonSpawnArgs, &ent );
+		if ( ent && spawnArgs.GetBool( "triggerOnSpawn", "1" )) { //by default we trigger the monster we created.
+			ent->PostEventMS( &EV_Activate, 0, activator );
+		}
+	}else{
+		gameLocal.Warning( "%s 's list is empty (check 'def_rndlist' key).", GetName() );
+	}
+}
+
+/*
+===============================================================================
+
+idRandomSpawnerSelector
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idRandomSpawnerSelector )
+	EVENT( EV_Activate,	idRandomSpawnerSelector::Event_Activate )
+END_CLASS
+
+/*
+===============
+idRandomSpawnerSelector::idRandomSpawnerSelector
+===============
+*/
+idRandomSpawnerSelector::idRandomSpawnerSelector() {
+}
+
+/*
+================
+idRandomSpawnerSelector::Event_Activate
+================
+*/
+void idRandomSpawnerSelector::Event_Activate( idEntity *activator ) {
+	int			i, randomNum, k;
+	idEntity	*ent;
+	//idRandomSpawner *entSpawner;
+	//const idDict *	tempListArgs;
+
+	if( !targets.Num() ){ //no targets!
+		gameLocal.Warning("%s has no targets!", GetName() );
+		return;
+	}
+
+	//sum all lenghts
+	k = 0;
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( ent && ent->IsType( idRandomSpawner::Type ) ) {
+			k += static_cast<idRandomSpawner *>(ent)->GetRndListLenght();
+		}
+	}	
+
+	if( k == 0 ){ 
+		gameLocal.Warning("%s: its targets are empty!", GetName() );
+		return;
+	}
+
+	randomNum = gameLocal.random.RandomInt( k );
+
+	//choose target
+	k = 0;
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( ent && ent->IsType( idRandomSpawner::Type ) ) {
+			k += static_cast<idRandomSpawner *>(ent)->GetRndListLenght();
+			if( k > randomNum ){
+				ent->PostEventMS( &EV_Activate, 0, this );
+				return;
+			}
+		}
+	}	
+}
+
+/*
+===============================================================================
+
+idRandomTargetSelector
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idRandomTargetSelector )
+	EVENT( EV_Activate,	idRandomTargetSelector::Event_Activate )
+END_CLASS
+
+/*
+===============
+idRandomTargetSelector::idRandomTargetSelector
+===============
+*/
+idRandomTargetSelector::idRandomTargetSelector() {
+}
+
+/*
+================
+idRandomTargetSelector::Event_Activate
+================
+*/
+void idRandomTargetSelector::Event_Activate( idEntity *activator ) {
+	int maxrnd = spawnArgs.GetInt( "randomPct", "100" );
+	if( maxrnd < 100 && gameLocal.random.RandomInt( 100 ) > maxrnd  ){
+		return;
+	}
+	
+	idEntity *ent = GetRandomTarget( NULL );
+
+	if( ent ){ //no targets!
+		ent->PostEventMS( &EV_Activate, 0, this );
+	}else{
+		gameLocal.Warning("%s no target selected!", GetName() );
+	}
+}
+
+//ivan end
+
+#ifdef _PORTALSKY
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idPortalSky )
+	EVENT( EV_PostSpawn,			idPortalSky::Event_PostSpawn )
+	EVENT( EV_Activate,				idPortalSky::Event_Activate )
+END_CLASS
+
+/*
+===============
+idPortalSky::idPortalSky
+===============
+*/
+idPortalSky::idPortalSky() {
+}
+
+/*
+===============
+idPortalSky::~idPortalSky
+===============
+*/
+idPortalSky::~idPortalSky() {
+
+}
+
+/*
+===============
+idPortalSky::Spawn
+===============
+*/
+void idPortalSky::Spawn( void ) {
+	if ( !spawnArgs.GetBool( "triggered" ) ) {
+		PostEventMS( &EV_PostSpawn, 1 );
+	}
+}
+
+/*
+================
+idPortalSky::Event_PostSpawn
+================
+*/
+void idPortalSky::Event_PostSpawn( void ) {
+	gameLocal.SetPortalSkyEnt( this );
+}
+
+/*
+================
+idPortalSky::Event_Activate
+================
+*/
+void idPortalSky::Event_Activate( idEntity *activator ) {
+	gameLocal.SetPortalSkyEnt( this );
+}
+
+#endif /* _PORTALSKY */

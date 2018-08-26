@@ -278,7 +278,7 @@ void idItem::Spawn( void ) {
 	const char *kv;
 
 	kv = spawnArgs.GetString( "inv_name", "" );
-	if ( kv != "" ) { // SnoopJeDi - Only if it's something good to eat!
+	if ( idStr::strcmp(kv, "") != 0 ) { // SnoopJeDi - Only if it's something good to eat!
 		gameLocal.items++;
 	}
 

@@ -46,6 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "WorldSpawn.h"
 #include "Misc.h"
 #include "Trigger.h"
+#include "Sound.h"
 
 #include "Game_local.h"
 

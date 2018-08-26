@@ -5772,7 +5772,8 @@ void idPlayer::PerformImpulse( int impulse ) {
 			}
 			break;
 		}
-		case IMPULSE_30: { // SnoopJeDi - At the request of many.
+		// FIXME: was IMPULSE_30, but that needs to be in framework/UsercmdGen.h .. which is not per mod.
+		case 30: { // SnoopJeDi - At the request of many.
 			ToggleStatsDebug();
 			break;
 		}

@@ -37,10 +37,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "PlayerView.h"
 
 #ifdef _DENTONMOD
+#include "../sourcehook/sourcehook.h"
+
 extern SourceHook::ISourceHook *g_SHPtr;
 extern int g_PLID;
 
 SH_DECL_HOOK2_void( idCmdSystem, BufferCommandText, SH_NOATTRIB, 0, cmdExecution_t, const char * );
+
 #endif
 
 static int MakePowerOfTwo( int num ) {
@@ -811,36 +814,36 @@ idPlayerView::dnPostProcessManager Class Definitions - JC Denton
 */
 
 idPlayerView::dnPostProcessManager::dnPostProcessManager():
-m_imageCurrentRender				( "_currentRender"			),
-m_imageCurrentRender8x8DownScaled	( "_RTtoTextureScaled64x"	),
-m_imageLuminance64x64				( "_luminanceTexture64x64"	),
-m_imageluminance4x4					( "_luminanceTexture4x4"	),
-m_imageAdaptedLuminance1x1			( "_adaptedLuminance"		),
-m_imageBloom						( "_bloomImage"				),
-m_imageHalo							( "_haloImage"				),
-m_imageCookedMath					( "_cookedMath"				),
-m_matCookMath_pass1		( declManager->FindMaterial( "postprocess/cookMath_pass1" )		),
-m_matCookMath_pass2		( declManager->FindMaterial( "postprocess/cookMath_pass2" )		),
-m_matCookMath_pass3		( declManager->FindMaterial( "postprocess/cookMath_pass3" )		),
+	m_imageCurrentRender				( "_currentRender"			),
+	m_imageCurrentRender8x8DownScaled	( "_RTtoTextureScaled64x"	),
+	m_imageLuminance64x64				( "_luminanceTexture64x64"	),
+	m_imageluminance4x4					( "_luminanceTexture4x4"	),
+	m_imageAdaptedLuminance1x1			( "_adaptedLuminance"		),
+	m_imageBloom						( "_bloomImage"				),
+	m_imageHalo							( "_haloImage"				),
+	m_imageCookedMath					( "_cookedMath"				),
+	m_matCookMath_pass1		( declManager->FindMaterial( "postprocess/cookMath_pass1" )		),
+	m_matCookMath_pass2		( declManager->FindMaterial( "postprocess/cookMath_pass2" )		),
+	m_matCookMath_pass3		( declManager->FindMaterial( "postprocess/cookMath_pass3" )		),
 
-m_matAvgLuminance64x	( declManager->FindMaterial( "postprocess/averageLum64" )	),
-m_matAvgLumSample4x4	( declManager->FindMaterial( "postprocess/averageLum4" )	),
-m_matAdaptLuminance		( declManager->FindMaterial( "postprocess/adaptLum" )		),
-m_matBrightPass			( declManager->FindMaterial( "postprocess/brightPassOptimized" )		),
-m_matGaussBlurX			( declManager->FindMaterial( "postprocess/blurx" )			),
-m_matGaussBlurY			( declManager->FindMaterial( "postprocess/blury" )			),
-m_matHalo				( declManager->FindMaterial(  "postprocess/halo" )			),
-m_matGaussBlurXHalo		( declManager->FindMaterial( "postprocess/blurx_halo" )		),
-m_matGaussBlurYHalo		( declManager->FindMaterial( "postprocess/blury_halo" )		),
-//m_matFinalScenePass		( declManager->FindMaterial( "postprocess/finalScenePass" )	),
-m_matFinalScenePass		( declManager->FindMaterial( "postprocess/finalScenePassOptimized" )	),
+	m_matAvgLuminance64x	( declManager->FindMaterial( "postprocess/averageLum64" )	),
+	m_matAvgLumSample4x4	( declManager->FindMaterial( "postprocess/averageLum4" )	),
+	m_matAdaptLuminance		( declManager->FindMaterial( "postprocess/adaptLum" )		),
+	m_matBrightPass			( declManager->FindMaterial( "postprocess/brightPassOptimized" )		),
+	m_matGaussBlurX			( declManager->FindMaterial( "postprocess/blurx" )			),
+	m_matGaussBlurY			( declManager->FindMaterial( "postprocess/blury" )			),
+	m_matHalo				( declManager->FindMaterial(  "postprocess/halo" )			),
+	m_matGaussBlurXHalo		( declManager->FindMaterial( "postprocess/blurx_halo" )		),
+	m_matGaussBlurYHalo		( declManager->FindMaterial( "postprocess/blury_halo" )		),
+	//m_matFinalScenePass		( declManager->FindMaterial( "postprocess/finalScenePass" )	),
+	m_matFinalScenePass		( declManager->FindMaterial( "postprocess/finalScenePassOptimized" )	),
 
-m_matCookVignette		( declManager->FindMaterial( "postprocess/cookVignette" )		),
+	m_matCookVignette		( declManager->FindMaterial( "postprocess/cookVignette" )		),
 
-// Materials for debugging intermediate textures
-m_matDecodedLumTexture64x64	( declManager->FindMaterial( "postprocess/decode_luminanceTexture64x64" )	), 
-m_matDecodedLumTexture4x4	( declManager->FindMaterial( "postprocess/decode_luminanceTexture4x4" )		),
-m_matDecodedAdaptLuminance	( declManager->FindMaterial( "postprocess/decode_adaptedLuminance" )		)
+	// Materials for debugging intermediate textures
+	m_matDecodedLumTexture64x64	( declManager->FindMaterial( "postprocess/decode_luminanceTexture64x64" )	), 
+	m_matDecodedLumTexture4x4	( declManager->FindMaterial( "postprocess/decode_luminanceTexture4x4" )		),
+	m_matDecodedAdaptLuminance	( declManager->FindMaterial( "postprocess/decode_adaptedLuminance" )		)
 {
 
 	m_iScreenHeight = m_iScreenWidth = 0;

@@ -2710,7 +2710,7 @@ void idBotNode::Event_EvaluateConditions( void ) { //true if one of them is veri
 		idThread::ReturnInt( true ); return;
 	}
 
-	assert( ownerBot );
+	assert( ownerBot.IsValid() );
 	currentOwner = ownerBot.GetEntity();
 
 

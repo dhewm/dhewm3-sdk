@@ -82,14 +82,6 @@ class idThread;
 class idEditEntities;
 class idLocationEntity;
 
-#ifdef _DENTONMOD
-//============================================================================
-// Adding header here for global use of source hook. - JC Denton
-//============================================================================
-#include "../sourcehook/sourcehook.h"
-//============================================================================
-#endif
-
 extern const int NUM_RENDER_PORTAL_BITS;
 
 void gameError( const char *fmt, ... );

@@ -12,11 +12,13 @@ create a Visual Studio Solution for you so you can program and compile with
 Visual Studio like you might be used to.
 
 This repository also contains ports of existing mods whichs authors released
-the source under GPL; you can find these in their own branches.
+the source under GPL; you can find these in their own branches:
+[Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom) and
+[Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod) 
 
 ## How to build
 
-(I just eventually expand this, especially for Windows)
+(I should eventually expand this, especially for Windows)
 
 On Linux and similar the following should work (if you have cmake, make and GCC/g++ installed):
 1. Clone the dhewm3-sdk git repo

@@ -3,7 +3,8 @@ project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
 set(BASE_NAME	"hardqore2" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
-set(BASE_DEFS	"GAME_DLL;_WATER_PHYSICS;_PORTALSKY;_DENTONMOD" CACHE STRING "Compiler definitions for the mod built from game/")
+# FIXME: maybe try to get it to work with assertions enabled (i.e. in Debug builds or in Release builds without NDEBUG)
+set(BASE_DEFS	"GAME_DLL;_WATER_PHYSICS;_PORTALSKY;_DENTONMOD;NDEBUG" CACHE STRING "Compiler definitions for the mod built from game/")
 
 option(D3XP		"Build the d3xp/ game code" OFF)
 set(D3XP_NAME	"d3xp" CACHE STRING "Name of the mod built from d3xp/ (will result in \${D3XP_NAME}.dll)")

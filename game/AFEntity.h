@@ -124,13 +124,17 @@ public:
 	virtual void			AddForce( idEntity *ent, int id, const idVec3 &point, const idVec3 &force );
 
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+#ifdef _DENTONMOD
+	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt=NULL );
+#else
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
+#endif
 
 	void					SetCombatModel( void );
 	idClipModel *			GetCombatModel( void ) const;
 	virtual void			LinkCombat( void );
 	virtual void			UnlinkCombat( void );
-
+	
 protected:
 	idEntity *				body;
 	idClipModel *			combatModel;	// render model for hit detection of head
@@ -226,13 +230,19 @@ public:
 	void					Restore( idRestoreGame *savefile );
 	virtual void			Present( void );
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+//REV GRAB
+	void					SetThrown( bool isThrown );
+	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity );
+//REV GRAB
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
 
 protected:
 	idRenderModel *			skeletonModel;
 	int						skeletonModelDefHandle;
 	bool					gibbed;
-
+//REV GRAB
+	bool					wasThrown;
+//REV GRAB
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 	void					InitSkeletonModel( void );
 

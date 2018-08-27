@@ -57,6 +57,19 @@ const int	CINEMATIC_SKIP_DELAY	= SEC2MS( 2.0f );
 
 #ifdef GAME_DLL
 
+#ifdef _DENTONMOD
+#include "../sourcehook/sourcehook_impl.h"
+//============================================================================
+// Source hook related: Defining these vars here so that can be used globally 
+// anywhere by just declaring following vars as "extern"
+//============================================================================
+SourceHook::CSourceHookImpl g_SourceHook;
+SourceHook::ISourceHook *g_SHPtr = static_cast<SourceHook::ISourceHook*>(&g_SourceHook); 
+int g_PLID = 0;
+
+//============================================================================
+#endif // _DENTONMOD
+
 idSys *						sys = NULL;
 idCommon *					common = NULL;
 idCmdSystem *				cmdSystem = NULL;
@@ -74,7 +87,7 @@ idCVar *					idCVar::staticVars = NULL;
 
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL|CVAR_SYSTEM, "force generic platform independent SIMD" );
 
-#endif
+#endif // GAME_DLL
 
 idRenderWorld *				gameRenderWorld = NULL;		// all drawing is done to this world
 idSoundWorld *				gameSoundWorld = NULL;		// all audio goes to this world
@@ -202,6 +215,7 @@ void idGameLocal::Clear( void ) {
 	sessionCommand.Clear();
 	locationEntities = NULL;
 	smokeParticles = NULL;
+	trailsManager = NULL; //ivan
 	editEntities = NULL;
 	entityHash.Clear( 1024, MAX_GENTITIES );
 	inCinematic = false;
@@ -252,6 +266,11 @@ void idGameLocal::Clear( void ) {
 	savedEventQueue.Init();
 
 	memset( lagometer, 0, sizeof( lagometer ) );
+
+#ifdef _PORTALSKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
 }
 
 /*
@@ -307,10 +326,19 @@ void idGameLocal::Init( void ) {
 
 	InitConsoleCommands();
 
+	//Ivan start - execute the default.cfg Ruiner config file only the first time
+    if(!ruiner_bind_run_once.GetBool()) {
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta ruiner_bind_run_once 1\n" );
+		cmdSystem->ExecuteCommandBuffer();
+	}
+	//Ivan end
+
 	// load default scripts
 	program.Startup( SCRIPT_DEFAULT );
 
 	smokeParticles = new idSmokeParticles;
+	trailsManager = new idTrailManager; //ivan
 
 	// set up the aas
 	dict = FindEntityDefDict( "aas_types" );
@@ -366,6 +394,11 @@ void idGameLocal::Shutdown( void ) {
 
 	delete smokeParticles;
 	smokeParticles = NULL;
+
+	//ivan start
+	delete trailsManager;
+	trailsManager = NULL;
+	//ivan end
 
 	idClass::Shutdown();
 
@@ -464,6 +497,9 @@ void idGameLocal::SaveGame( idFile *f ) {
 		savegame.WriteDict( &persistentPlayerInfo[ i ] );
 	}
 
+	//ivan - save/reload trails BEFORE other entities
+	trailsManager->Save( &savegame );
+
 	for( i = 0; i < MAX_GENTITIES; i++ ) {
 		savegame.WriteObject( entities[ i ] );
 		savegame.WriteInt( spawnIds[ i ] );
@@ -535,6 +571,11 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteInt( realClientTime );
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
+
+#ifdef _PORTALSKY
+	portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
+#endif
 
 	savegame.WriteBool( mapCycleLoaded );
 	savegame.WriteInt( spawnCount );
@@ -713,7 +754,6 @@ void idGameLocal::Error( const char *fmt, ... ) const {
 		common->Error( "%s", text );
 	}
 }
-
 /*
 ===============
 gameError
@@ -906,6 +946,11 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	sessionCommand = "";
 	nextGibTime		= 0;
 
+#ifdef  _PORTALSKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+#endif
+
 	vacuumAreaNum = -1;		// if an info_vacuum is spawned, it will set this
 
 	if ( !editEntities ) {
@@ -934,6 +979,9 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 
 	// clear the smoke particle free list
 	smokeParticles->Init();
+
+	// ivan
+	trailsManager->Init();
 
 	// cache miscellanious media references
 	FindEntityDef( "preCacheExtras", false );
@@ -968,6 +1016,9 @@ void idGameLocal::LocalMapRestart( ) {
 
 	// clear the smoke particle free list
 	smokeParticles->Init();
+
+	//ivan
+	trailsManager->Init();
 
 	// clear the sound system
 	if ( gameSoundWorld ) {
@@ -1266,6 +1317,9 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 		savegame.ReadDict( &persistentPlayerInfo[ i ] );
 	}
 
+	//ivan - save/reload trails BEFORE other entities
+	trailsManager->Restore( &savegame );
+
 	for( i = 0; i < MAX_GENTITIES; i++ ) {
 		savegame.ReadObject( reinterpret_cast<idClass *&>( entities[ i ] ) );
 		savegame.ReadInt( spawnIds[ i ] );
@@ -1352,6 +1406,11 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( realClientTime );
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
+
+#ifdef _PORTALSKY
+	portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+#endif
 
 	savegame.ReadBool( mapCycleLoaded );
 	savegame.ReadInt( spawnCount );
@@ -1484,6 +1543,10 @@ void idGameLocal::MapShutdown( void ) {
 		smokeParticles->Shutdown();
 	}
 
+	if ( trailsManager ) {
+		trailsManager->Shutdown();
+	}
+	
 	pvs.Shutdown();
 
 	clip.Shutdown();
@@ -1998,6 +2061,25 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			pvs.FreeCurrentPVS( playerConnectedAreas );
 			pvs.FreeCurrentPVS( otherPVS );
 			playerConnectedAreas = newPVS;
+
+#ifdef _PORTALSKY
+		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
+		if ( portalSkyEnt.GetEntity() ) {
+			idEntity *skyEnt = portalSkyEnt.GetEntity();
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerPVS, otherPVS );
+			pvs.FreeCurrentPVS( playerPVS );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerPVS = newPVS;
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
+			pvs.FreeCurrentPVS( playerConnectedAreas );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerConnectedAreas = newPVS;
+		}
+#endif
 		}
 	}
 }
@@ -2218,6 +2300,9 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 
 		// free old smoke particles
 		smokeParticles->FreeSmokes();
+
+		// upd trails every tic
+		trailsManager->Think();
 
 		// process events on the server
 		ServerProcessEntityNetworkEventQueue();
@@ -3706,7 +3791,11 @@ void idGameLocal::RadiusPush( const idVec3 &origin, const float radius, const fl
 		// scale the push for the inflictor
 		if ( ent == inflictor || ( ent->IsType( idAFAttachment::Type ) && static_cast<idAFAttachment*>(ent)->GetBody() == inflictor ) ) {
 			scale = inflictorScale;
-		} else {
+	    } 
+		else if ( ent->IsType (idAFEntity_Base::Type) && static_cast<idAFEntity_Base*>(ent)->IsActiveAF()) {	// Only scale push when ragdoll is active - BY Clone JCD
+				scale = ent->spawnArgs.GetFloat ("ragdoll_push_scale", "1.0");	// Scales down ragdoll push based on def's value
+		}
+		else {
 			scale = 1.0f;
 		}
 
@@ -4274,6 +4363,26 @@ idGameLocal::ThrottleUserInfo
 void idGameLocal::ThrottleUserInfo( void ) {
 	mpGame.ThrottleUserInfo();
 }
+
+#ifdef _PORTALSKY
+/*
+=================
+idGameLocal::SetPortalSkyEnt
+=================
+*/
+void idGameLocal::SetPortalSkyEnt( idEntity *ent ) {
+	portalSkyEnt = ent;
+}
+
+/*
+=================
+idGameLocal::IsPortalSkyAcive
+=================
+*/
+bool idGameLocal::IsPortalSkyAcive() {
+	return portalSkyActive;
+}
+#endif
 
 /*
 ===========

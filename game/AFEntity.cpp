@@ -126,6 +126,11 @@ idMultiModelAF::Think
 void idMultiModelAF::Think( void ) {
 	RunPhysics();
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 
@@ -389,11 +394,19 @@ void idAFAttachment::Damage( idEntity *inflictor, idEntity *attacker, const idVe
 idAFAttachment::AddDamageEffect
 ================
 */
+#ifdef _DENTONMOD
+void idAFAttachment::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName, idEntity *soundEnt ) {
+#else
 void idAFAttachment::AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName ) {
+#endif
 	if ( body ) {
 		trace_t c = collision;
 		c.c.id = JOINT_HANDLE_TO_CLIPMODEL_ID( attachJoint );
+#ifdef _DENTONMOD
+		body->AddDamageEffect( c, velocity, damageDefName, soundEnt );
+#else
 		body->AddDamageEffect( c, velocity, damageDefName );
+#endif
 	}
 }
 
@@ -454,9 +467,13 @@ idAfAttachment::Think
 */
 void idAFAttachment::Think( void ) {
 	idAnimatedEntity::Think();
+
+#ifdef _DENTONMOD
+#else								// This has been taken care of by idAnimatedEntity, so we wont need it now
 	if ( thinkFlags & TH_UPDATEPARTICLES ) {
 		UpdateDamageEffects();
 	}
+#endif
 }
 
 /*
@@ -634,6 +651,10 @@ void idAFEntity_Base::Think( void ) {
 		Present();
 		LinkCombat();
 	}
+#ifdef _DENTONMOD
+	if (thinkFlags & TH_UPDATEWOUNDPARTICLES)
+		UpdateDamageEffects();
+#endif
 }
 
 /*
@@ -965,6 +986,9 @@ idAFEntity_Gibbable::idAFEntity_Gibbable( void ) {
 	skeletonModel = NULL;
 	skeletonModelDefHandle = -1;
 	gibbed = false;
+	//REV GRAB
+	wasThrown = false;	
+	//REV GRAB
 }
 
 /*
@@ -987,6 +1011,9 @@ idAFEntity_Gibbable::Save
 void idAFEntity_Gibbable::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( gibbed );
 	savefile->WriteBool( combatModel != NULL );
+//REV GRAB
+	savefile->WriteBool( wasThrown );
+//REV GRAB
 }
 
 /*
@@ -999,7 +1026,9 @@ void idAFEntity_Gibbable::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadBool( gibbed );
 	savefile->ReadBool( hasCombatModel );
-
+//REV GRAB
+	savefile->ReadBool( wasThrown );
+//REV GRAB
 	InitSkeletonModel();
 
 	if ( hasCombatModel ) {
@@ -1017,6 +1046,9 @@ void idAFEntity_Gibbable::Spawn( void ) {
 	InitSkeletonModel();
 
 	gibbed = false;
+//REV GRAB
+	wasThrown = false;
+//REV GRAB
 }
 
 /*
@@ -1092,10 +1124,66 @@ void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const
 		return;
 	}
 	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
-	if ( health < -20 && spawnArgs.GetBool( "gib" ) ) {
+			                                                 // New Gibbing System By Clone JCD
+	int healthToGib = spawnArgs.GetInt ("gibHealth"); // GibHealth is suppossed to be declared in entityDef
+																
+	if (healthToGib == 0)					// If its not there, set it to default value
+		healthToGib = -20 ;
+			
+	if ( health < healthToGib && spawnArgs.GetBool( "gib" ) ) {
 		Gib( dir, damageDefName );
 	}
 }
+
+//REV GRAB CODE START
+/*
+=====================
+idAFEntity_Gibbable::SetThrown
+=====================
+*/
+void idAFEntity_Gibbable::SetThrown( bool isThrown ) {
+
+	if ( isThrown ) {
+		int i, num = af.GetPhysics()->GetNumBodies();
+
+		for ( i=0; i<num; i++ ) {
+			idAFBody *body;
+
+			body = af.GetPhysics()->GetBody( i );
+			body->SetClipMask( MASK_MONSTERSOLID );
+		}
+	}
+
+	wasThrown = isThrown;
+}
+
+/*
+=====================
+idAFEntity_Gibbable::Collide
+=====================
+*/
+bool idAFEntity_Gibbable::Collide( const trace_t &collision, const idVec3 &velocity ) {
+
+	if ( !gibbed && wasThrown ) {
+
+		// Everything gibs (if possible)
+		if ( spawnArgs.GetBool( "gib" ) ) {
+			idEntity	*ent;
+
+			ent = gameLocal.entities[ collision.c.entityNum ];
+			if ( ent->fl.takedamage ) {
+				ent->Damage( this, gameLocal.GetLocalPlayer(), collision.c.normal, "damage_thrown_ragdoll", 1.f, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) );
+			}
+
+			idVec3 vel = velocity;
+			vel.NormalizeFast();
+			Gib( vel, "damage_gib" );
+		}
+	}
+
+	return idAFEntity_Base::Collide( collision, velocity );
+}
+//REV GRAB CODE END
 
 /*
 =====================
@@ -1138,6 +1226,10 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 			velocity += ( i & 1 ) ? dir : -dir;
 			list[i]->GetPhysics()->SetLinearVelocity( velocity * 75.0f );
 		}
+//rev grab
+		// Don't allow grabber to pick up temporary gibs
+		list[i]->noGrab = true;
+//rev grab
 		list[i]->GetRenderEntity()->noShadow = true;
 		list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
 		list[i]->PostEventSec( &EV_Remove, 4.0f );
@@ -1154,7 +1246,10 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	if ( gibbed ) {
 		return;
 	}
-
+//rev grab
+	// Don't grab this ent after it's been gibbed (and now invisible!)
+	noGrab = true;
+//rev grab
 	const idDict *damageDef = gameLocal.FindEntityDefDict( damageDefName );
 	if ( !damageDef ) {
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );

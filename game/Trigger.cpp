@@ -505,6 +505,184 @@ void idTrigger_Multi::Event_Touch( idEntity *other, trace_t *trace ) {
 	}
 }
 
+//ivan start
+
+/*
+===============================================================================
+
+  idTrigger_Interact
+	
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTrigger, idTrigger_Interact )
+	EVENT( EV_Activate,			idTrigger_Interact::Event_Trigger )
+	EVENT( EV_Interact,			idTrigger_Interact::Event_Interact )
+	EVENT( EV_Touch,			idTrigger_Interact::Event_Touch ) //only for hud info
+END_CLASS
+
+/*
+================
+idTrigger_Interact::idTrigger_Interact
+================
+*/
+idTrigger_Interact::idTrigger_Interact( void ) {
+	wait = 0.0f;
+	nextInteractTime = 0;
+	triggerFirst = false;
+	//memset( interactModes, INTERACT_NONE, sizeof( interactModes ) ); 
+	interactFlags = 0;
+}
+
+/*
+================
+idTrigger_Interact::Save
+================
+*/
+void idTrigger_Interact::Save( idSaveGame *savefile ) const {
+	//int i;
+	savefile->WriteFloat( wait );
+	savefile->WriteInt( nextInteractTime );
+	savefile->WriteBool( triggerFirst );
+
+	/*for( i = 0; i < MAX_TRIGINT_MODES; i++ ) {
+		savefile->WriteInt( interactModes[ i ] );
+	}*/
+	savefile->WriteInt( interactFlags ); 
+}
+
+/*
+================
+idTrigger_Interact::Restore
+================
+*/
+void idTrigger_Interact::Restore( idRestoreGame *savefile ) {
+	//int i;
+	savefile->ReadFloat( wait );
+	savefile->ReadInt( nextInteractTime );
+	savefile->ReadBool( triggerFirst );
+
+	/*for( i = 0; i < MAX_TRIGINT_MODES; i++ ) {
+		savefile->ReadInt( interactModes[ i ] );
+	}*/
+	savefile->ReadInt( interactFlags );
+}
+
+
+/*
+================
+idTrigger_Interact::Spawn
+================
+*/
+void idTrigger_Interact::Spawn( void ) {
+	//int i;
+	
+	spawnArgs.GetFloat( "wait", "0.5", wait );
+	spawnArgs.GetBool( "triggerFirst", "0", triggerFirst );
+
+	//for( i = 0; i < MAX_TRIGINT_MODES; i++ ) {
+	//	spawnArgs.GetInt( va( "interactMode%d", i ), "0", interactModes[ i ] ); //0 is INTERACT_NONE
+	//}
+
+	//add all interact flags
+	interactFlags = 0;
+	const idKeyValue *kv = spawnArgs.MatchPrefix( "interactMode" );   
+	while ( kv ) {
+		interactFlags |= spawnArgs.GetInt( kv->GetKey().c_str(), "0"); //TODO: check if it's valid
+		kv = spawnArgs.MatchPrefix( "interactMode", kv );
+	}      
+
+	nextInteractTime = 0;
+}
+
+/*
+================
+idTrigger_Interact::Event_Touch
+
+NOTE: should only be used for hud info.
+================
+*/
+void idTrigger_Interact::Event_Touch( idEntity *other, trace_t *trace ) {
+	if( triggerFirst ) {
+		return;
+	}
+
+	if ( other->IsType( idPlayer::Type ) ) {
+		static_cast< idPlayer * >( other )->ShowPossibleInteract( interactFlags );
+	}
+}
+
+/*
+============
+idTrigger_Interact::CanInteract
+============
+*/
+bool idTrigger_Interact::CanInteract( int flags ) const {
+	//int i;
+
+	//if not activated
+	if( triggerFirst ) {
+		return false;
+	}
+
+	//if enough time passed by
+	if ( nextInteractTime > gameLocal.time ) {
+		// can't interact until the wait is over
+		return false;
+	}
+
+	//check if there is a matching mode
+	if( interactFlags & flags ){ return true; }
+
+	return false;
+}
+
+/*
+================
+idTrigger_Interact::Event_Interact
+================
+*/
+void idTrigger_Interact::Event_Interact( idEntity *activator, int flags ) {	
+	if ( !activator ) return;
+	if ( !activator->IsType( idPlayer::Type ) ) return;
+	//if ( !CanInteract( flags ) ) return; //NOTE: it has been already checked in idEntity::InteractTouchingTriggers!!
+	
+	nextInteractTime = gameLocal.time + 1;
+	InteractionAction( static_cast< idPlayer* >( activator ), flags );
+} 
+
+/*
+================
+idTrigger_Interact::InteractionAction
+================
+*/
+void idTrigger_Interact::InteractionAction( idPlayer *player, int flags ) { 
+	ActivateTargets( player );
+	CallScript();
+
+	if ( wait >= 0 ) {
+		nextInteractTime = gameLocal.time + SEC2MS( wait );
+	} else {
+		nextInteractTime = gameLocal.time + 1;
+		PostEventMS( &EV_Remove, 0 ); //remove ourselves - interact 1 time only
+	}
+}
+
+
+
+/*
+================
+idTrigger_Interact::Event_Trigger
+================
+*/
+void idTrigger_Interact::Event_Trigger( idEntity *activator ) { //when triggered (EV_Activate)
+	if ( triggerFirst ) {
+		triggerFirst = false;
+	}
+} 
+
+//ivan end
+
 /*
 ===============================================================================
 

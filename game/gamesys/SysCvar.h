@@ -119,6 +119,10 @@ extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
 
+#ifdef _PORTALSKY
+extern idCVar	g_enablePortalSky;
+#endif
+
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;
 
@@ -198,6 +202,9 @@ extern idCVar	pm_thirdPerson;
 extern idCVar	pm_thirdPersonDeath;
 extern idCVar	pm_modelView;
 extern idCVar	pm_airTics;
+////REVILITY START OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
+extern idCVar	pm_thirdPersonSideScale;
+////REVILITY END OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
 
 extern idCVar	g_showPlayerShadow;
 extern idCVar	g_showHud;
@@ -223,6 +230,15 @@ extern idCVar	g_testModelAnimate;
 extern idCVar	g_testModelBlend;
 extern idCVar	g_exportMask;
 extern idCVar	g_flushSave;
+
+//rev grab
+extern idCVar	g_moveableDamageScale;
+extern idCVar	g_grabberHoldSeconds;
+extern idCVar	g_grabberEnableShake;
+extern idCVar	g_grabberRandomMotion;
+extern idCVar	g_grabberHardStop;
+extern idCVar	g_grabberDamping;
+//rev grab
 
 extern idCVar	aas_test;
 extern idCVar	aas_showAreas;
@@ -253,5 +269,34 @@ extern idCVar	net_clientLagOMeter;
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
+
+// HDR related - J.C.Denton
+
+extern idCVar r_HDR_enable;
+extern idCVar r_HDR_postProcess;				
+extern idCVar r_HDR_middleGray;			
+extern idCVar r_HDR_brightPassThreshold;
+extern idCVar r_HDR_brightPassOffset;	
+extern idCVar r_HDR_min_luminance;	
+extern idCVar r_HDR_max_luminance;	
+extern idCVar r_HDR_colorCurveBias;
+extern idCVar r_HDR_sceneExposure;
+extern idCVar r_HDR_gammaCorrection;
+extern idCVar r_HDR_enableDebugMode;
+extern idCVar r_HDR_debugTextureIndex;
+extern idCVar r_HDR_eyeAdjustmentDelay;
+extern idCVar r_HDR_maxColorIntensity;
+extern idCVar r_HDR_bloomIntensity;
+extern idCVar r_HDR_haloIntensity;
+extern idCVar r_HDR_lumUpdateRate;
+extern idCVar r_HDR_eyeAdjustmentDelay;
+extern idCVar r_HDR_eyeAdjustmentBias;	
+extern idCVar r_HDR_eyeAdjustmentBloomBias;
+extern idCVar r_HDR_vignetteBias;
+
+//Ivan start
+extern idCVar s_music_volume;
+extern idCVar ruiner_bind_run_once;
+//Ivan end
 
 #endif /* !__SYS_CVAR_H__ */

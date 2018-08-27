@@ -57,6 +57,20 @@ extern const idEventDef AI_AnimDone;
 extern const idEventDef AI_SetBlendFrames;
 extern const idEventDef AI_GetBlendFrames;
 
+//ivan start
+extern const idEventDef AI_TriggerFX;
+extern const idEventDef AI_StartEmitter;
+extern const idEventDef AI_StopEmitter;
+
+typedef struct funcEmitter_s {
+	char				name[64];
+	idFuncEmitter*		particle;
+	jointHandle_t		joint;
+} funcEmitter_t;
+
+class idDamagingFx; 
+//ivan end
+
 class idDeclParticle;
 
 class idAnimState {
@@ -169,7 +183,15 @@ public:
 	int						GetDamageForLocation( int damage, int location );
 	const char *			GetDamageGroup( int location );
 	void					ClearPain( void );
-	virtual bool			Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
+	virtual bool			Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location, bool useHighPain, bool fromMelee );
+	virtual	void			ChoosePainAnim( int location, bool useHighPain); //ivan
+	
+	//ivan start
+	bool					checkDamageForLocation( int location );
+	void					resetCurrentDamageForLocations( void ); 
+	void					updateCurrentDamageForLocations( void );
+	void					addDamageToLocation( int damage, int location );
+	//ivan end
 
 							// model/combat model/ragdoll
 	void					SetCombatModel( void );
@@ -223,7 +245,20 @@ protected:
 	int						pain_threshold;		// how much damage monster can take at any one time before playing pain animation
 
 	idStrList				damageGroups;		// body damage groups
-	idList<float>			damageScale;		// damage scale per damage gruop
+	idList<float>			damageScale;		// damage scale per damage group
+	
+	//ivan start
+
+	idHashTable<funcEmitter_t> funcEmitters; //ivan - particles
+	bool					force_torso_override;	//ivan
+	idStrList				damageGroupsNames;	
+
+	idList<float>			highpainThreshold;		//ivan - max damage per damage group. If damage inflicted in the specified time interval is greater that this, fullbody pain anim is performed. 
+	idList<float>			highpainDecreaseRate;	//ivan - this will be subtracted each tick (60 per second) to highpainCurrentDamage
+	idList<float>			highpainCurrentDamage;	//ivan - current value per damage group.
+
+	int						nextImpulse;
+	//ivan end
 
 	bool						use_combat_bbox;	// whether to use the bounding box for combat collision
 	idEntityPtr<idAFAttachment>	head;
@@ -264,6 +299,14 @@ protected:
 
 	idList<idAttachInfo>	attachments;
 
+	//ivan start - dmgFxs
+	idList< idEntityPtr<idDamagingFx> >	dmgFxEntities;
+
+	void					StartDamageFx( int type );
+	void					StopDamageFxs( void );
+	void					CheckDamageFx( const idDict *damageDef );
+	//ivan end
+
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 
 							// removes attachments with "remove" set for when character dies
@@ -271,6 +314,14 @@ protected:
 
 							// copies animation from body to head joints
 	void					CopyJointsFromBodyToHead( void );
+
+	//ivan start - particles
+	//void					TriggerFX( const char* joint, const char* fx );
+	void					TriggerFX( const char* joint, const char* fx, bool bindToJoint, bool orientated );  
+	idEntity*				StartEmitter( const char* name, const char* joint, const char* particle );
+	idEntity*				GetEmitter( const char* name );
+	void					StopEmitter( const char* name );
+	//ivan end
 
 private:
 	void					SyncAnimChannels( int channel, int syncToChannel, int blendFrames );
@@ -318,6 +369,14 @@ private:
 	void					Event_SetState( const char *name );
 	void					Event_GetState( void );
 	void					Event_GetHead( void );
+
+	//ivan start - particles
+	//void					Event_TriggerFX( const char* joint, const char* fx );
+	void					Event_TriggerFX( const char* joint, const char* fx, int bindToJoint, int orientated );
+	void					Event_StartEmitter( const char* name, const char* joint, const char* particle );
+	void					Event_GetEmitter( const char* name );
+	void					Event_StopEmitter( const char* name );
+	//ivan end
 };
 
 #endif /* !__GAME_ACTOR_H__ */

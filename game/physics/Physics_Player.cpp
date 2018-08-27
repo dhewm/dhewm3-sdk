@@ -180,6 +180,15 @@ bool idPhysics_Player::SlideMove( bool gravity, bool stepUp, bool stepDown, bool
 	primal_velocity = current.velocity;
 
 	if ( gravity ) {
+		
+		/*
+		if( animMoveGravityMultiplier != 1.0f ){ //ivan
+		    endVelocity = current.velocity + gravityVector * frametime * animMoveGravityMultiplier; 
+		}else{ //old
+			endVelocity = current.velocity + gravityVector * frametime;
+		}
+		*/
+
 		endVelocity = current.velocity + gravityVector * frametime;
 		current.velocity = ( current.velocity + endVelocity ) * 0.5f;
 		primal_velocity = endVelocity;
@@ -1328,7 +1337,7 @@ void idPhysics_Player::MovePlayer( int msec ) {
 
 	// determine the time
 	framemsec = msec;
-	frametime = framemsec * 0.001f;
+	frametime = framemsec * 0.001f; //that is, timestep
 
 	// default speed
 	playerSpeed = walkSpeed;
@@ -1370,11 +1379,14 @@ void idPhysics_Player::MovePlayer( int msec ) {
 		return;
 	}
 
-	// no control when dead
-	if ( current.movementType == PM_DEAD ) {
-		command.forwardmove = 0;
-		command.rightmove = 0;
-		command.upmove = 0;
+	// no control when dead or anim move
+	if (( current.movementType == PM_DEAD ) 
+		|| ( current.movementType == PM_PHYSICS_ONLY )		//ivan
+		|| ( current.movementType == PM_ANIM_ALWAYS )		//ivan
+		|| ( current.movementType == PM_ANIM_GROUND ) ) {	//ivan
+			command.forwardmove = 0;
+			command.rightmove = 0;
+			command.upmove = 0;
 	}
 
 	// set watertype and waterlevel
@@ -1393,10 +1405,90 @@ void idPhysics_Player::MovePlayer( int msec ) {
 	idPhysics_Player::DropTimers();
 
 	// move
+
 	if ( current.movementType == PM_DEAD ) {
 		// dead
 		idPhysics_Player::DeadMove();
 	}
+
+	//ivan start - anim based movements
+	else if ( current.movementType == PM_ANIM_ALWAYS || ( walking && current.movementType == PM_ANIM_GROUND ) ) { 
+		
+		current.velocity = delta / frametime;
+		current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
+		
+		if ( delta != vec3_origin ) {
+			
+			/*
+			//if we are flying change the delta according to animMoveGravityMultiplier
+			if ( ( !walking ) && ( animMoveGravityMultiplier != 0) ){
+				delta += gravityVector * frametime * animMoveGravityMultiplier *0.12f; //FIX: delta is affected by gravity!
+			}
+			*/
+
+			//if we are flying change the delta according to gravity
+			if ( !walking ){
+				delta += gravityVector * frametime *0.12f; //FIX: delta is affected by gravity!
+			}
+
+			// try moving into the desired direction
+			idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
+			delta.Zero(); //job done, reset it
+		}
+		
+		//if we are flying fall down according to animMoveGravityMultiplier
+		if ( !walking ){
+			current.velocity += gravityVector * frametime;
+		}
+		/*
+		//if we are flying fall down according to animMoveGravityMultiplier
+		if ( ( !walking ) && ( animMoveGravityMultiplier != 0) ){
+			current.velocity += gravityVector * frametime * animMoveGravityMultiplier;
+		}
+		*/
+
+	
+		/* 
+		// -- old code -- don't delete this. it works well :)
+
+		float upspeed;
+		if ( gravityNormal != vec3_zero ) {
+			upspeed = -( current.velocity * gravityNormal );
+		} else {
+			upspeed = current.velocity.z;
+		}
+		//gameLocal.Printf("upspeed %f\n", upspeed);
+
+		//se non siamo a terra o la nostra velocità ci spara su -> casca secondo gravità
+		if ( (animMoveGravityMultiplier != 0) && ( !groundPlane || upspeed > 1.0f ) ) { //to do: use HasGroundContacts() instead of groundPlane?
+			//delta = current.velocity * frametime; //ignora il delta richiesto
+			//gameLocal.Printf("delta.z %f\n", delta.z);
+
+			current.velocity = delta / frametime;
+			current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
+			
+			if ( delta != vec3_origin ) {
+				delta += gravityVector * frametime * animMoveGravityMultiplier *0.15f; //FIX: delta is affected by gravity!
+
+				// try moving into the desired direction
+				idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
+				delta.Zero(); //job done, reset it
+			}
+			current.velocity += gravityVector * frametime * animMoveGravityMultiplier;
+		} else { //siamo a terra or gravità disabilitata -> fai l'animazione e basta
+			current.velocity = delta / frametime;
+			current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
+
+			if ( delta != vec3_origin ) {
+				// try moving into the desired direction
+				idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
+				delta.Zero(); //job done, reset it
+			}
+		}
+		*/
+	}
+	//ivan end - anim based movements
+
 	else if ( ladder ) {
 		// going up or down a ladder
 		idPhysics_Player::LadderMove();
@@ -1421,7 +1513,7 @@ void idPhysics_Player::MovePlayer( int msec ) {
 	// set watertype, waterlevel and groundentity
 	idPhysics_Player::SetWaterLevel();
 	idPhysics_Player::CheckGround();
-
+	
 	// move the player velocity back into the world frame
 	current.velocity += current.pushVelocity;
 	current.pushVelocity.Zero();
@@ -1520,6 +1612,11 @@ idPhysics_Player::idPhysics_Player( void ) {
 	ladderNormal.Zero();
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
+
+	blockingEntity = NULL; //ivan
+	delta.Zero(); //ivan
+	//animMoveGravityMultiplier = 1.0f; //ivan
+	//animMoveUseGravity = true; //ivan
 }
 
 /*
@@ -1589,6 +1686,11 @@ void idPhysics_Player::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteInt( (int)waterLevel );
 	savefile->WriteInt( waterType );
+
+	savefile->WriteVec3( delta ); //ivan
+	savefile->WriteObject( blockingEntity ); //ivan
+	//savefile->WriteFloat( animMoveGravityMultiplier ); //ivan
+	//savefile->WriteBool( animMoveUseGravity ); //ivan
 }
 
 /*
@@ -1626,6 +1728,11 @@ void idPhysics_Player::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( (int &)waterLevel );
 	savefile->ReadInt( waterType );
+
+	savefile->ReadVec3( delta ); //ivan
+	savefile->ReadObject( reinterpret_cast<idClass *&>( blockingEntity ) ); //ivan
+	//savefile->ReadFloat( animMoveGravityMultiplier ); //ivan
+	//savefile->ReadBool( animMoveUseGravity ); //ivan
 }
 
 /*
@@ -1714,7 +1821,9 @@ idPhysics_Player::Evaluate
 bool idPhysics_Player::Evaluate( int timeStepMSec, int endTimeMSec ) {
 	idVec3 masterOrigin, oldOrigin;
 	idMat3 masterAxis;
-
+	
+	blockingEntity = NULL; //ivan
+	
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
 	oldOrigin = current.origin;
@@ -2042,3 +2151,166 @@ void idPhysics_Player::ReadFromSnapshot( const idBitMsgDelta &msg ) {
 		clipModel->Link( gameLocal.clip, self, 0, current.origin, clipModel->GetAxis() );
 	}
 }
+
+
+/*
+****************************************************************************************
+Ivan start - functions adapted from idPhysics_Monster
+****************************************************************************************
+*/
+
+/*
+================
+idPhysics_Player::SetDelta
+================
+*/
+void idPhysics_Player::SetDelta( const idVec3 &d ) {
+	delta = d;
+}
+
+/*
+=====================
+idPhysics_Player::AnimSlideMove
+=====================
+*/
+monsterMoveResult_t idPhysics_Player::AnimSlideMove( idVec3 &start, idVec3 &velocity, const idVec3 &delta ) {
+	int i;
+	trace_t tr;
+	idVec3 move;
+
+	blockingEntity = NULL;
+	move = delta;
+	for( i = 0; i < 3; i++ ) {
+		gameLocal.clip.Translation( tr, start, start + move, clipModel, clipModel->GetAxis(), clipMask, self );
+
+		start = tr.endpos;
+
+		if ( tr.fraction == 1.0f ) {
+			if ( i > 0 ) {
+				return MM_SLIDING;
+			}
+			return MM_OK;
+		}
+
+		if ( tr.c.entityNum != ENTITYNUM_NONE ) {
+			blockingEntity = gameLocal.entities[ tr.c.entityNum ];
+		} 
+		
+		// clip the movement delta and velocity
+		move.ProjectOntoPlane( tr.c.normal, OVERCLIP );
+		velocity.ProjectOntoPlane( tr.c.normal, OVERCLIP );
+	}
+
+	return MM_BLOCKED;
+}
+
+/*
+=====================
+idPhysics_Player::AnimMove
+
+  move start into the delta direction
+  the velocity is clipped conform any collisions
+=====================
+*/
+void idPhysics_Player::AnimMove( idVec3 &start, idVec3 &velocity, const idVec3 &delta ) {
+	trace_t tr;
+	idVec3 up, down, noStepPos, noStepVel, stepPos, stepVel;
+	monsterMoveResult_t result1, result2;
+	float	stepdist;
+	float	nostepdist;
+
+	if ( delta == vec3_origin ) {
+		return; 
+	}
+
+	// try to move without stepping up
+	noStepPos = start;
+	noStepVel = velocity;
+	result1 = AnimSlideMove( noStepPos, noStepVel, delta );
+	if ( result1 == MM_OK ) {
+		velocity = noStepVel;
+		if ( gravityNormal == vec3_zero ) {
+			start = noStepPos;
+			return;
+		}
+
+		// try to step down so that we walk down slopes and stairs at a normal rate
+		down = noStepPos + gravityNormal * maxStepHeight;
+		gameLocal.clip.Translation( tr, noStepPos, down, clipModel, clipModel->GetAxis(), clipMask, self );
+		if ( tr.fraction < 1.0f ) {
+			start = tr.endpos;
+			return; 
+		} else {
+			start = noStepPos;
+			return; 
+		}
+	}
+
+	if ( blockingEntity && blockingEntity->IsType( idActor::Type ) ) {
+		// try to step down in case walking into an actor while going down steps
+		down = noStepPos + gravityNormal * maxStepHeight;
+		gameLocal.clip.Translation( tr, noStepPos, down, clipModel, clipModel->GetAxis(), clipMask, self );
+		start = tr.endpos;
+		velocity = noStepVel;
+		return; 
+	}
+
+	if ( gravityNormal == vec3_zero ) {
+		return;
+	}
+
+	// try to step up
+	up = start - gravityNormal * maxStepHeight;
+	gameLocal.clip.Translation( tr, start, up, clipModel, clipModel->GetAxis(), clipMask, self );
+	if ( tr.fraction == 0.0f ) {
+		start = noStepPos;
+		velocity = noStepVel;
+		return; 
+	}
+
+	// try to move at the stepped up position
+	stepPos = tr.endpos;
+	stepVel = velocity;
+	result2 = AnimSlideMove( stepPos, stepVel, delta );
+	if ( result2 == MM_BLOCKED ) {
+		start = noStepPos;
+		velocity = noStepVel;
+		return; 
+	}
+
+	// step down again
+	down = stepPos + gravityNormal * maxStepHeight;
+	gameLocal.clip.Translation( tr, stepPos, down, clipModel, clipModel->GetAxis(), clipMask, self );
+	stepPos = tr.endpos;
+
+	// if the move is further without stepping up, or the slope is too steap, don't step up
+	nostepdist = ( noStepPos - start ).LengthSqr();
+	stepdist = ( stepPos - start ).LengthSqr();
+	if ( ( nostepdist >= stepdist ) || ( ( tr.c.normal * -gravityNormal ) < 0.7f  ) ) { //0.7f was minFloorCosine
+		start = noStepPos;
+		velocity = noStepVel;
+		return; 
+	}
+
+	start = stepPos;
+	velocity = stepVel;
+
+	return; 
+}
+
+
+/*
+================
+idPhysics_Player::ForceGravityForAnimMove
+================
+
+void idPhysics_Player::SetGravityInAnimMove( float mult ) {
+	animMoveGravityMultiplier = mult;
+}
+*/
+
+/*
+****************************************************************************************
+Ivan end
+****************************************************************************************
+*/

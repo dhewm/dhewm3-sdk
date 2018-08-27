@@ -89,7 +89,7 @@ public:
 	void				Save( idSaveGame *savefile ) const;
 	void				Restore( idRestoreGame *savefile );
 
-private:
+protected: //ivan - was private: 
 	float				wait;
 	float				random;
 	float				delay;
@@ -103,12 +103,48 @@ private:
 	bool				triggerWithSelf;
 
 	bool				CheckFacing( idEntity *activator );
-	void				TriggerAction( idEntity *activator );
+	virtual void		TriggerAction( idEntity *activator ); //ivan - virtual added
 	void				Event_TriggerAction( idEntity *activator );
 	void				Event_Trigger( idEntity *activator );
 	void				Event_Touch( idEntity *other, trace_t *trace );
 };
 
+//ivan start
+
+/*
+===============================================================================
+
+  idTrigger_Interact
+
+===============================================================================
+*/
+//const int MAX_TRIGINT_MODES = 2;
+
+class idTrigger_Interact : public idTrigger {
+public:
+	CLASS_PROTOTYPE( idTrigger_Interact );
+						
+						idTrigger_Interact( void );
+
+	void				Spawn( void );
+	virtual bool		CanInteract( int flags ) const;
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+protected:
+	float				wait;
+	int					nextInteractTime; 
+	int					interactFlags;
+	bool				triggerFirst; 
+	
+	virtual void		InteractionAction( idPlayer *player, int flags );
+	void				Event_Trigger( idEntity *activator );
+	void				Event_Interact( idEntity *activator, int flags ); 	
+	void				Event_Touch( idEntity *other, trace_t *trace );
+};
+
+//ivan end
 
 /*
 ===============================================================================

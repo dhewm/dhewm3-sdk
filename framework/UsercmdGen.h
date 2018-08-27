@@ -46,8 +46,8 @@ const int BUTTON_RUN			= BIT(1);
 const int BUTTON_ZOOM			= BIT(2);
 const int BUTTON_SCORES			= BIT(3);
 const int BUTTON_MLOOK			= BIT(4);
-const int BUTTON_5				= BIT(5);
-const int BUTTON_6				= BIT(6);
+const int BUTTON_5				= BIT(5);	//sec attack
+const int BUTTON_6				= BIT(6);	//combo menu
 const int BUTTON_7				= BIT(7);
 
 // usercmd_t->impulse commands
@@ -81,7 +81,7 @@ const int IMPULSE_26			= 26;			// <unused>
 const int IMPULSE_27			= 27;			// <unused>
 const int IMPULSE_28			= 28;			// vote yes
 const int IMPULSE_29			= 29;			// vote no
-const int IMPULSE_40			= 40;			// use vehicle
+const int IMPULSE_40			= 40;			// interact //was: use vehicle
 
 // usercmd_t->flags
 const int UCF_IMPULSE_SEQUENCE	= 0x0001;		// toggled every time an impulse command is sent

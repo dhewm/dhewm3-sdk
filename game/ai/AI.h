@@ -149,6 +149,9 @@ extern const idEventDef AI_MuzzleFlash;
 extern const idEventDef AI_CreateMissile;
 extern const idEventDef AI_AttackMissile;
 extern const idEventDef AI_FireMissileAtTarget;
+//ivan start
+extern const idEventDef AI_LaunchProjectile;
+//ivan end
 extern const idEventDef AI_AttackMelee;
 extern const idEventDef AI_DirectDamage;
 extern const idEventDef AI_JumpFrame;
@@ -158,6 +161,11 @@ extern const idEventDef AI_EnableGravity;
 extern const idEventDef AI_DisableGravity;
 extern const idEventDef AI_TriggerParticles;
 extern const idEventDef AI_RandomPath;
+//ivan - added so that idAI_bot can redefine them
+extern const idEventDef AI_CanHitEnemyFromAnim;
+extern const idEventDef AI_LaunchMissile;
+extern const idEventDef AI_CanHitEnemyFromJoint;
+extern const idEventDef AI_Burn;
 
 class idPathCorner;
 
@@ -248,7 +256,7 @@ public:
 	CLASS_PROTOTYPE( idAI );
 
 							idAI();
-							~idAI();
+	virtual					~idAI(); //ivan - virtual added
 
 	void					Save( idSaveGame *savefile ) const;
 	void					Restore( idRestoreGame *savefile );
@@ -259,7 +267,7 @@ public:
 	void					TalkTo( idActor *actor );
 	talkState_t				GetTalkState( void ) const;
 
-	bool					GetAimDir( const idVec3 &firePos, idEntity *aimAtEnt, const idEntity *ignore, idVec3 &aimDir ) const;
+	virtual bool			GetAimDir( const idVec3 &firePos, idEntity *aimAtEnt, const idEntity *ignore, idVec3 &aimDir ) const; //ivan - virtual added
 
 	void					TouchedByFlashlight( idActor *flashlight_owner );
 
@@ -398,6 +406,7 @@ protected:
 	idVec3					lastVisibleReachableEnemyPos;
 	idVec3					lastReachableEnemyPos;
 	bool					wakeOnFlashlight;
+	bool					highPainAlreadyChosen; //ivan
 
 	// script variables
 	idScriptBool			AI_TALK;
@@ -419,6 +428,9 @@ protected:
 	idScriptBool			AI_DEST_UNREACHABLE;
 	idScriptBool			AI_HIT_ENEMY;
 	idScriptBool			AI_PUSHED;
+	idScriptBool			AI_MELEEPAIN; //ivan
+	idScriptBool			AI_COMBOPAIN; //ivan
+	idScriptBool			AI_HIGHPAIN; //ivan
 
 	//
 	// ai/ai.cpp
@@ -437,7 +449,7 @@ protected:
 	virtual void			Hide( void );
 	virtual void			Show( void );
 	idVec3					FirstVisiblePointOnPath( const idVec3 origin, const idVec3 &target, int travelFlags ) const;
-	void					CalculateAttackOffsets( void );
+	virtual void			CalculateAttackOffsets( void ); //ivan - virtual added
 	void					PlayCinematic( void );
 
 	// movement
@@ -457,7 +469,7 @@ protected:
 	void					StaticMove( void );
 
 	// damage
-	virtual bool			Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
+	virtual bool			Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location, bool useHighPain, bool fromMelee);
 	virtual void			Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
 
 	// navigation
@@ -503,15 +515,15 @@ protected:
 	// enemy management
 	void					ClearEnemy( void );
 	bool					EnemyPositionValid( void ) const;
-	void					SetEnemyPosition( void );
+	virtual void			SetEnemyPosition( void ); //ivan - virtual added
 	void					UpdateEnemyPosition( void );
 	void					SetEnemy( idActor *newEnemy );
 
 	// attacks
-	void					CreateProjectileClipModel( void ) const;
-	idProjectile			*CreateProjectile( const idVec3 &pos, const idVec3 &dir );
+	virtual void			CreateProjectileClipModel( void ) const; //ivan - virtual added
+	virtual idProjectile	*CreateProjectile( const idVec3 &pos, const idVec3 &dir ); //ivan - virtual added
 	void					RemoveProjectile( void );
-	idProjectile			*LaunchProjectile( const char *jointname, idEntity *target, bool clampToAttackCone );
+	virtual idProjectile	*LaunchProjectile( const char *jointname, idEntity *target, bool clampToAttackCone ); //ivan - virtual added
 	virtual void			DamageFeedback( idEntity *victim, idEntity *inflictor, int &damage );
 	void					DirectDamage( const char *meleeDefName, idEntity *ent );
 	bool					TestMelee( void ) const;
@@ -521,10 +533,10 @@ protected:
 	void					PushWithAF( void );
 
 	// special effects
-	void					GetMuzzle( const char *jointname, idVec3 &muzzle, idMat3 &axis );
-	void					InitMuzzleFlash( void );
-	void					TriggerWeaponEffects( const idVec3 &muzzle );
-	void					UpdateMuzzleFlash( void );
+	virtual void			GetMuzzle( const char *jointname, idVec3 &muzzle, idMat3 &axis ); //ivan - virtual added
+	virtual	void			InitMuzzleFlash( void ); //ivan - virtual added
+	virtual void			TriggerWeaponEffects( const idVec3 &muzzle ); //ivan - virtual added
+	virtual	void			UpdateMuzzleFlash( void ); //ivan - virtual added
 	virtual bool			UpdateAnimationControllers( void );
 	void					UpdateParticles( void );
 	void					TriggerParticles( const char *jointName );
@@ -550,6 +562,7 @@ protected:
 	void					Event_AttackMissile( const char *jointname );
 	void					Event_FireMissileAtTarget( const char *jointname, const char *targetname );
 	void					Event_LaunchMissile( const idVec3 &muzzle, const idAngles &ang );
+	void					Event_LaunchProjectile( const char *entityDefName ); //ivan
 	void					Event_AttackMelee( const char *meleeDefName );
 	void					Event_DirectDamage( idEntity *damageTarget, const char *damageDefName );
 	void					Event_RadiusDamageFromJoint( const char *jointname, const char *damageDefName );
@@ -664,6 +677,10 @@ protected:
 	void					Event_CanReachEntity( idEntity *ent );
 	void					Event_CanReachEnemy( void );
 	void					Event_GetReachableEntityPosition( idEntity *ent );
+	//ivan start - from d3xp
+	void					Event_MoveToPositionDirect( const idVec3 &pos );
+	void					Event_AvoidObstacles( int ignore);
+	//ivan end
 };
 
 class idCombatNode : public idEntity {

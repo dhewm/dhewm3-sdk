@@ -384,6 +384,8 @@ idAI::idAI() {
 	eyeFocusRate		= 0.0f;
 	headFocusRate		= 0.0f;
 	focusAlignTime		= 0;
+
+	highPainAlreadyChosen = false; //ivan
 }
 
 /*
@@ -513,6 +515,8 @@ void idAI::Save( idSaveGame *savefile ) const {
 	savefile->WriteVec3( lastVisibleReachableEnemyPos );
 	savefile->WriteVec3( lastReachableEnemyPos );
 	savefile->WriteBool( wakeOnFlashlight );
+
+	savefile->WriteBool( highPainAlreadyChosen ); 
 
 	savefile->WriteAngles( eyeMin );
 	savefile->WriteAngles( eyeMax );
@@ -659,9 +663,10 @@ void idAI::Restore( idRestoreGame *savefile ) {
 	savefile->ReadVec3( lastVisibleEnemyEyeOffset );
 	savefile->ReadVec3( lastVisibleReachableEnemyPos );
 	savefile->ReadVec3( lastReachableEnemyPos );
-
 	savefile->ReadBool( wakeOnFlashlight );
 
+	savefile->ReadBool( highPainAlreadyChosen );
+	
 	savefile->ReadAngles( eyeMin );
 	savefile->ReadAngles( eyeMax );
 
@@ -1063,6 +1068,8 @@ void idAI::Think( void ) {
 			}
 		}
 
+		updateCurrentDamageForLocations(); //ivan - lower current damage value per location as time goes by...
+
 		current_yaw += deltaViewAngles.yaw;
 		ideal_yaw = idMath::AngleNormalize180( ideal_yaw + deltaViewAngles.yaw );
 		deltaViewAngles.Zero();
@@ -1129,6 +1136,7 @@ void idAI::Think( void ) {
 		AI_PAIN = false;
 		AI_SPECIAL_DAMAGE = 0;
 		AI_PUSHED = false;
+		highPainAlreadyChosen = 0; //ivan - reset this every tick
 	} else if ( thinkFlags & TH_PHYSICS ) {
 		RunPhysics();
 	}
@@ -1185,6 +1193,9 @@ void idAI::LinkScriptVariables( void ) {
 	AI_HIT_ENEMY.LinkTo(		scriptObject, "AI_HIT_ENEMY" );
 	AI_OBSTACLE_IN_PATH.LinkTo(	scriptObject, "AI_OBSTACLE_IN_PATH" );
 	AI_PUSHED.LinkTo(			scriptObject, "AI_PUSHED" );
+	AI_MELEEPAIN.LinkTo(		scriptObject, "AI_MELEEPAIN" );
+	AI_COMBOPAIN.LinkTo(		scriptObject, "AI_COMBOPAIN" );
+	AI_HIGHPAIN.LinkTo(		scriptObject, "AI_HIGHPAIN" );
 }
 
 /*
@@ -2502,9 +2513,26 @@ void idAI::ApplyImpulse( idEntity *ent, int id, const idVec3 &point, const idVec
 	// FIXME: Jim take a look at this and see if this is a reasonable thing to do
 	// instead of a spawnArg flag.. Sabaoth is the only slide monster ( and should be the only one for D3 )
 	// and we don't want him taking physics impulses as it can knock him off the path
+
+	//ivan start
+	if( nextImpulse > gameLocal.time ){
+		//gameLocal.Printf("idAI::ApplyImpulse - ignored\n");
+		return;
+	}
+	/*
+	else{
+		gameLocal.Printf("idAI::ApplyImpulse - ok\n");
+		nextImpulse = gameLocal.time + 10;
+	}
+	*/
+	//ivan end
+
 	if ( move.moveType != MOVETYPE_STATIC && move.moveType != MOVETYPE_SLIDE ) {
 		idActor::ApplyImpulse( ent, id, point, impulse );
 	}
+
+	
+	
 }
 
 /*
@@ -3203,11 +3231,46 @@ int idAI::ReactionTo( const idEntity *ent ) {
 idAI::Pain
 =====================
 */
-bool idAI::Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location ) {
+bool idAI::Pain( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location, bool useHighPain, bool fromMelee ) { //ivan - forceHighPain and fromMelee added
 	idActor	*actor;
 
-	AI_PAIN = idActor::Pain( inflictor, attacker, damage, dir, location );
+	//ivan start - once AI_PAIN is true, idActor::Pain will be not called again this tick 
+	if(!AI_PAIN){ //if not yet successfully evaluated once this tick...
+		AI_PAIN = idActor::Pain( inflictor, attacker, damage, dir, location, useHighPain, fromMelee );
+		if(useHighPain){
+			AI_HIGHPAIN = (AI_PAIN != 0); //if ok...
+			highPainAlreadyChosen = (AI_PAIN != 0); //if ok...
+		}else{
+			AI_HIGHPAIN = false;
+		}
+	} 
+	else if(!highPainAlreadyChosen && useHighPain){ //AI_PAIN is already true, but we have to choose a better anim (highpain)!
+		idActor::ChoosePainAnim(location, useHighPain);
+		AI_HIGHPAIN = true; //this will not be reset
+		highPainAlreadyChosen = true; //this will be reset every tick
+	}
+	//ivan end 
+
 	AI_DAMAGE = true;
+
+	//ivan start - check if we were hit by a combo or melee.
+	if(AI_PAIN){
+		AI_MELEEPAIN = fromMelee;
+		
+		AI_COMBOPAIN = false;
+		if ( attacker->IsType( idPlayer::Type ) ) {
+			idPlayer * thePlayer = static_cast<idPlayer *>(attacker); 
+			if ( thePlayer->IsComboActive() ) { //that is, we are performing a combo
+				AI_COMBOPAIN = true;
+			}
+		}
+
+	}else{  //false if no pain is performed
+		AI_MELEEPAIN = false;
+		AI_COMBOPAIN = false; 
+		AI_HIGHPAIN = false;
+	}
+	//ivan end
 
 	// force a blink
 	blink_time = 0;
@@ -3336,7 +3399,7 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	}
 
 	disableGravity = false;
-	move.moveType = MOVETYPE_DEAD;
+	//move.moveType = MOVETYPE_DEAD;
 	af_push_moveables = false;
 
 	physicsObj.UseFlyMove( false );
@@ -3348,9 +3411,13 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	if ( attacker && attacker->IsType( idActor::Type ) ) {
 		gameLocal.AlertAI( ( idActor * )attacker );
 	}
-
-	// activate targets
-	ActivateTargets( attacker );
+     
+	//Ivan start - activate targets only if not already turned into friend
+	//was: ActivateTargets( attacker );
+	if ( !spawnArgs.GetBool( "eviled", "0" ) ) {
+        	ActivateTargets( attacker );
+    }
+	//Ivan end
 
 	RemoveAttachments();
 	RemoveProjectile();
@@ -3359,15 +3426,21 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	ClearEnemy();
 	AI_DEAD	= true;
 
-	// make monster nonsolid
-	physicsObj.SetContents( 0 );
-	physicsObj.GetClipModel()->Unlink();
+	if ( !spawnArgs.GetBool( "staticDeath", "0" ) ) { //ivan 
+			move.moveType = MOVETYPE_DEAD; //ivan 	
 
-	Unbind();
+			// make monster nonsolid
+			physicsObj.SetContents( 0 );
+			physicsObj.GetClipModel()->Unlink();
 
-	if ( StartRagdoll() ) {
-		StartSound( "snd_death", SND_CHANNEL_VOICE, 0, false, NULL );
+			Unbind();
+
+			if ( StartRagdoll() ) {
+				StartSound( "snd_death", SND_CHANNEL_VOICE, 0, false, NULL );
+			}
 	}
+
+	//physicsObj.SetLinearVelocity( vec3_zero ); //ivan - test only
 
 	if ( spawnArgs.GetString( "model_death", "", &modelDeath ) ) {
 		// lost soul is only case that does not use a ragdoll and has a model_death so get the death sound in here
@@ -4391,7 +4464,7 @@ bool idAI::AttackMelee( const char *meleeDefName ) {
 	idVec3	globalKickDir;
 	globalKickDir = ( viewAxis * physicsObj.GetGravityAxis() ) * kickDir;
 
-	enemyEnt->Damage( this, this, globalKickDir, meleeDefName, 1.0f, INVALID_JOINT );
+	enemyEnt->Damage( this, this, globalKickDir, meleeDefName, 1.0f, INVALID_JOINT); 
 
 	lastAttackTime = gameLocal.time;
 
@@ -4691,6 +4764,8 @@ void idAI::TriggerParticles( const char *jointName ) {
 		}
 	}
 }
+
+
 
 
 /***********************************************************************

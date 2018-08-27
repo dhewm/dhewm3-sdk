@@ -74,13 +74,21 @@ class idCamera;
 class idWorldspawn;
 class idTestModel;
 class idSmokeParticles;
+class idTrailManager; //ivan
 class idEntityFx;
 class idTypeInfo;
 class idThread;
 class idEditEntities;
 class idLocationEntity;
 
+#ifdef _DENTONMOD
 //============================================================================
+// Adding header here for global use of source hook. - JC Denton
+//============================================================================
+#include "../sourcehook/sourcehook.h"
+//============================================================================
+#endif
+
 extern const int NUM_RENDER_PORTAL_BITS;
 
 void gameError( const char *fmt, ... );
@@ -261,6 +269,7 @@ public:
 
 	idSmokeParticles *		smokeParticles;			// global smoke trails
 	idEditEntities *		editEntities;			// in game editing
+	idTrailManager *		trailsManager;			// global trails
 
 	int						cinematicSkipTime;		// don't allow skipping cinemetics until this time has passed so player doesn't skip out accidently from a firefight
 	int						cinematicStopTime;		// cinematics have several camera changes, so keep track of when we stop them so that we don't reset cinematicSkipTime unnecessarily
@@ -294,6 +303,13 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+#ifdef _PORTALSKY
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyAcive();
+#endif
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -386,6 +402,10 @@ public:
 
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
+
+#ifdef _PORTALSKY
+	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
+#endif
 
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;

@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
-set(BASE_NAME	"base" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
-set(BASE_DEFS	"GAME_DLL" CACHE STRING "Compiler definitions for the mod built from game/")
+set(BASE_NAME	"ruiner" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
+# TODO: what about TRAIL_FX_CHAIN;TEST_TRAIL ?
+set(BASE_DEFS	"GAME_DLL;NDEBUG;_DENTONMOD;_PORTALSKY;_HDR" CACHE STRING "Compiler definitions for the mod built from game/")
 
-option(D3XP		"Build the d3xp/ game code" ON)
+option(D3XP		"Build the d3xp/ game code" OFF)
 set(D3XP_NAME	"d3xp" CACHE STRING "Name of the mod built from d3xp/ (will result in \${D3XP_NAME}.dll)")
 set(D3XP_DEFS	"GAME_DLL;_D3XP;CTF" CACHE STRING "Compiler definitions for the mod built from d3xp/")
 
@@ -15,6 +16,13 @@ set(src_game_mod
 	# add additional .cpp files of your mod in game/
 	# (that you added to the ones already existant in the SDK/in dhewm3)
 	# like "game/MyFile.cpp" (without quotes, one file per line)
+	game/ai/AI_bot.cpp
+	game/Grabber.cpp
+	game/physics/Force_Grab.cpp
+	game/PlayerCursor.cpp
+	game/tracer.cpp
+	game/TrailGenerator.cpp
+	sourcehook/sourcehook.cpp
 )
 
 set(src_d3xp_mod

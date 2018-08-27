@@ -608,7 +608,6 @@ idMover::DoneMoving
 ================
 */
 void idMover::DoneMoving( void ) {
-
 	if ( lastCommand != MOVER_SPLINE ) {
 		// set our final position so that we get rid of any numerical inaccuracy
 		physicsObj.SetLinearExtrapolation( EXTRAPOLATION_NONE, 0, 0, dest_position, vec3_origin, vec3_origin );
@@ -1535,6 +1534,243 @@ void idMover::SetPortalState( bool open ) {
 	gameLocal.SetPortalState( areaPortal, open ? PS_BLOCK_NONE : PS_BLOCK_ALL );
 }
 
+//ivan start
+/*
+===============================================================================
+
+idPathMover
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idMover, idPathMover )
+	EVENT( EV_PostSpawn,		idPathMover::Event_PostSpawn )
+	EVENT( EV_Activate,			idPathMover::Event_Trigger )
+END_CLASS
+
+/*
+================
+idPathMover::idPathMover
+================
+*/
+idPathMover::idPathMover( void ) {
+	currentTarget = NULL;
+	restoreSettings = false;
+	toggleEachTrigger = false;
+	startOnNextTrigger = false;
+}
+
+/*
+================
+idPathMover::Save
+================
+*/
+void idPathMover::Save( idSaveGame *savefile ) const {
+	currentTarget.Save( savefile );
+	savefile->WriteBool( restoreSettings ); 
+	savefile->WriteBool( toggleEachTrigger ); 
+	savefile->WriteBool( startOnNextTrigger );
+}
+
+/*
+================
+idPathMover::Restore
+================
+*/
+void idPathMover::Restore( idRestoreGame *savefile ) {
+	currentTarget.Restore( savefile );
+	savefile->ReadBool( restoreSettings ); 
+	savefile->ReadBool( toggleEachTrigger ); 
+	savefile->ReadBool( startOnNextTrigger ); 
+}
+
+/*
+================
+idPathMover::Spawn
+================
+*/
+void idPathMover::Spawn( void ) {
+	//check targets start
+	toggleEachTrigger = spawnArgs.GetBool( "toggle", "0" );
+	startOnNextTrigger = spawnArgs.GetBool( "start_off", "1" );
+
+	if ( spawnArgs.MatchPrefix( "target" ) ) {
+		if ( !startOnNextTrigger ){
+			if ( gameLocal.GameState() == GAMESTATE_STARTUP ) {
+				PostEventMS( &EV_PostSpawn, 0 );
+			} else {
+				// not during startup, so it's ok to get the targets
+				StartPath();
+			}
+		}
+	} else { //no targets!
+		gameLocal.Warning("%s has no targets!", GetName() );
+	}
+	//check targets end
+}
+
+/*
+===============
+idPathMover::Event_PostSpawn
+===============
+*/
+void idPathMover::Event_PostSpawn( void ) {
+	StartPath();
+}
+
+/*
+===============
+idPathMover::StartPath
+===============
+*/
+void idPathMover::StartPath( void ) {
+	int i;
+	idEntity *firstTarget = NULL;
+
+	for ( i = 0; i < targets.Num(); i++ ) {
+		firstTarget = targets[ i ].GetEntity();
+		if(firstTarget) break;
+	}
+
+	if( !firstTarget ){
+		gameLocal.Warning("%s has no targets!", GetName() );
+		return;
+	}
+
+	MoveToTarget( firstTarget );
+}
+
+/*
+================
+idPathMover::MoveToTarget
+================
+*/
+void idPathMover::MoveToTarget( idEntity *nextTarget ){
+	int		target_acceltime;
+	int		target_deceltime;
+	int		target_move_time;
+	float	target_move_speed;
+	bool	somethingChanged = false;
+
+	//upd settings if needed
+	restoreSettings		= nextTarget->spawnArgs.GetBool( "restoreSettings", "1" );
+	target_acceltime	= 1000.0f * nextTarget->spawnArgs.GetFloat( "accel_time", "-1" );
+	target_deceltime	= 1000.0f * nextTarget->spawnArgs.GetFloat( "decel_time", "-1" );
+	target_move_time	= 1000.0f * nextTarget->spawnArgs.GetFloat( "move_time", "-1" );
+	target_move_speed	= nextTarget->spawnArgs.GetFloat( "move_speed", "-1" );
+
+	if( target_acceltime > 0 ){	
+		acceltime = target_acceltime; 
+		somethingChanged = true; 
+	}
+	if( target_deceltime > 0 ){	
+		deceltime = target_deceltime; 
+		somethingChanged = true; 
+	}
+	if( target_move_time > 0 ){	
+		move_time = target_move_time; 
+		somethingChanged = true; 
+	}
+	if( target_move_speed > 0 ){ 
+		move_speed = target_move_speed; 
+		somethingChanged = true; 
+	}
+
+	if( !somethingChanged ){ restoreSettings = false; }
+
+	//go!
+	currentTarget = nextTarget;
+	MoveToPos( nextTarget->GetPhysics()->GetOrigin() );
+}
+
+/*
+================
+idPathMover::SuspendPath
+================
+*/
+void idPathMover::SuspendPath( void ){
+	physicsObj.GetLocalOrigin( dest_position );
+	idMover::DoneMoving(); //NOTE: don't call our one: it would skip to the next target and change settings!
+}
+
+/*
+================
+idPathMover::Event_Trigger
+================
+*/
+void idPathMover::Event_Trigger( idEntity *activator ) {
+	
+	//start the first time
+	if( startOnNextTrigger ){
+		startOnNextTrigger = false;
+		StartPath();
+		return;
+	}
+	
+	//toggle
+	if ( !toggleEachTrigger ) {
+		return;
+	}
+	if ( lastCommand != MOVER_NONE ) { //it is doing something
+		//stop
+		SuspendPath(); 
+	}else{
+		//resume
+		if( currentTarget.GetEntity() ){
+			MoveToTarget( currentTarget.GetEntity() );	
+		}else{
+			StartPath();
+		}
+	}
+}
+
+
+/*
+================
+idPathMover::DoneMoving
+================
+*/
+void idPathMover::DoneMoving( void ) {	
+	idEntity * nextTarget = NULL;
+	idEntity * currentTarget_temp;
+	int i;
+
+	idMover::DoneMoving();
+
+	//clear current
+	currentTarget_temp = currentTarget.GetEntity();
+	//currentTarget = NULL; //don't clear it so we can resume!
+
+	//restore settings if needed
+	if(restoreSettings){
+		acceltime		= 1000.0f * spawnArgs.GetFloat( "accel_time", "0" );
+		deceltime		= 1000.0f * spawnArgs.GetFloat( "decel_time", "0" );
+		move_time		= 1000.0f * spawnArgs.GetFloat( "move_time", "1" );	// safe default value
+		move_speed		= spawnArgs.GetFloat( "move_speed", "0" );
+	}
+
+	//search next
+	if(!currentTarget_temp){
+		gameLocal.Warning("%s stopped its path: did someone removed the current target?", GetName() );	
+		return;
+	}
+
+	for ( i = 0; i < currentTarget_temp->targets.Num(); i++ ) {
+		nextTarget = currentTarget_temp->targets[ i ].GetEntity();
+		if(nextTarget) break;
+	}
+
+	if(!nextTarget){
+		//gameLocal.Warning("%s stopped its path: no target next.", GetName() );	
+		return;
+	}
+
+	MoveToTarget( nextTarget );
+}
+
+
+//ivan end
+
 /*
 ===============================================================================
 
@@ -2072,6 +2308,7 @@ Pos1 is "at rest", pos2 is "activated"
 */
 
 const idEventDef EV_Mover_ReturnToPos1( "<returntopos1>", NULL );
+const idEventDef EV_Mover_UseToReturnToPos1( "<useToReturnToPos1>", NULL );  //ivan
 const idEventDef EV_Mover_MatchTeam( "<matchteam>", "dd" );
 const idEventDef EV_Mover_Enable( "enable", NULL );
 const idEventDef EV_Mover_Disable( "disable", NULL );
@@ -2080,6 +2317,7 @@ CLASS_DECLARATION( idEntity, idMover_Binary )
 	EVENT( EV_FindGuiTargets,			idMover_Binary::Event_FindGuiTargets )
 	EVENT( EV_Thread_SetCallback,		idMover_Binary::Event_SetCallback )
 	EVENT( EV_Mover_ReturnToPos1,		idMover_Binary::Event_ReturnToPos1 )
+	EVENT( EV_Mover_UseToReturnToPos1,	idMover_Binary::Event_UseToReturnToPos1 )//ivan
 	EVENT( EV_Activate,					idMover_Binary::Event_Use_BinaryMover )
 	EVENT( EV_ReachedPos,				idMover_Binary::Event_Reached_BinaryMover )
 	EVENT( EV_Mover_MatchTeam,			idMover_Binary::Event_MatchActivateTeam )
@@ -2604,7 +2842,6 @@ idMover_Binary::Event_Reached_BinaryMover
 ================
 */
 void idMover_Binary::Event_Reached_BinaryMover( void ) {
-
 	if ( moverState == MOVER_1TO2 ) {
 		// reached pos2
 		idThread::ObjectMoveDone( move_thread, this );
@@ -2620,9 +2857,12 @@ void idMover_Binary::Event_Reached_BinaryMover( void ) {
 
 		UpdateBuddies( 1 );
 
-		if ( enabled && wait >= 0 && !spawnArgs.GetBool( "toggle" ) ) {
-			// return to pos1 after a delay
-			PostEventSec( &EV_Mover_ReturnToPos1, wait );
+		
+		if( spawnArgs.GetBool( "comeBack", "1" ) ){ //ivan - if true the entity comes back
+			if ( enabled && wait >= 0 && !spawnArgs.GetBool( "toggle" ) ) {
+				// return to pos1 after a delay
+				PostEventSec( &EV_Mover_ReturnToPos1, wait );
+			}
 		}
 
 		// fire targets
@@ -2819,14 +3059,13 @@ void idMover_Binary::Use_BinaryMover( idEntity *activator ) {
 
 	// if all the way up, just delay before coming down
 	if ( moverState == MOVER_POS2 ) {
-		idMover_Binary *slave;
-
 		if ( wait == -1 ) {
 			return;
 		}
 
 		SetGuiStates( guiBinaryMoverStates[MOVER_2TO1] );
 
+		idMover_Binary *slave;
 		for ( slave = this; slave != NULL; slave = slave->activateChain ) {
 			slave->CancelEvents( &EV_Mover_ReturnToPos1 );
 			slave->PostEventSec( &EV_Mover_ReturnToPos1, spawnArgs.GetBool( "toggle" ) ? 0 : wait );
@@ -2846,6 +3085,39 @@ void idMover_Binary::Use_BinaryMover( idEntity *activator ) {
 		return;
 	}
 }
+
+//ivan start
+
+
+/*
+================
+idMover_Binary::Event_UseToReturnToPos1
+================
+*/
+void idMover_Binary::Event_UseToReturnToPos1( void ) {
+	if( moverState == MOVER_POS2 || moverState == MOVER_1TO2 ){
+		Use_BinaryMover(this);
+	}
+}
+
+/*
+================
+idMover_Binary::DelayReturnToPos1
+================
+*/
+void idMover_Binary::DelayReturnToPos1( int delay ) {
+	if ( moveMaster != this ) {
+		moveMaster->DelayReturnToPos1( delay );
+		return;
+	}
+
+	idMover_Binary *slave;
+	for ( slave = this; slave != NULL; slave = slave->activateChain ) {
+		slave->CancelEvents( &EV_Mover_UseToReturnToPos1 ); 
+		slave->PostEventMS( &EV_Mover_UseToReturnToPos1, delay );
+	}
+}
+//ivan end
 
 /*
 ================
@@ -3998,11 +4270,11 @@ idPlat
 
 ===============================================================================
 */
-
 CLASS_DECLARATION( idMover_Binary, idPlat )
 	EVENT( EV_Touch,			idPlat::Event_Touch )
 	EVENT( EV_TeamBlocked,		idPlat::Event_TeamBlocked )
 	EVENT( EV_PartBlocked,		idPlat::Event_PartBlocked )
+	EVENT( EV_PostSpawn,		idPlat::Event_PostSpawn ) //ivan
 END_CLASS
 
 /*
@@ -4049,12 +4321,59 @@ void idPlat::Restore( idRestoreGame *savefile ) {
 	savefile->ReadMat3( localTriggerAxis );
 }
 
+//ivan start
+/*
+===============
+idPlat::GetTargetPos
+===============
+*/
+bool idPlat::GetTargetPos( idVec3 &pos ) {
+	int i;
+	idEntity *firstTarget = NULL;
+
+	for ( i = 0; i < targets.Num(); i++ ) {
+		firstTarget = targets[ i ].GetEntity();
+		if(firstTarget) break;
+	}
+
+	if( !firstTarget ){
+		gameLocal.Warning("%s has no targets!", GetName() );
+		return false;
+	}
+
+	pos = firstTarget->GetPhysics()->GetOrigin();
+	return true;
+}
+
+/*
+===============
+idPlat::Event_PostSpawn
+===============
+*/
+void idPlat::Event_PostSpawn( void ){
+	Setup();
+}
+
 /*
 ===============
 idPlat::Spawn
 ===============
 */
 void idPlat::Spawn( void ) {
+	if ( spawnArgs.GetBool( "use_target", "0" ) && ( gameLocal.GameState() == GAMESTATE_STARTUP ) ) {
+		PostEventMS( &EV_PostSpawn, 0 );
+	} else {
+		// not during startup, so it's ok to get the targets
+		Setup();
+	}
+}
+
+/*
+===============
+idPlat::Setup
+===============
+*/
+void idPlat::Setup( void ) {
 	float	lip;
 	float	height;
 	float	time;
@@ -4077,10 +4396,18 @@ void idPlat::Spawn( void ) {
 
 	spawnArgs.GetBool( "no_touch", "0", noTouch );
 
-	// pos1 is the rest (bottom) position, pos2 is the top
-	pos2 = GetPhysics()->GetOrigin();
-	pos1 = pos2;
-	pos1[2] -= height;
+	//ivan start - use a target to define the top pos 
+
+	if( spawnArgs.GetBool( "use_target", "0" ) && GetTargetPos( pos2 ) ){
+		// pos1 is the rest (bottom) position, pos2 is the top
+		pos1 = GetPhysics()->GetOrigin();
+	}else{ //old
+		// pos1 is the rest (bottom) position, pos2 is the top
+		pos2 = GetPhysics()->GetOrigin();
+		pos1 = pos2;
+		pos1[2] -= height;
+	} //ivan end
+	
 
 	if ( spawnArgs.GetFloat( "time", "1", time ) ) {
 		InitTime( pos1, pos2, time, accel, decel );
@@ -4097,6 +4424,7 @@ void idPlat::Spawn( void ) {
 		SpawnPlatTrigger( pos1 );
 	}
 }
+//ivan end
 
 /*
 ================
@@ -4229,6 +4557,63 @@ void idPlat::Event_PartBlocked( idEntity *blockingEntity ) {
 	}
 }
 
+
+//ivan start
+/*
+===============================================================================
+
+idPlatAutoRevert
+
+===============================================================================
+*/
+CLASS_DECLARATION( idPlat, idPlatAutoRevert )
+	EVENT( EV_Touch,			idPlatAutoRevert::Event_Touch )
+END_CLASS
+
+/*
+===============
+idPlatAutoRevert::idPlatAutoRevert
+===============
+*/
+idPlatAutoRevert::idPlatAutoRevert( void ) {
+}
+
+/*
+==============
+idPlatAutoRevert::Event_Touch
+===============
+*/
+void idPlatAutoRevert::Event_Touch( idEntity *other, trace_t *trace ) {
+	//gameLocal.Printf("touched, state: %d\n", moverState);
+
+	if ( !other->IsType( idPlayer::Type ) ) {
+		return;
+	}
+
+	if( other->health <= 0 ){
+		return;
+	}
+
+	/*
+	//It shouldn't use a trigger. We need accurate collision detection, so we use the entity itself.
+	//Make sure "no_touch" is true in the def.
+	if( trigger && ( trace->c.id != trigger->GetId() ) ){ //if we use a trigger, use only it.
+		return;
+	}
+	*/
+
+	//go to dest pos if we are at (ot going to) the default pos
+	if ( moverState == MOVER_POS1 || moverState == MOVER_2TO1 ) { 
+		Use_BinaryMover( other ); 
+	}
+
+	//delay the return until player is touching me 
+	if ( moverState == MOVER_POS2 || moverState == MOVER_1TO2 ){ //no need to delay if we are already coming back
+		DelayReturnToPos1( 100 );
+	}
+}
+
+//ivan end
 
 /*
 ===============================================================================
@@ -4523,6 +4908,7 @@ idPendulum::idPendulum
 */
 idPendulum::idPendulum( void ) {
 }
+
 
 /*
 ===============

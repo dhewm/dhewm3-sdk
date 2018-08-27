@@ -117,6 +117,15 @@ protected:
 
 	idPhysics_Parametric	physicsObj;
 
+	//ivan start - promoted to protected
+	float					move_speed;
+	int						move_time;
+	int						deceltime;
+	int						acceltime;
+	moverCommand_t			lastCommand;
+	idVec3					dest_position;
+	//ivan end
+
 	void					Event_OpenPortal( void );
 	void					Event_ClosePortal( void );
 	void					Event_PartBlocked( idEntity *blockingEntity );
@@ -141,16 +150,19 @@ private:
 	int						rotate_thread;
 	idAngles				dest_angles;
 	idAngles				angle_delta;
-	idVec3					dest_position;
+	//idVec3					dest_position; //ivan - promoted to protected
 	idVec3					move_delta;
+	/*
+	//ivan - promoted to protected
 	float					move_speed;
 	int						move_time;
 	int						deceltime;
 	int						acceltime;
+	*/
 	bool					stopRotation;
 	bool					useSplineAngles;
 	idEntityPtr<idEntity>	splineEnt;
-	moverCommand_t			lastCommand;
+	//moverCommand_t			lastCommand; //ivan - promoted to protected
 	float					damage;
 
 	qhandle_t				areaPortal;		// 0 = no portal
@@ -197,6 +209,38 @@ private:
 	void					Event_IsMoving( void );
 	void					Event_IsRotating( void );
 };
+
+//ivan start
+class idPathMover : public idMover {
+public:
+	CLASS_PROTOTYPE( idPathMover );
+
+							idPathMover( void );
+
+	void					Spawn();
+
+	void					Save( idSaveGame *savefile ) const;
+	void					Restore( idRestoreGame *savefile );
+
+protected:
+	virtual void			DoneMoving( void );
+
+private:
+	idEntityPtr<idEntity>	currentTarget;
+	bool					restoreSettings;
+	bool					toggleEachTrigger;
+	bool					startOnNextTrigger;
+	//int						nextTriggerTime;
+
+	void					StartPath( void ); 
+	void					SuspendPath( void ); 
+	void					MoveToTarget( idEntity *ent );
+
+	void					Event_PostSpawn( void );
+	void					Event_Trigger( idEntity *activator );
+};
+
+//ivan end
 
 class idSplinePath : public idEntity {
 public:
@@ -318,6 +362,8 @@ public:
 
 	void					SetPortalState( bool open );
 
+	void					DelayReturnToPos1( int delay ); //ivan
+
 protected:
 	idVec3					pos1;
 	idVec3					pos2;
@@ -357,6 +403,7 @@ protected:
 
 	void					Event_SetCallback( void );
 	void					Event_ReturnToPos1( void );
+	void					Event_UseToReturnToPos1( void ); //ivan
 	void					Event_Use_BinaryMover( idEntity *activator );
 	void					Event_Reached_BinaryMover( void );
 	void					Event_MatchActivateTeam( moverState_t newstate, int time );
@@ -453,18 +500,33 @@ public:
 	virtual void			PreBind( void );
 	virtual void			PostBind( void );
 
-private:
+protected: //ivan - was: private
 	idClipModel *			trigger;
 	idVec3					localTriggerOrigin;
 	idMat3					localTriggerAxis;
 
 	void					GetLocalTriggerPosition( const idClipModel *trigger );
 	void					SpawnPlatTrigger( idVec3 &pos );
-
+	//ivan start
+	bool					GetTargetPos( idVec3 &pos ); 
+	void					Event_PostSpawn( void );
+	void					Setup( void );
+	//ivan end
 	void					Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity );
 	void					Event_PartBlocked( idEntity *blockingEntity );
 	void					Event_Touch( idEntity *other, trace_t *trace );
 };
+
+//ivan start
+class idPlatAutoRevert : public idPlat {
+public:
+	CLASS_PROTOTYPE( idPlatAutoRevert );
+
+							idPlatAutoRevert( void );
+private:
+	void					Event_Touch( idEntity *other, trace_t *trace );
+};
+//ivan end
 
 
 /*

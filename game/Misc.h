@@ -156,23 +156,46 @@ class idDamagable : public idEntity {
 public:
 	CLASS_PROTOTYPE( idDamagable );
 
-						idDamagable( void );
+						idDamagable();
+						~idDamagable();
 
 	void				Save( idSaveGame *savefile ) const;
 	void				Restore( idRestoreGame *savefile );
 
 	void				Spawn( void );
 	void				Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
+	void				Think( void ); //ivan
 
 private:
 	int					count;
 	int					nextTriggerTime;
 
-	void				BecomeBroken( idEntity *activator );
+	//ivan start
+	qhandle_t			particleModelDefHandle;
+	qhandle_t			lightDefHandle;
+	renderEntity_t		particleRenderEntity;
+	renderLight_t		light;
+	int					lightTime;
+	bool				hasBrokenModel;
+
+	void				AddParticles( const char *name );
+	void				AddLight( const char *name );
+	void				ExplodingEffects( void );
+
+	
+	void				SpawnDebris( const char *prefix );
+	void				BrokenEntitiesVisible( bool visible );
+	void				SpawnDrops( void );
+
+	void				Event_ChainBecomeBroken( idEntity *activator, idEntity *chainInflictor );
+	void				Event_HideBrokenEntities( void );
+
+	//ivan end
+
+	void				BecomeBroken( idEntity *activator, idEntity *chainInflictor );
 	void				Event_BecomeBroken( idEntity *activator );
 	void				Event_RestoreDamagable( void );
 };
-
 
 /*
 ===============================================================================
@@ -335,6 +358,51 @@ private:
 	bool				runGui;
 };
 
+//ivan start
+/*
+===============================================================================
+
+  idTrailWrapper
+
+===============================================================================
+*/
+
+class idTrailWrapper : public idEntity {
+public:
+	CLASS_PROTOTYPE( idTrailWrapper );
+
+						idTrailWrapper( void );
+						~idTrailWrapper( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+	void				Spawn( void );
+	virtual void		Hide( void );
+	virtual void		Show( void );
+
+	void				StartTrail( void );
+	void				FadeTrail( void );
+	void				StopTrail( void );
+	virtual void		Think( void );
+
+private:
+	idTrailGenerator*		trailGen;
+	int						trailSize;
+	//int						nextUpdTime;
+
+	idVec3					oldLowPoint;
+	idVec3					oldHighPoint;
+
+	idVec3					newLowPoint;
+	idVec3					newHighPoint;
+
+	void				InitTrail( void );
+	void				UpdateTrail( void );
+
+	void				Event_Activate( idEntity *activator );
+};
+//iva end
 
 /*
 ===============================================================================
@@ -504,6 +572,8 @@ private:
 ===============================================================================
 */
 
+extern const idEventDef EV_FadeBeamColor; //ivan
+
 class idBeam : public idEntity {
 public:
 	CLASS_PROTOTYPE( idBeam );
@@ -519,11 +589,49 @@ public:
 
 	void				SetMaster( idBeam *masterbeam );
 	void				SetBeamTarget( const idVec3 &origin );
+	idBeam*				AddChainNodeAtPos( const idVec3 &pos ); //ivan
 
 	virtual void		Show( void );
+	void				FadeColor( void ); //ivan
 
 	virtual void		WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsgDelta &msg );
+
+private:
+	void				Event_MatchTarget( void );
+	void				Event_Activate( idEntity *activator );
+	void				Event_FadeColor( void ); //ivan
+
+	idEntityPtr<idBeam>	target;
+	idEntityPtr<idBeam>	master;
+
+	//ivan start
+	idVec4				fadeOutIntervals;
+	int					fadeTime;
+	//ivan end
+};
+
+//ivan start
+/*
+===============================================================================
+
+  idBeam
+
+===============================================================================
+*/
+
+class idBeamChain : public idBeam {
+public:
+	CLASS_PROTOTYPE( idBeamChain );
+
+						idBeamChain();
+
+	void				Spawn( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+	virtual void		Show( void );
 
 private:
 	void				Event_MatchTarget( void );
@@ -532,6 +640,10 @@ private:
 	idEntityPtr<idBeam>	target;
 	idEntityPtr<idBeam>	master;
 };
+//ivan end
+
+
+
 
 
 /*
@@ -764,5 +876,65 @@ private:
 	idList<int>			targetTime;
 	idList<idVec3>		lastTargetPos;
 };
+
+//ivan start
+
+#ifdef IVAN_TODO
+/*
+===============================================================================
+
+  idProjLauncher
+
+===============================================================================
+*/
+class idProjectile; //needed
+
+class idProjLauncher : public idEntity {
+public:
+	CLASS_PROTOTYPE( idProjLauncher );
+			
+						idProjLauncher();
+
+	void				Spawn( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+private:
+	idVec3				GetAimDir( idEntity *aimAtEnt ); 
+	idProjectile*		FireProjectile( idVec3 &dir ); 
+
+	void				Event_Activate( idEntity *activator );
+	void				Event_FireProjectile( idAngles &fireAng ); 
+	void				Event_FireProjAtTarget( idEntity* aimAtEnt );
+	
+	const idDict *		projectileDef;
+};
+#endif 
+//ivan end
+
+
+#ifdef _PORTALSKY
+
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+class idPortalSky : public idEntity {
+public:
+	CLASS_PROTOTYPE( idPortalSky );
+
+	idPortalSky();
+	~idPortalSky();
+
+	void				Spawn( void );
+	void				Event_PostSpawn();
+	void				Event_Activate( idEntity *activator );
+};
+
+#endif /* _PORTALSKY */
 
 #endif /* !__GAME_MISC_H__ */

@@ -307,13 +307,12 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 			gameLocal.world->spawnArgs.SetBool( "no_Weapons", false );
 			for( i = 0; i < gameLocal.numClients; i++ ) {
 				if ( gameLocal.entities[ i ] ) {
-					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon1" ) );
+					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon0" ) ); //ivan TODO - was: def_weapon1 - ? is chainsaw
 				}
 			}
 		}
 	}
-
-	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
+	if ( /*( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || */ ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) { //ivan - weapon commented out
 		player->GiveItem( name );
 		return;
 	}
@@ -326,8 +325,13 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 	}
 
 	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
-		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+		
+		/*
+		//ivan - commented out
+		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1; 
 		player->CacheWeapons();
+		*/
+		gameLocal.Printf("Use 'spawn weapon_weaponName' to spawn weapons.\n"); //ivan
 
 		if ( !give_all ) {
 			return;
@@ -1978,6 +1982,18 @@ static void Cmd_SaveParticles_f( const idCmdArgs &args ) {
 	mapFile->Write( mapName, ".map" );
 }
 
+#ifdef _DENTONMOD
+/*
+==================
+Cmd_UpdateCookedMathData_f
+==================
+*/
+static void Cmd_UpdateCookedMathData_f( const idCmdArgs &args )
+{
+	// This would cause a cooked math data update. 
+	r_HDR_colorCurveBias.SetModified();
+}
+#endif
 
 /*
 ==================
@@ -2379,6 +2395,10 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "saveParticles",			Cmd_SaveParticles_f,		CMD_FL_GAME|CMD_FL_CHEAT,	"saves all lights to the .map file" );
 	cmdSystem->AddCommand( "clearLights",			Cmd_ClearLights_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"clears all lights" );
 	cmdSystem->AddCommand( "gameError",				Cmd_GameError_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"causes a game error" );
+
+#ifdef _DENTONMOD
+	cmdSystem->AddCommand( "updateCookedMathData",	Cmd_UpdateCookedMathData_f,	CMD_FL_GAME,	"Forcefully updates cooked math data." );
+#endif
 
 	cmdSystem->AddCommand( "disasmScript",			Cmd_DisasmScript_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"disassembles script" );
 	cmdSystem->AddCommand( "recordViewNotes",		Cmd_RecordViewNotes_f,		CMD_FL_GAME|CMD_FL_CHEAT,	"record the current view position with notes" );

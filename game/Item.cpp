@@ -76,6 +76,9 @@ idItem::idItem() {
 	orgOrigin.Zero();
 	canPickUp = true;
 	fl.networkSync = true;
+/*#ifdef _DENTONMOD
+	entDamageEffects = NULL;
+#endif*/
 }
 
 /*
@@ -145,6 +148,11 @@ bool idItem::UpdateRenderEntity( renderEntity_s *renderEntity, const renderView_
 
 	lastRenderViewTime = renderView->time;
 
+	//ivan start - glow if near
+	//if we are here, the item is visible on screen
+
+	//old way:
+
 	// check for glow highlighting if near the center of the view
 	idVec3 dir = renderEntity->origin - renderView->vieworg;
 	dir.Normalize();
@@ -168,6 +176,21 @@ bool idItem::UpdateRenderEntity( renderEntity_s *renderEntity, const renderView_
 			lastCycle = ceil( cycle );
 		}
 	}
+	
+	/*
+	//HQ2 way: two second pulse cycle
+	float cycle = ( renderView->time - inViewTime ) / 2000.0f;
+
+	if ( !inView ) { //if not done yet...start now!
+		inView = true;
+		if ( cycle > lastCycle ) {
+			// restart at the beginning
+			inViewTime = renderView->time;
+			cycle = 0.0f;
+		}
+	} 	
+	*/
+	//ivan end
 
 	// fade down after the last pulse finishes
 	if ( !inView && cycle > lastCycle ) {
@@ -236,6 +259,11 @@ void idItem::Think( void ) {
 	}
 
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*
@@ -306,9 +334,16 @@ void idItem::Spawn( void ) {
 		BecomeActive( TH_THINK );
 	}
 
-	//pulse = !spawnArgs.GetBool( "nopulse" );
+	//ivan start
+	pulse = !spawnArgs.GetBool( "nopulse", "1" ); //don't pulse by default
+	
+	/*
 	//temp hack for tim
 	pulse = false;
+	*/
+
+	//ivan end
+
 	orgOrigin = GetPhysics()->GetOrigin();
 
 	canPickUp = !( spawnArgs.GetBool( "triggerFirst" ) || spawnArgs.GetBool( "no_touch" ) );
@@ -316,8 +351,25 @@ void idItem::Spawn( void ) {
 	inViewTime = -1000;
 	lastCycle = -1;
 	itemShellHandle = -1;
+	//ivan start
+	//was: shellMaterial = declManager->FindMaterial( "itemHighlightShell" );
+
 	shellMaterial = declManager->FindMaterial( "itemHighlightShell" );
+	//spawnArgs.GetString( "mtr_pulse", "itemHighlightShell" )
+	//shaderParm4
+	//ivan end
 }
+
+//ivan start
+/*
+================
+idItem::SetShellMrt
+================
+*/
+void idItem::SetShellMrt( const char * newMtrName ){
+	shellMaterial = declManager->FindMaterial( newMtrName );
+}
+//ivan end
 
 /*
 ================
@@ -352,6 +404,25 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 
 	return player->GiveItem( this );
 }
+//ivan start
+/*
+================
+idItem::CallScriptFunction
+================
+*/
+void idItem::CallScriptFunction( void ) const {
+	idThread *thread;
+	idStr funcname = spawnArgs.GetString( "call", "" );
+	if ( funcname.Length() ) {
+		const function_t * scriptFunction = gameLocal.program.FindFunction( funcname );
+		if ( scriptFunction ) {
+			scriptFunction = gameLocal.program.FindFunction( funcname );
+			thread = new idThread( scriptFunction );
+			thread->DelayedStart( 0 );
+		}
+	}
+}
+//ivan end
 
 /*
 ================
@@ -371,6 +442,10 @@ bool idItem::Pickup( idPlayer *player ) {
 	// play pickup sound
 	StartSound( "snd_acquire", SND_CHANNEL_ITEM, 0, false, NULL );
 
+	//ivan start - Call Script Function
+	CallScriptFunction();
+	//ivan end
+
 	// trigger our targets
 	ActivateTargets( player );
 
@@ -380,7 +455,7 @@ bool idItem::Pickup( idPlayer *player ) {
 	// hide the model
 	Hide();
 
-	// add the highlight shell
+	// remove the highlight shell
 	if ( itemShellHandle != -1 ) {
 		gameRenderWorld->FreeEntityDef( itemShellHandle );
 		itemShellHandle = -1;
@@ -497,8 +572,17 @@ void idItem::Event_DropToFloor( void ) {
 	if ( GetBindMaster() != NULL && GetBindMaster() != this ) {
 		return;
 	}
+	
+	//ivan start
+	//was: gameLocal.clip.TraceBounds( trace, renderEntity.origin, renderEntity.origin - idVec3( 0, 0, 64 ), renderEntity.bounds, MASK_SOLID | CONTENTS_CORPSE, this );	
+	if( spin ){
+		gameLocal.clip.TraceBounds( trace, renderEntity.origin, renderEntity.origin - idVec3( 0, 0, 64 ), renderEntity.bounds, MASK_SOLID, this );
+		orgOrigin = trace.endpos + idVec3( 0, 0, 32 );
+	}else{
+		gameLocal.clip.TraceBounds( trace, renderEntity.origin, renderEntity.origin - idVec3( 0, 0, 64 ), renderEntity.bounds, MASK_SOLID | CONTENTS_CORPSE, this );
+	}
+	//ivan end
 
-	gameLocal.clip.TraceBounds( trace, renderEntity.origin, renderEntity.origin - idVec3( 0, 0, 64 ), renderEntity.bounds, MASK_SOLID | CONTENTS_CORPSE, this );
 	SetOrigin( trace.endpos );
 }
 
@@ -569,6 +653,92 @@ void idItem::Event_RespawnFx( void ) {
 		idEntityFx::StartFx( sfx, NULL, NULL, this, true );
 	}
 }
+
+//ivan start
+
+/*
+===============================================================================
+
+  idItemInteract
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idItem, idItemInteract )
+	EVENT( EV_Interact,			idItemInteract::Event_Interact )	
+	EVENT( EV_Touch,			idItemInteract::Event_Touch )
+END_CLASS
+
+
+/*
+================
+idItemInteract::Spawn
+================
+*/
+void idItemInteract::Spawn( void ) {
+	//SetShellMrt( "itemInteractHighlightShell" );
+}
+
+/*
+================
+idItemInteract::Event_Touch
+
+NOTE: should only be used for hud info.
+FIX: bypass the interaction if player already has the weapon: give ammo
+================
+*/
+void idItemInteract::Event_Touch( idEntity *other, trace_t *trace ) {
+	if ( !canPickUp ) {
+		return;
+	}
+
+	if ( other->IsType( idPlayer::Type ) ) {
+		idPlayer * player = static_cast< idPlayer * >( other );
+
+		if( player->WeaponItemCanGiveAmmo( this ) ){
+			//gameLocal.Printf("bypass\n");
+			Pickup( player );
+		}else{
+			player->ShowPossibleInteract( INTERACT_IMPULSE );
+		}
+	}
+}
+
+/*
+================
+idItemInteract::Event_Interact
+================
+*/
+void idItemInteract::Event_Interact( idEntity *activator, int flags ) {
+	//gameLocal.Printf("idItemInteract::Event_Interact\n");
+	if ( !activator->IsType( idPlayer::Type ) ) {
+		return;
+	}
+
+	if ( !canPickUp ) {
+		return;
+	}
+
+	Pickup( static_cast<idPlayer *>(activator) );
+}
+
+/*
+============
+idItemInteract::CanInteract
+============
+*/
+bool idItemInteract::CanInteract( int flags ) const {
+
+	//if not activated
+	if( !canPickUp ) {
+		return false;
+	}
+
+	return ( flags & INTERACT_IMPULSE); //only respond to impulse mode
+}
+
+//ivan end
+
 
 /*
 ===============================================================================
@@ -712,6 +882,43 @@ void idObjective::Event_CamShot( ) {
 			renderView_t fullView = *view;
 			fullView.width = SCREEN_WIDTH;
 			fullView.height = SCREEN_HEIGHT;
+
+#ifdef _PORTALSKY
+			// HACK : always draw sky-portal view if there is one in the map, this isn't real-time
+			if ( gameLocal.portalSkyEnt.GetEntity() && g_enablePortalSky.GetBool() ) {
+				renderView_t	portalView = fullView;
+				portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+				// setup global fixup projection vars
+				if ( 1 ) {
+					int vidWidth, vidHeight;
+					idVec2 shiftScale;
+
+					renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+					float pot;
+					int temp;
+
+					int	 w = vidWidth;
+					for (temp = 1 ; temp < w ; temp<<=1) {
+					}
+					pot = (float)temp;
+					shiftScale.x = (float)w / pot;
+
+					int	 h = vidHeight;
+					for (temp = 1 ; temp < h ; temp<<=1) {
+					}
+					pot = (float)temp;
+					shiftScale.y = (float)h / pot;
+
+					fullView.shaderParms[4] = shiftScale.x;
+					fullView.shaderParms[5] = shiftScale.y;
+				}
+
+				gameRenderWorld->RenderScene( &portalView );
+				renderSystem->CaptureRenderToImage( "_currentRender" );
+			}
+#endif
 			// draw a view to a texture
 			renderSystem->CropRenderSize( 256, 256, true );
 			gameRenderWorld->RenderScene( &fullView );
@@ -870,6 +1077,9 @@ idMoveableItem::idMoveableItem() {
 	trigger = NULL;
 	smoke = NULL;
 	smokeTime = 0;
+/*#ifdef _DENTONMOD
+	entDamageEffects = NULL;
+#endif*/
 }
 
 /*
@@ -998,6 +1208,11 @@ void idMoveableItem::Think( void ) {
 	}
 
 	Present();
+
+#ifdef _DENTONMOD
+	if ( thinkFlags & TH_UPDATEWOUNDPARTICLES )
+		UpdateParticles();
+#endif
 }
 
 /*
@@ -1018,7 +1233,7 @@ bool idMoveableItem::Pickup( idPlayer *player ) {
 idMoveableItem::DropItem
 ================
 */
-idEntity *idMoveableItem::DropItem( const char *classname, const idVec3 &origin, const idMat3 &axis, const idVec3 &velocity, int activateDelay, int removeDelay ) {
+idEntity *idMoveableItem::DropItem( const char *classname, const idVec3 &origin, const idMat3 &axis, const idVec3 &velocity, int activateDelay, int removeDelay, bool dropToFloor ) {
 	idDict args;
 	idEntity *item;
 
@@ -1028,25 +1243,47 @@ idEntity *idMoveableItem::DropItem( const char *classname, const idVec3 &origin,
 	// we sometimes drop idMoveables here, so set 'nodrop' to 1 so that it doesn't get put on the floor
 	args.Set( "nodrop", "1" );
 
+	//ivan start
+	if( dropToFloor ){
+		args.Set( "dropToFloor", "1" ); 
+	}
+	args.SetVector( "origin", origin ); //set before spawing it so dropToFloor and spin works
+	//ivan end
+
 	if ( activateDelay ) {
 		args.SetBool( "triggerFirst", true );
 	}
 
 	gameLocal.SpawnEntityDef( args, &item );
 	if ( item ) {
-		// set item position
-		item->GetPhysics()->SetOrigin( origin );
-		item->GetPhysics()->SetAxis( axis );
-		item->GetPhysics()->SetLinearVelocity( velocity );
-		item->UpdateVisuals();
-		if ( activateDelay ) {
-			item->PostEventMS( &EV_Activate, activateDelay, item );
-		}
-		if ( !removeDelay ) {
-			removeDelay = 5 * 60 * 1000;
-		}
-		// always remove a dropped item after 5 minutes in case it dropped to an unreachable location
-		item->PostEventMS( &EV_Remove, removeDelay );
+		
+		//ivan start
+		if ( item->IsType( idItem::Type ) && !item->IsType( idMoveableItem::Type ) ) { //it's an item but not moveable
+			
+			//upd
+			item->UpdateVisuals();
+			if ( activateDelay ) {
+				item->PostEventMS( &EV_Activate, activateDelay, item );
+			}
+		} else {
+			//ivan end
+
+			// set item position
+			item->GetPhysics()->SetOrigin( origin );
+			item->GetPhysics()->SetAxis( axis );
+			item->GetPhysics()->SetLinearVelocity( velocity );
+			item->UpdateVisuals();
+			if ( activateDelay ) {
+				item->PostEventMS( &EV_Activate, activateDelay, item );
+			}
+			if( removeDelay >= 0 ){ //ivan - remove only if delay >= 0 (-1 = never remove)
+				if ( !removeDelay ) {
+					removeDelay = 5 * 60 * 1000;
+				}
+				// always remove a dropped item after 5 minutes in case it dropped to an unreachable location
+				item->PostEventMS( &EV_Remove, removeDelay );
+			}//ivan 
+		} //ivan 
 	}
 	return item;
 }
@@ -1205,6 +1442,91 @@ bool idMoveablePDAItem::GiveToPlayer(idPlayer *player) {
 	}
 	return true;
 }
+
+//ivan start
+
+/*
+===============================================================================
+
+  idMoveableItemInteract
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idMoveableItem, idMoveableItemInteract )
+	EVENT( EV_Interact,			idMoveableItemInteract::Event_Interact )	
+	EVENT( EV_Touch,			idMoveableItemInteract::Event_Touch )
+END_CLASS
+
+
+/*
+================
+idMoveableItemInteract::Spawn
+================
+*/
+void idMoveableItemInteract::Spawn( void ) {
+	//SetShellMrt( "itemInteractHighlightShell" );
+}
+
+/*
+================
+idMoveableItemInteract::Event_Touch
+
+NOTE: should only be used for hud info.
+FIX: bypass the interaction if player already has the weapon: give ammo
+================
+*/
+void idMoveableItemInteract::Event_Touch( idEntity *other, trace_t *trace ) {
+	if ( !canPickUp ) {
+		return;
+	}
+
+	if ( other->IsType( idPlayer::Type ) ) {
+		idPlayer * player = static_cast< idPlayer * >( other );
+
+		if( player->WeaponItemCanGiveAmmo( this ) ){
+			//gameLocal.Printf("bypass\n");
+			Pickup( player );
+		}else{
+			player->ShowPossibleInteract( INTERACT_IMPULSE );
+		}
+	}
+}
+
+/*
+================
+idMoveableItemInteract::Event_Interact
+================
+*/
+void idMoveableItemInteract::Event_Interact( idEntity *activator, int flags ) {
+	//gameLocal.Printf("idItemInteract::Event_Interact\n");
+	if ( !activator->IsType( idPlayer::Type ) ) {
+		return;
+	}
+
+	if ( !canPickUp ) {
+		return;
+	}
+
+	Pickup( static_cast<idPlayer *>(activator) );
+}
+
+/*
+============
+idMoveableItemInteract::CanInteract
+============
+*/
+bool idMoveableItemInteract::CanInteract( int flags ) const {
+
+	//if not activated
+	if( !canPickUp ) {
+		return false;
+	}
+
+	return ( flags & INTERACT_IMPULSE); //only respond to impulse mode
+}
+
+//ivan end
 
 /*
 ===============================================================================

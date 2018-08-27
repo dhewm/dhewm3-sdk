@@ -1561,10 +1561,15 @@ idTarget_Tip::Event_Activate
 */
 void idTarget_Tip::Event_GetPlayerPos( void ) {
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if ( player ) {
+	
+	//ivan start
+	//was: if ( player ) {
+	if ( player && player->IsTipVisible() ) {
+	//ivan end
 		playerPos = player->GetPhysics()->GetOrigin();
 		PostEventMS( &EV_TipOff, 100 );
 	}
+	//else job already done!
 }
 
 /*
@@ -1579,7 +1584,7 @@ void idTarget_Tip::Event_Activate( idEntity *activator ) {
 			PostEventSec( &EV_Activate, 5.1f, activator );
 			return;
 		}
-		player->ShowTip( spawnArgs.GetString( "text_title" ), spawnArgs.GetString( "text_tip" ), false );
+		player->ShowTip( spawnArgs.GetString( "text_title" ), spawnArgs.GetString( "text_tip" ), true ); //ivan - was: false
 		PostEventMS( &EV_GetPlayerPos, 2000 );
 	}
 }
@@ -1591,14 +1596,18 @@ idTarget_Tip::Event_TipOff
 */
 void idTarget_Tip::Event_TipOff( void ) {
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if ( player ) {
+	//ivan start
+	//was: if ( player ) {
+	if ( player && player->IsTipVisible() ) {
+	//ivan end
 		idVec3 v = player->GetPhysics()->GetOrigin() - playerPos;
-		if ( v.Length() > 96.0f ) {
+		if ( v.Length() > 300.0f ) { //ivan - was 96.0f
 			player->HideTip();
 		} else {
 			PostEventMS( &EV_TipOff, 100 );
 		}
 	}
+	//else job already done!
 }
 
 

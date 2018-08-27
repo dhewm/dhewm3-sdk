@@ -48,7 +48,10 @@ typedef enum {
 	PM_DEAD,				// no acceleration or turning, but free falling
 	PM_SPECTATOR,			// flying without gravity but with collision detection
 	PM_FREEZE,				// stuck in place without control
-	PM_NOCLIP				// flying without collision detection nor gravity
+	PM_NOCLIP,				// flying without collision detection nor gravity
+	PM_PHYSICS_ONLY,		//ivan - physics without inputs
+	PM_ANIM_ALWAYS,			//ivan - animation and custom gravity 
+	PM_ANIM_GROUND			//ivan - animation on ground and normal movement in air 
 } pmtype_t;
 
 typedef enum {
@@ -131,6 +134,9 @@ public:	// common physics interface
 
 	void					WriteToSnapshot( idBitMsgDelta &msg ) const;
 	void					ReadFromSnapshot( const idBitMsgDelta &msg );
+						
+	void					SetDelta( const idVec3 &d ); // ivan - set delta for next move
+	//void					SetGravityInAnimMove( float mult); //ivan
 
 private:
 	// player physics state
@@ -168,6 +174,11 @@ private:
 	// results of last evaluate
 	waterLevel_t			waterLevel;
 	int						waterType;
+	
+	idEntity *				blockingEntity;		//ivan 
+	idVec3					delta;				//ivan - delta for next move
+	//float					animMoveGravityMultiplier;
+	//bool					animMoveUseGravity;
 
 private:
 	float					CmdScale( const usercmd_t &cmd ) const;
@@ -192,6 +203,9 @@ private:
 	void					SetWaterLevel( void );
 	void					DropTimers( void );
 	void					MovePlayer( int msec );
+
+	void					AnimMove( idVec3 &start, idVec3 &velocity, const idVec3 &delta ); //ivan - taken from idPhysics_Monster::StepMove
+	monsterMoveResult_t		AnimSlideMove( idVec3 &start, idVec3 &velocity, const idVec3 &delta ); //ivan - from idPhysics_Monster::SlideMove
 };
 
 #endif /* !__PHYSICS_PLAYER_H__ */

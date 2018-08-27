@@ -57,6 +57,8 @@ public:
 	virtual void			Think( void );
 	virtual void			Present();
 
+	void					SetShellMrt( const char * newMtrName ); //ivan 
+
 	enum {
 		EVENT_PICKUP = idEntity::EVENT_MAXEVENTS,
 		EVENT_RESPAWN,
@@ -71,11 +73,16 @@ public:
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 
+//ivan start
+protected:
+	bool					canPickUp;
+//ivan end
+
 private:
 	idVec3					orgOrigin;
 	bool					spin;
 	bool					pulse;
-	bool					canPickUp;
+	//bool					canPickUp; //ivan - commented out
 
 	// for item pulse effect
 	int						itemShellHandle;
@@ -89,6 +96,7 @@ private:
 
 	bool					UpdateRenderEntity( renderEntity_s *renderEntity, const renderView_t *renderView ) const;
 	static bool				ModelCallback( renderEntity_s *renderEntity, const renderView_t *renderView );
+	void					CallScriptFunction( void ) const; //ivan
 
 	void					Event_DropToFloor( void );
 	void					Event_Touch( idEntity *other, trace_t *trace );
@@ -96,6 +104,28 @@ private:
 	void					Event_Respawn( void );
 	void					Event_RespawnFx( void );
 };
+
+//ivan start
+
+/*
+===============================================================================
+
+  idItemInteract
+
+===============================================================================
+*/
+class idItemInteract : public idItem { 
+public:
+	CLASS_PROTOTYPE( idItemInteract );
+
+	void					Spawn( void );
+	virtual bool			CanInteract( int flags ) const;
+
+private:
+	void					Event_Interact( idEntity *activator, int flags ); 
+	void					Event_Touch( idEntity *other, trace_t *trace );
+};
+//ivan end
 
 class idItemPowerup : public idItem {
 public:
@@ -164,7 +194,7 @@ public:
 	virtual bool			Pickup( idPlayer *player );
 
 	static void				DropItems( idAnimatedEntity *ent, const char *type, idList<idEntity *> *list );
-	static idEntity	*		DropItem( const char *classname, const idVec3 &origin, const idMat3 &axis, const idVec3 &velocity, int activateDelay, int removeDelay );
+	static idEntity	*		DropItem( const char *classname, const idVec3 &origin, const idMat3 &axis, const idVec3 &velocity, int activateDelay, int removeDelay, bool dropToFloor = true ); //ivan - dropToFloor added
 
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
@@ -187,6 +217,28 @@ public:
 
 	virtual bool			GiveToPlayer( idPlayer *player );
 };
+
+//ivan start
+
+/*
+===============================================================================
+
+  idMoveableItemInteract
+
+===============================================================================
+*/
+class idMoveableItemInteract : public idMoveableItem { 
+public:
+	CLASS_PROTOTYPE( idMoveableItemInteract );
+
+	void					Spawn( void );
+	virtual bool			CanInteract( int flags ) const;
+
+private:
+	void					Event_Interact( idEntity *activator, int flags ); 
+	void					Event_Touch( idEntity *other, trace_t *trace );
+};
+//ivan end
 
 /*
 ===============================================================================

@@ -33,6 +33,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Force_Constant.h"
 #include "Entity.h"
 
+#ifdef _DENTONMOD
+#include "tracer.h"
+#ifndef _DENTONMOD_PROJECTILE_CPP
+#define _DENTONMOD_PROJECTILE_CPP
+#endif
+#endif
+
 /*
 ===============================================================================
 
@@ -56,10 +63,25 @@ public :
 	void					Restore( idRestoreGame *savefile );
 
 	void					Create( idEntity *owner, const idVec3 &start, const idVec3 &dir );
+
 	virtual void			Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire = 0.0f, const float launchPower = 1.0f, const float dmgPower = 1.0f );
 	virtual void			FreeLightDef( void );
 
 	idEntity *				GetOwner( void ) const;
+
+//rev grab
+	void					CatchProjectile( idEntity* o, const char* reflectName );
+	int						GetProjectileState( void );
+	void					Event_CreateProjectile( idEntity *owner, const idVec3 &start, const idVec3 &dir );
+	void					Event_LaunchProjectile( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity );
+	//void					Event_SetGravity( float gravity );
+//rev grab
+
+	//Ivan start
+    void					Event_SetOwner( idEntity *owner );
+	void					FireRailTracer( const idVec3 &endPos, const idVec3 &dir, const idVec3 &velocity, const char * damageDefName ); //ivan
+    virtual void			CustomBindOnExplode( const trace_t &collision, const idMat3 &oldaxis ){}; //meant to be overridden
+	//Ivan end
 
 	virtual void			Think( void );
 	virtual void			Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
@@ -82,6 +104,9 @@ public :
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
+#ifdef _DENTONMOD
+	void					setTracerEffect( dnTracerEffect *effect) { tracerEffect = effect; }
+#endif
 protected:
 	idEntityPtr<idEntity>	owner;
 
@@ -89,9 +114,13 @@ protected:
 		bool				detonate_on_world			: 1;
 		bool				detonate_on_actor			: 1;
 		bool				randomShaderSpin			: 1;
-		bool				isTracer					: 1;
-		bool				noSplashDamage				: 1;
+		bool				noSplashDamage				: 1; 
+		bool				impact_fx_played			: 1; // keeps track of fx played on collided body - BY JCD
 	} projectileFlags;
+
+#ifdef _DENTONMOD
+	dnTracerEffect *tracerEffect;
+#endif
 
 	float					thrust;
 	int						thrust_end;
@@ -123,9 +152,9 @@ protected:
 
 private:
 	bool					netSyncPhysics;
+	const idDeclEntityDef	*damageDef; // stores Damage Def -- By Clone JCD
 
 	void					AddDefaultDamageEffect( const trace_t &collision, const idVec3 &velocity );
-
 	void					Event_Explode( void );
 	void					Event_Fizzle( void );
 	void					Event_RadiusDamage( idEntity *ignore );
@@ -133,12 +162,76 @@ private:
 	void					Event_GetProjectileState( void );
 };
 
+//ivan start
+class idArrowProjectile : public idProjectile {
+public :
+	CLASS_PROTOTYPE( idArrowProjectile );
+
+							idArrowProjectile( void );
+							~idArrowProjectile( void );
+
+	void					Save( idSaveGame *savefile ) const;
+	void					Restore( idRestoreGame *savefile );
+
+	void					Spawn( void );
+	virtual void			Think( void );
+	virtual void			Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire = 0.0f, const float launchPower = 1.0f, const float dmgPower = 1.0f );
+	virtual void			CustomBindOnExplode( const trace_t &collision, const idMat3 &oldaxis );
+
+	void					UpdateTrail( void );
+
+private:
+
+	idTrailGenerator*		trailGen;
+	idTrailGenerator*		trailGen2;
+	int						trailSize;
+};
+//ivan end
+
 class idGuidedProjectile : public idProjectile {
 public :
 	CLASS_PROTOTYPE( idGuidedProjectile );
 
 							idGuidedProjectile( void );
 							~idGuidedProjectile( void );
+
+	void					Save( idSaveGame *savefile ) const;
+	void					Restore( idRestoreGame *savefile );
+
+	void					Spawn( void );
+	virtual void			Think( void );
+	virtual void			Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire = 0.0f, const float launchPower = 1.0f, const float dmgPower = 1.0f );
+
+//REV GRAB
+	void					SetEnemy( idEntity *ent );
+	void					Event_SetEnemy(idEntity *ent);
+//REV GRAB
+
+protected:
+	float					speed;
+	idEntityPtr<idEntity>	enemy;
+	virtual void			GetSeekPos( idVec3 &out );
+
+private:
+	idAngles				rndScale;
+	idAngles				rndAng;
+	idAngles				angles;
+	int						rndUpdateTime;
+	float					turn_max;
+	float					clamp_dist;
+	bool					burstMode;
+	bool					unGuided;
+	float					burstDist;
+	float					burstVelocity;
+};
+
+//REVILITY START GUIDEDPROJECTILE X
+class idGuidedProjectilex : public idProjectile {
+public :
+	CLASS_PROTOTYPE( idGuidedProjectilex );
+
+							idGuidedProjectilex( void );
+							~idGuidedProjectilex( void );
 
 	void					Save( idSaveGame *savefile ) const;
 	void					Restore( idRestoreGame *savefile );
@@ -164,6 +257,8 @@ private:
 	float					burstDist;
 	float					burstVelocity;
 };
+
+//REVILITY END GUIDEDPROJECTILE X
 
 class idSoulCubeMissile : public idGuidedProjectile {
 public:
@@ -261,9 +356,13 @@ public :
 private:
 	idEntityPtr<idEntity>	owner;
 	idPhysics_RigidBody		physicsObj;
-	const idDeclParticle *	smokeFly;
+	const idDeclParticle *	smokeFly; 
 	int						smokeFlyTime;
+	int						nextSoundTime;		// BY Clone JCD 
+	int						soundTimeDifference;	// BY Clone JCD 
+	bool					continuousSmoke;		//By Clone JCD
 	const idSoundShader *	sndBounce;
+	const idSoundShader *	sndRest;
 
 
 	void					Event_Explode( void );

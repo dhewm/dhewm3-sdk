@@ -1,7 +1,7 @@
 NOTE from Daniel: 
 The following is (mostly) the original README of the mod and still refers to the SDK etc.
 
-You can get the game data from http://www.gamefront.com/files/files/9003559/classic_doom_3_1.3.1.zip
+You can get the game data from https://www.moddb.com/downloads/classic-doom-3-131
 Just extract that zip to your Doom3/dhewm3 installation.
 
 After compiling the source, you can start the game with

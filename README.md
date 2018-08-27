@@ -14,7 +14,8 @@ Visual Studio like you might be used to.
 This repository also contains ports of existing mods whichs authors released
 the source under GPL; you can find these in their own branches:
 [Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom) and
-[Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod) 
+[Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod) and
+[HardQore2](https://github.com/dhewm/dhewm3-sdk/tree/hardqore2)
 
 ## How to build
 

@@ -1,5 +1,10 @@
 //#ifdef _D3XP
 
+#ifndef _GAME_GRABBER_H
+#define _GAME_GRABBER_H
+
+#include "physics/Force_Grab.h"
+
 /*
 ===============================================================================
 
@@ -56,4 +61,4 @@ private:
 	void					ApplyShake( void );
 };
 
-//#endif
+#endif // _GAME_GRABBER_H

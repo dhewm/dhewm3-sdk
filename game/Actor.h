@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "AFEntity.h"
 #include "IK.h"
 #include "PlayerView.h"
+#include "Misc.h"
 
 /*
 ===============================================================================

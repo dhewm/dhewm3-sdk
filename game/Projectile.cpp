@@ -36,6 +36,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "Mover.h"
 #include "SmokeParticles.h"
 
+#include "Moveable.h"
+#include "BrittleFracture.h"
+#include "WorldSpawn.h"
+
 #include "Projectile.h"
 
 /*
@@ -197,7 +201,7 @@ void idProjectile::Restore( idRestoreGame *savefile ) {
 
 
 	//Reinitialize the damage Def--- By Clone JC Denton
-	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage", false ) );
+	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage" ) );
 
 }
 
@@ -431,7 +435,7 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 
 // Find and store the damage def only once- --- New 
 // place this line before checking the fuse- for beam weapons
-	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage", false ) );
+	damageDef = gameLocal.FindEntityDef( spawnArgs.GetString( "def_damage" ) );
 
 	if ( !gameLocal.isClient ) {
 		if ( fuse <= 0 ) {
@@ -1740,11 +1744,11 @@ idArrowProjectile::CustomBindOnExplode
 */
 void idArrowProjectile::CustomBindOnExplode( const trace_t &collision, const idMat3 &oldaxis ) {
 	idEntity* collisionEnt;
-	idAFEntity_Base *af;
-	boolean setToJoint;
-	boolean bindToJoint;
-	boolean bindToWorld;
-	jointHandle_t bindJoint;
+	idAFEntity_Base *af = NULL; // DG: make compiler shut up about maybe uninitialized
+	bool setToJoint;
+	bool bindToJoint;
+	bool bindToWorld;
+	jointHandle_t bindJoint = INVALID_JOINT; // DG: make compiler shut up about maybe uninitialized
 	
 	//end
 	collisionEnt = gameLocal.entities[ collision.c.entityNum ];

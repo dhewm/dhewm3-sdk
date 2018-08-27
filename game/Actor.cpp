@@ -34,6 +34,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "Projectile.h"
 #include "WorldSpawn.h"
 
+#include "Player.h"
+#include "Fx.h"
+
 #include "Actor.h"
 
 

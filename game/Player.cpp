@@ -1,3 +1,4 @@
+
 /*
 ===========================================================================
 
@@ -40,6 +41,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "Camera.h"
 #include "Fx.h"
 #include "Misc.h"
+
+#include "Moveable.h"
+#include "BrittleFracture.h"
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
 const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range [-1, 60]
@@ -7096,6 +7100,8 @@ void idPlayer::AdjustBodyAngles( void ) {
 	float	forwardBlend;
 	float	downBlend;
 
+	upBlend = forwardBlend = downBlend = 0.0f; // DG: make sure they're initialized
+
 	if ( health < 0 ) {
 		return;
 	}
@@ -8418,7 +8424,6 @@ void idPlayer::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 		  damage = 1;
 	  }
 
-	  int oldHealth = health;
 	  health -= damage;
 
 	  if ( health <= 0 ) {
@@ -9887,7 +9892,7 @@ void idPlayer::WritePlayerStateToSnapshot( idBitMsgDelta &msg ) const {
 	msg.WriteByte( bobCycle );
 	msg.WriteInt( stepUpTime );
 	msg.WriteFloat( stepUpDelta );
-	msg.WriteLong( inventory.weapons );//new
+	msg.WriteInt( inventory.weapons );//new
 	//	msg.WriteShort( inventory.weapons );
 	msg.WriteByte( inventory.armor );
 
@@ -9910,7 +9915,7 @@ void idPlayer::ReadPlayerStateFromSnapshot( const idBitMsgDelta &msg ) {
 	bobCycle = msg.ReadByte();
 	stepUpTime = msg.ReadInt();
 	stepUpDelta = msg.ReadFloat();
-	inventory.weapons = msg.ReadLong();//new
+	inventory.weapons = msg.ReadInt();//new
 	//	inventory.weapons = msg.ReadShort();
 	inventory.armor = msg.ReadByte();
 

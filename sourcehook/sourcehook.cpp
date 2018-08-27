@@ -13,8 +13,6 @@
  * @file sourcehook.cpp
  * @brief Contains the implementation of the SourceHook API
 */
-#include "../idlib/precompiled.h"
-#pragma hdrstop
 
 #if defined __GNUC__
 #include <stdint.h>

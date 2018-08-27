@@ -385,4 +385,3 @@ idCVar r_HDR_vignetteBias			( "r_HDR_vignetteBias",			"0.45",			CVAR_GAME | CVAR
 idCVar s_music_volume(	"s_music_volume", "0",	CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "In-game music volume." );
 idCVar ruiner_bind_run_once( "ruiner_bind_run_once", "0", CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for Ruiner." );
 //Ivan end
->>>>>>>

@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Entity.h"
 #include "Light.h"
 #include "Actor.h"
-
+#include "Grabber.h"
 
 //ivan - uncomment this to create other test trails that are not removed and don't fade out
 //#define TEST_TRAIL

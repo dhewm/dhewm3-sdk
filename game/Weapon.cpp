@@ -37,6 +37,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "SmokeParticles.h"
 #include "WorldSpawn.h"
 
+#include "Moveable.h"
+#include "BrittleFracture.h"
+#include "renderer/ModelManager.h"
+
 #include "Weapon.h"
 
 /***********************************************************************
@@ -3060,7 +3064,7 @@ idWeapon::CalculateDynamicSpread
 void idWeapon::CalculateDynamicSpread( void ) { 
 	
 	if( spreadVelocityFactor > 0 ){ 
-		float velocity = owner->GetPlayerPhysics()->GetLinearVelocity().LengthFast();
+		//float velocity = owner->GetPlayerPhysics()->GetLinearVelocity().LengthFast();
 		////Updated Rev 2018 for walk aiming Movement speed is no longer a factor.  Spread changes depend on the player walking, running and crouching.
 		dynamicSpreadValue = spreadBaseValue + spreadVelocityFactor;	//dynamicSpreadValue = spreadBaseValue + velocity * spreadVelocityFactor;	
 	}else{
@@ -4623,7 +4627,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 	idEntity		*ent;
 	int				i;
 	idVec3			dir;
-	float			ang;
+	float			ang = 0.0f;
 	float			spin;
 	//float			distance;
 	trace_t			tr;
@@ -4735,8 +4739,8 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 	idVec3 view_pos = playerViewOrigin + playerViewAxis[ 0 ] * 2.0f; // Muzzle pos for translation clip model only-- For barrel Launched projectiles
 	idVec3 muzzle_pos;
 
-	float muzzleDistFromView;
-	float traceDist, muzzleToTargetDist;
+	// float muzzleDistFromView; // DG: unused 
+	float traceDist = 0.0f, muzzleToTargetDist = 0.0f; // DG: make sure it's initialized to shut up compiler
 	idVec3 muzzleDir;
 
 	beam			= projectileDict.GetFloat( "fuse" ) <= 0 || projectileDict.GetBool( "rail_beam");
@@ -4755,7 +4759,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 
 			muzzle_pos = muzzleOrigin; // + playerViewAxis[ 0 ] * 2.0f;	// muzzle_pos for multiplayer prediction as well as for launching the projectiles
 			// muzzleDistFromView = (muzzle_pos - view_pos).Length( ) * 3.5f;
-			muzzleDistFromView = (muzzle_pos - view_pos).LengthSqr( ) * 3.5f; // This is faster
+			// muzzleDistFromView = (muzzle_pos - view_pos).LengthSqr( ) * 3.5f; // This is faster - DG: unused 
 		} else {					// if we dont find a proper bone then cancel all the effects.
 			barrelLaunch = false;
 			tracer = false;
@@ -4798,6 +4802,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 				break;
 			}
 			case WP_SPREADMODE_2D_STEP: {
+				// FIXME: DG: what if num_projectiles == 1? then ang is not initialized properly (I set it to 0 above)
 				dir = (aimAxis[ 0 ] * (1-ang*firemodeCounterPos) ) + ( aimAxis[ 2 ] * ang*firemodeCounter );
 				//upd counter
 				if(firemodeCounter >= 0){

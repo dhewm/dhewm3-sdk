@@ -178,6 +178,8 @@ namespace SourceHook
 			for (size_t i = 0; i < len; i++)
 				dummy = p[i];
 
+			(void)dummy;
+
 			g_BadReadCalled = false;
 
 			signal(SIGSEGV, prevHandler);

@@ -1,7 +1,8 @@
-#include "../idlib/precompiled.h" 
-#pragma hdrstop 
+
 #include "Game_local.h" 
+#include "Player.h"
 #include "PlayerCursor.h"
+#include "renderer/ModelManager.h"
 
 /* 
 =============== 

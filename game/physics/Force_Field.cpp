@@ -310,6 +310,7 @@ void idForce_Field::Evaluate( int time ) {
 			}
 			default: {
 				gameLocal.Error( "idForce_Field: invalid magnitude type" );
+				realMagnitude = 0.0f; // shut up about uninit variable, compiler, this code isn't reachable anyway
 				break;
 			}
 		}

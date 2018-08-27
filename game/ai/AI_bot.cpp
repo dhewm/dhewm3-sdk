@@ -1,9 +1,16 @@
 // Created by Ivan_the_B
 //
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
-#include "../Game_local.h"
+#include "Actor.h"
+#include "Entity.h"
+#include "Projectile.h"
+#include "script/Script_Thread.h"
+#include "gamesys/SysCvar.h"
+#include "Game_local.h"
+#include "Moveable.h"
+#include "AI.h"
+#include "AI_bot.h"
+
 
 /*
 ===============================================================================
@@ -807,9 +814,9 @@ void idAI_Bot::ShowOnlyCurrentWeapon( void ) {
 	for( i = 0; i < weapons.Num(); i++ ) {
 		ent = weapons[ i ].ent.GetEntity();
 		if (i == currentWeapon ) {
-			weapons[ i ].ent.GetEntity()->Show();
+			ent->Show();
 		}else{
-			weapons[ i ].ent.GetEntity()->Hide();
+			ent->Hide();
 		}
 	}
 }

@@ -130,6 +130,9 @@
 #ifdef __GNUC__ // Workaround GCC bug #8271
 	// At present, GCC doesn't recognize constness of MFPs in templates
 #define FASTDELEGATE_GCC_BUG_8271
+
+// DG: shut up about the unused typedefs
+#pragma GCC system_header
 #endif
 
 

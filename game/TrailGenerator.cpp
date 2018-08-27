@@ -1,10 +1,9 @@
 // Created by ivan_the_B
 //
 
-#include "../idlib/precompiled.h"
-#pragma hdrstop
-
+#include "TrailGenerator.h"
 #include "Game_local.h"
+#include "renderer/ModelManager.h"
 
 //uncomment those to enable debug
 //#define _DEBUG_CUSTOM_GEOM
@@ -95,7 +94,7 @@ void idTrailManager::Shutdown( void ) {
 	//deallocate all the trails that are still in memory
 	for ( int i = 0; i < MAX_TRAILS; i++ ) {
 		if( trails[ i ] ){
-			gameLocal.Warning("Someone created a trail (uid: %d), but never removed it!\TrailManager will now take care to free the memory...but check your code!", trails[ i ]->GetUniqueId() );
+			gameLocal.Warning("Someone created a trail (uid: %d), but never removed it!\nTrailManager will now take care to free the memory...but check your code!", trails[ i ]->GetUniqueId() );
 			delete trails[ i ];
 			trails[ i ] = NULL;
 		}

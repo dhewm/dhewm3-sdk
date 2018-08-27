@@ -1341,7 +1341,8 @@ idDamagingFx *idDamagingFx::StartDamagingFx( int type, idEntity *victimEnt ) {
 		nfx	= static_cast<idDamagingFx*>(ent);
 		nfx->dmgfxType = type;
 		//gameLocal.Printf("Spawned %s\n", defName );
-		StartFxUtility( nfx, &(victimEnt->GetPhysics()->GetAbsBounds().GetCenter()), &mat3_identity, victimEnt, true, false );
+		idVec3 origin = victimEnt->GetPhysics()->GetAbsBounds().GetCenter();
+		StartFxUtility( nfx, &origin, &mat3_identity, victimEnt, true, false );
 		return nfx;
 	}else{
 		gameLocal.Error( "Could not spawn idDamagingFx" );

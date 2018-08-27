@@ -6,12 +6,12 @@ for (or port Doom3 mods to) [dhewm3](https://dhewm3.org).
 It contains (mostly) the same source files as the original Doom3 SDK, but these
 are taken from dhewm3 and **are licensed under GPLv3, not the SDK license**.  
 Another small difference is that this is built using [CMake](https://cmake.org/)
-instead of SCons + VS Project files.
+instead of SCons + VS Project files.  
 This means that you need CMake to build it, but don't worry, on Windows it can
 create a Visual Studio Solution for you so you can program and compile with
 Visual Studio like you might be used to.
 
-This repository also contains ports of existing mods whose authors released
+This repository also contains ports of existing mods whichs authors released
 the source under GPL; you can find these in their own branches.
 
 ## How to build
@@ -52,7 +52,7 @@ So please get permission from the mod authors first.
 
 Yes, this unfortunately means that unless you manage to contact Sikkpin and get
 his permission, there will be no Sikkmod for dhewm3 (and neither other mods that
-use Sikkmod code) :-(
+use Sikkmod code) :-(  
 *(If you are Sikkpin, please get in touch!)*
 
 ### Getting in touch
@@ -62,5 +62,5 @@ but don't want to port it yourself (or don't have time or are unsure how)
 please contact me, I can probably help you :-)
 
 The easiest way to contact me is by creating an issue in this Github repository,
-or by sending a DM to "caedes" in the [id Tech Forums](http://idtechforums.fuzzylogicinc.com/)
-or by pinging "caedes" in the #iodoom3 IRC channel on FreeNode.
+or by sending a DM to *caedes* in the [id Tech Forums](http://idtechforums.fuzzylogicinc.com/)
+or by pinging *caedes* in the #iodoom3 IRC channel on FreeNode.

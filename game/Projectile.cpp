@@ -913,7 +913,10 @@ void idProjectile::DefaultDamageEffect( idEntity *soundEnt, const idDict &projec
 		if ( !projectileDef.GetFloat( va( "size_wound_%s", typeName ), "6.0", size ) ) { // If Material Specific decal size not found, look for default size
 			size = projectileDef.GetFloat( "size_wound", "6.0" );
 		}
-		gameLocal.ProjectDecal( collision.c.point, -collision.c.normal, 8.0f, true, size, decal );
+
+		// decals with size 0 don't make sense and even cause trouble by triggering assertions because the winding ends up broken or sth
+		if(size > 0.0f)
+			gameLocal.ProjectDecal( collision.c.point, -collision.c.normal, 8.0f, true, size, decal );
 	}
 	
 }	

@@ -73,6 +73,8 @@ typedef uint64_t Uint64;
 #endif
 #endif /* SDL_FORCE_INLINE not defined */
 
+#define SDL_static_cast(type, val)  (type)(val)
+
 #if defined(__GNUC__) && defined(__i386__) && \
    !(__GNUC__ == 2 && __GNUC_MINOR__ == 95 /* broken gcc version */)
 SDL_FORCE_INLINE Uint16

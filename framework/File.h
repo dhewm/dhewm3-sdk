@@ -35,7 +35,11 @@ If you have questions concerning this license or the applicable additional terms
 //#include "framework/Unzip.h"
 // DG: instead of getting ZPOS64_T from some zlib header (via Unzip.h)
 //     just define it here
+#ifdef _WIN32
+typedef unsigned __int64 ZPOS64_T;
+#else
 typedef uint64_t ZPOS64_T;
+#endif
 
 /*
 ==============================================================

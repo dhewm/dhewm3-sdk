@@ -3226,11 +3226,14 @@ void idEntity::AddDamageEffect( const trace_t &collision, const idVec3 &velocity
 				size = def->dict.GetFloat( "size_wound", "6.0" );
 			}
 
+			if(size > 0.0f) {
+
 #ifdef _DENTONMOD_ENTITY_CPP		
-			gameLocal.ProjectDecal( collision.c.point, -collision.c.normal, 8.0f, true, size, decal );
+				gameLocal.ProjectDecal( collision.c.point, -collision.c.normal, 8.0f, true, size, decal );
 #else
-			ProjectOverlay( collision.c.point, dir, size, decal ); // added by Clone JCD
-#endif													// Modified for custom wound size
+				ProjectOverlay( collision.c.point, dir, size, decal ); // added by Clone JCD
+#endif															// Modified for custom wound size
+			}
 		}
 	}
 

@@ -3839,6 +3839,11 @@ void idGameLocal::ProjectDecal( const idVec3 &origin, const idVec3 &dir, float d
 		return;
 	}
 
+	// DG: with size 0 we get trouble in functions called from this,
+	//     and it's harder to figure out the cause there
+	//     so just catch this here (so please fix the caller to make sure it doesn't happen)
+	assert(size > 0.0f);
+
 	// randomly rotate the decal winding
 	idMath::SinCos16( ( angle ) ? angle : random.RandomFloat() * idMath::TWO_PI, s, c );
 

@@ -4843,8 +4843,8 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		
 		if ( barrelLaunch || tracer || beam ) { // Do not execute this part unless projectile is barrel launched or has a tracer effect.
 
-			gameLocal.clip.Translation( tr, view_pos, view_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
-			traceDist = (tr.endpos - view_pos).LengthSqr();
+			gameLocal.clip.Translation( tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );	//REVILITY 2018 WAS VIEW_POS
+			traceDist = (tr.endpos - muzzle_pos).LengthSqr();	//REVILITY 2018 WAS VIEW_POS.  THIS FIXES PROJECTILES FIRED FROM THE BARREL NOT GOING TO THE CROSSHAIR
 	
 			//ivan start - fix aim
 

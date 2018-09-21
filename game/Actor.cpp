@@ -2400,7 +2400,7 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 								thread->Start(); 
 
 								//don't apply impulse
-								nextImpulse = gameLocal.time + 10;
+								nextImpulse = gameLocal.time; // was + 10 commented out 2018 revility.  Was causing frozen head shots.
 							}
 						}
 					}

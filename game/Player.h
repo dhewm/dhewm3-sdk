@@ -335,6 +335,7 @@ public:
 	int						weapon_fists;
 
 	int						heartRate;
+	int						telishield;		//revility 2018 no damage key in player def
 	idInterpolate<float>	heartInfo;
 	int						lastHeartAdjust;
 	int						lastHeartBeat;

@@ -1199,6 +1199,7 @@ idPlayer::idPlayer() {
 
 	noclip					= false;
 	godmode					= false;
+	telishield				= 0;	//added Revility 2018 for shield spells, player taking no damage 
 	//ivan start
 	animMoveNoGravity		= false; 
 	animMoveType			= ANIMMOVE_NONE;
@@ -8211,15 +8212,16 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 										}
 									}
 
-									/*
-									////REVILITY START. THIS REDUCES DAMAGE WHILE STAMINA IS RUNNING
-										if ( (usercmd.buttons & BUTTON_RUN) && stamina > 0 ) {
+
+									////REVILITY 2018 start.  No damage while the telishield key is greater than 0
+										telishield = spawnArgs.GetInt( "telishield" );
+										if ( telishield > 0 ) {
 										damage = 0;
 										//damage *= damageDef->GetFloat( "selfDamageScale", "0.5" );
 										//the above line is useful for reducing a specific % of damage.
 										}
 									////REVILITY END	
-									*/
+
 
 									// inform the attacker that they hit someone
 									attacker->DamageFeedback( this, inflictor, damage );
@@ -8885,12 +8887,12 @@ void idPlayer::CalculateFirstPersonView( void ) {
 		idAngles ang;
 
 		ang = viewBobAngles + playerView.AngleOffset();
-		ang.yaw += viewAxis[ 0 ].ToYaw();
+		ang.yaw += viewAxis[ 180 ].ToYaw();
 
-		jointHandle_t joint = animator.GetJointHandle( "camera" );
+		jointHandle_t joint = animator.GetJointHandle( "SHOTGUN_ATTACHER" );	//now set to an actual joint on the player model Revility 2018.  This moves the line to draw the crosshair closer to the weapon.
 		animator.GetJointTransform( joint, gameLocal.time, origin, axis );
 		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
-		firstPersonViewAxis = axis * ang.ToMat3() * physicsObj.GetGravityAxis();
+		firstPersonViewAxis = renderView->viewaxis;	//changed to the axis of the camera and not the bone. Revility 2018
 	} else {
 		// offset for local bobbing and kicks
 		GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );

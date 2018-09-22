@@ -4845,7 +4845,8 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 
 			gameLocal.clip.Translation( tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );	//REVILITY 2018 WAS VIEW_POS
 			traceDist = (tr.endpos - muzzle_pos).LengthSqr();	//REVILITY 2018 WAS VIEW_POS.  THIS FIXES PROJECTILES FIRED FROM THE BARREL NOT GOING TO THE CROSSHAIR
-	
+			//Launching projectiles now always comes from the thirdperson weapon's barrel model... even in first person.  Direction is always towards Thirdperson crosshair.
+			//Launchfrombarrel should be set to 0 in weapon defs.  setting to 1 is no longer needed.
 			//ivan start - fix aim
 
 			// Problem: muzzleDistFromView is the dist from muzzle and viewpos. 

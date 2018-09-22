@@ -335,7 +335,7 @@ public:
 	int						weapon_fists;
 
 	int						heartRate;
-	int						telishield;		//revility 2018 no damage key in player def
+	int						telishield;		//player def key.  used in player script to change animations.
 	idInterpolate<float>	heartInfo;
 	int						lastHeartAdjust;
 	int						lastHeartBeat;

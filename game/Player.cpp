@@ -1199,7 +1199,7 @@ idPlayer::idPlayer() {
 
 	noclip					= false;
 	godmode					= false;
-	telishield				= 0;	//added Revility 2018 for shield spells, player taking no damage 
+	telishield				= 1;	//added Revility 2018 for shield spells, player taking no damage 
 	//ivan start
 	animMoveNoGravity		= false; 
 	animMoveType			= ANIMMOVE_NONE;
@@ -3129,8 +3129,8 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 		_hud->HandleNamedEvent( "armorPulse" );
 		inventory.armorPulse = false;
 	}
-
-	if(weapon.GetEntity()->GetIsFiring() || weapon.GetEntity()->GetIsSecFiring() || force_torso_override || (usercmd.buttons & BUTTON_RUN)  ){ //firing or combo
+	//2018 update.  show the hud when pressing the run key or zoom key... now both changed to walk and shield
+	if(weapon.GetEntity()->GetIsFiring() || weapon.GetEntity()->GetIsSecFiring() || force_torso_override || (usercmd.buttons & BUTTON_RUN) || (usercmd.buttons & BUTTON_ZOOM) ){ //firing or combo
 		_hud->HandleNamedEvent( "weaponFiringOrCombo" );
 	}
 
@@ -3377,7 +3377,7 @@ void idPlayer::UpdateConditions( void ) {
 		AI_STRAFE_RIGHT	= false;
 	}
 
-	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ) && ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) );
+	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ); // || (( usercmd.buttons & BUTTON_ZOOM ) && ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) ));	//2018 update. Zoom key now uses stamina, run key does not because it is a walk animation now.
 	AI_DEAD			= ( health <= 0 );
 		//ivan start
 	/*
@@ -7012,12 +7012,16 @@ void idPlayer::AdjustSpeed( void ) {
 	} else if ( noclip ) {
 		speed = pm_noclipspeed.GetFloat();
 		bobFrac = 0.0f;
-	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) ) {
+	} else if (( usercmd.buttons & BUTTON_ZOOM ) ) {	//2018 revility update.  holding zoom key now is the only thing to trigger loosing stamina for the shield spell
 		if ( !gameLocal.isMultiplayer && !physicsObj.IsCrouching() && !PowerUpActive( ADRENALINE ) ) {
 			stamina -= MS2SEC( gameLocal.msec );
+		spawnArgs.Set( "telishield", "1" );		//rev 2018 used in code to change skin and animations for shield spell				
+		SetState( "UpdateSkin" );	//New state added to player script.  changes the player's skin
 		}
 		if ( stamina < 0 ) {
 			stamina = 0;
+		spawnArgs.Set( "telishield", "0" );	//rev 2018 
+		SetState( "UpdateSkin" );
 		}
 		if ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) ) {
 			bobFrac = 1.0f;
@@ -7025,16 +7029,17 @@ void idPlayer::AdjustSpeed( void ) {
 			bobFrac = 0.0f;
 		} else {
 			bobFrac = stamina / pm_staminathreshold.GetFloat();
-		}
-		speed = pm_walkspeed.GetFloat() * ( 1.0f - bobFrac ) + pm_runspeed.GetFloat() * bobFrac;
+		}		
+		speed = pm_walkspeed.GetFloat();
+		//speed = pm_walkspeed.GetFloat() * ( 1.0f - bobFrac ) + pm_runspeed.GetFloat() * bobFrac;	//Rev 2018 Don't walk while using the shield spell unless we are holding the aim walk key
 	} else {
 		rate = pm_staminarate.GetFloat();
-
+		spawnArgs.Set( "telishield", "0" );	//rev 2018 
+		SetState( "UpdateSkin" );
 		// increase 25% faster when not moving
 		if ( ( usercmd.forwardmove == 0 ) && ( usercmd.rightmove == 0 ) && ( !physicsObj.OnLadder() || ( usercmd.upmove == 0 ) ) ) {
 			 rate *= 1.25f;
 		}
-
 		stamina += rate * MS2SEC( gameLocal.msec );
 		if ( stamina > pm_stamina.GetFloat() ) {
 			stamina = pm_stamina.GetFloat();
@@ -7042,13 +7047,16 @@ void idPlayer::AdjustSpeed( void ) {
 		speed = pm_walkspeed.GetFloat();
 		bobFrac = 0.0f;
 	}
-
+	//revility 2018 moved outside of the stamina stuff because run key is now aim walk.
+	if ( usercmd.buttons & BUTTON_RUN ) {
+		speed = pm_runspeed.GetFloat();
+	}
+	
 	speed *= PowerUpModifier(SPEED);
 
 	if ( influenceActive == INFLUENCE_LEVEL3 ) {
 		speed *= 0.33f;
 	}
-
 	physicsObj.SetSpeed( speed, pm_crouchspeed.GetFloat() );
 }
 /*
@@ -8213,13 +8221,14 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 									}
 
 
-									////REVILITY 2018 start.  No damage while the telishield key is greater than 0
+									////REVILITY 2018 start.
 										telishield = spawnArgs.GetInt( "telishield" );
-										if ( telishield > 0 ) {
+										if ( (usercmd.buttons & BUTTON_ZOOM) && stamina > 0 ) {
+										//if ( telishield > 0 ) {	// we no longer have to check this key to trigger damage stopping...
 										damage = 0;
 										//damage *= damageDef->GetFloat( "selfDamageScale", "0.5" );
 										//the above line is useful for reducing a specific % of damage.
-										}
+										}																		
 									////REVILITY END	
 
 

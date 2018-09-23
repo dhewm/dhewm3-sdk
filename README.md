@@ -1,4 +1,4 @@
-# dhewm3 Mod SDK
+# dhewm3 Mod SDK For Scarlet Rivensin: The Ruiner
 
 This repository contains an SDK that can be used to create modifications ("mods")
 for (or port Doom3 mods to) [dhewm3](https://dhewm3.org).

@@ -70,54 +70,6 @@ void idPlayerCursor::Draw( const idVec3 &origin, const idMat3 &axis,const char *
 	//linearly interpolate 5 feet between the camera position and the point at which the weapon is aiming 
 	endPos.Lerp(cameraOrigin,endPos,length); 
 
-	/*
-	//ivan start
-	idVec3 localDir;
-	idVec3 dir;
-	dir = endPos - cameraOrigin; //vettore da camera a dest
-	dir.NormalizeFast();
-	cameraAxis.ProjectVector( dir, localDir ); //proietto su piano telecamera
-
-	idAngles destLookAng;
-	destLookAng = (endPos - cameraOrigin).ToAngles().Normalize180();
-
-	idAngles cameraLookAng;
-	cameraLookAng = cameraAxis.ToAngles().Normalize180();
-
-	//fix
-	if( destLookAng[0] < -70 ){ //if it goes beyond this value all is wrong! Don't know why. 
-		destLookAng[1] = 90;
-		cameraLookAng[1] = 89;
-	}
-
-	idAngles deltaLookAng;
-	deltaLookAng = (destLookAng - cameraLookAng).Normalize180();
-
-	gameLocal.Printf("destLookAng: %s\n", destLookAng.ToString() );
-	gameLocal.Printf("cameraLookAng: %s\n", cameraLookAng.ToString() );
-	gameLocal.Printf("delta: %s\n", deltaLookAng.ToString() );
-	//x: lungo su/giù retta. 0 = centro, pos = mirino sotto, neg = mirino sopra
-	//y: pos = quanto sx
-	//z: 0
-
-	int cposx = (int) (320 - 320 * ( deltaLookAng[1] / 90.0f ));
-	int cposy = (int) (240 + 240 * ( deltaLookAng[0] / 45.0f ));
-
-	gameLocal.Printf("cposx: %d, cposy: %d\n", cposx, cposy );
-
-	localPlayer->cursor->SetStateInt( "cposx", cposx );
-	localPlayer->cursor->SetStateInt( "cposy", cposy );
-	localPlayer->cursor->StateChanged( gameLocal.time );
-
-
-	//red: weapon
-	gameRenderWorld->DebugLine( colorRed, origin, endPos, gameLocal.msec );
-	//yellow: camera
-	gameRenderWorld->DebugLine( colorYellow, origin , cameraOrigin + cameraAxis[ 0 ] * 64.0f, gameLocal.msec );
-
-	//ivan end
-	*/
-
 	if ( !CreateCursor(localPlayer, endPos, cameraAxis,material )) { 
 	  UpdateCursor(localPlayer,  endPos, cameraAxis); 
 	} 

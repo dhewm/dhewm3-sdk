@@ -1,7 +1,10 @@
 # dhewm3 Mod SDK For Scarlet Rivensin: The Ruiner
+Websites:
+https://www.moddb.com/mods/ruiner
+https://rivensin.tumblr.com/
 
-This repository contains an SDK that can be used to create modifications ("mods")
-for (or port Doom3 mods to) [dhewm3](https://dhewm3.org).
+This repository contains an SDK that can be used to create the Rivensin modification ("mod")
+for [dhewm3](https://dhewm3.org).
 
 It contains (mostly) the same source files as the original Doom3 SDK, but these
 are taken from dhewm3 and **are licensed under GPLv3, not the SDK license**.  
@@ -11,8 +14,43 @@ This means that you need CMake to build it, but don't worry, on Windows it can
 create a Visual Studio Solution for you so you can program and compile with
 Visual Studio like you might be used to.
 
-This repository also contains ports of existing mods whichs authors released
-the source under GPL; you can find these in their own branches.
+Over a dozen plus files are different from the original sdk.  Some features include:
++improvements to thirdperson camera
++Improved collision based melee combat system
++"special move" style inputs for player attacks similar to fighting games
++Movement Directional based attacks
++Dashing, dodging and wall jumping using the the new input system mentioned above.
++trigger Full body animations for player model
++Increase damage of attacks during animations frames
++Updates to using ammo and sharing ammo across weapons
++Proper third person crosshair for Doom3.  
++Head shot system for enemies.
++Player can cast a shield around themselves which uses the old stamina gauge system
++HDR lighting with bloom and shift sensitvity. This is a modified version of Denton's HDR system.
++Improved ambient lighting using a modified Rebb's ambient lights shader.  However this is not apart of the sdk and part of the game itself.
++Doom3: ROE grabber "gravity gun"
++Dynamic spread for weapons based upon whether the player is moving, croushing, running and walking
++Walk aim mechanic which also triggers the camera to zoom in while active
++Interact "use" key
++High Pain "stunning" for enemies.
++Per weapon based zooming
++Many improvements from the Doom 3 Denton mod, which is on Dhewm 3.
+      -Attachment system for lights and particles to weapons 
+      -New ultra quality yet highly scalable(DX9+ only) bloom shader with HDR like shift sensitivity.
+      -Material based decals, particles and sound effects.
+      -New blood splat and blood pool decals system
+      -Enemies can leave behind trails of blood when damaged.
+      -Improved behavior of exploding and burning barrels
+      -Lots of bug fixes, improvements and optimizations
+      -All new tracer logic for creating tracers and beams
+      -Support for up to 32 weapons with shared ammo considerations.
+      -Half-Life style quick weapon key.
+      -Improved Gibbing system.
+      -Tweaked ragdolls react to explosions, now an explosion can throw animated bodies in air.
+      -Physics based collision sounds for debris.
+      -Many improvements for Damage feedback.
+      
+Please note that this is a thirdperson modification for Dhewm 3.  Many first person features have been disabled or commented out of the sdk and also in the game's assets and scripts.  Many first person models will not physically appear as well.  Most vanilla Doom 3 campaign levels will not load in the mod.  However with the 2018 update custom maps are supported.  It is possible to use sdk and apply many of the features added to a first person mod.
 
 ## How to build
 

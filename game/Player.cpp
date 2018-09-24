@@ -930,7 +930,7 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 				continue;
 			}
 
-			if ( !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || ( weaponName == "weapon_fists" ) || ( weaponName == "weapon_soulcube" ) ) {
+			if ( !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || ( weaponName == "weapon_fists" ) || ( weaponName == "weapon_giltine" )) { //Rev 2018
 				if ( ( weapons & ( 1 << i ) ) == 0 || gameLocal.isMultiplayer ) {
 
 					if ( owner->hud && updateHud && lastGiveTime + 1000 < gameLocal.time ) {
@@ -1516,7 +1516,7 @@ void idPlayer::Init( void ) {
 	quickWeapon				= -1; //new
 	weaponSwitchTime		= 0;
 	weaponEnabled			= true;
-	weapon_soulcube			= SlotForWeapon( "weapon_soulcube" );
+	weapon_soulcube			= SlotForWeapon ( "weapon_soulcube" ) && ( "weapon_giltine" ); //Rev 2018
 	weapon_pda				= SlotForWeapon( "weapon_pda" );
 	weapon_fists			= SlotForWeapon( "weapon_fists" );
 	showWeaponViewModel		= GetUserInfo()->GetBool( "ui_showGun" );

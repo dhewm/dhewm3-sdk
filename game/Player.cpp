@@ -51,7 +51,7 @@ const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range 
 /*
 ===============================================================================
 
-Player control of the Doom Marine.
+Player control.
 This object handles all player movement and world interaction.
 
 ===============================================================================
@@ -156,8 +156,6 @@ EVENT( EV_Weapon_StartParticle,			idPlayer::Event_StartWeaponParticle )	//proxy 
 EVENT( EV_Weapon_StopParticle,			idPlayer::Event_StopWeaponParticle )	//proxy for weapon
 EVENT( EV_Weapon_StartAutoMelee,		idPlayer::Event_StartAutoMelee )		//proxy for weapon
 EVENT( EV_Weapon_StopAutoMelee,			idPlayer::Event_StopAutoMelee )			//proxy for weapon
-//EVENT( EV_Weapon_StartMeleeBeam,		idPlayer::Event_StartMeleeBeam )		//proxy for weapon
-//EVENT( EV_Weapon_StopMeleeBeam,			idPlayer::Event_StopMeleeBeam )			//proxy for weapon
 EVENT( EV_Player_DropWeapon,			idPlayer::Event_DropWeapon) 
 EVENT( EV_Player_HudEvent,				idPlayer::Event_HudEvent) 
 EVENT( EV_Player_SetHudParm,			idPlayer::Event_SetHudParm) 
@@ -934,13 +932,6 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 
 			if ( !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || ( weaponName == "weapon_fists" ) || ( weaponName == "weapon_soulcube" ) ) {
 				if ( ( weapons & ( 1 << i ) ) == 0 || gameLocal.isMultiplayer ) {
-					/*
-					//commented out by ivan: picked up weapon is now selected in idPlayer::AddWeaponToSlots
-					if ( owner->GetUserInfo()->GetBool( "ui_autoSwitch" ) && idealWeapon ) {
-						assert( !gameLocal.isClient );
-						*idealWeapon = i;
-					}
-					*/
 
 					if ( owner->hud && updateHud && lastGiveTime + 1000 < gameLocal.time ) {
 						owner->hud->SetStateInt( "newWeapon", i );
@@ -1020,31 +1011,6 @@ int idInventory::NumWeapForAmmoType( const idDict &spawnArgs, ammo_t ammoType ) 
 			} 
 		}
 	}
-
-
-	/*
-	const char *weap;
-	int w; 
-	int s;
-	int numfound = 0;
-
-	s = NUM_SLOTS;
-	while( s > 0 ) {
-		s--; 
-
-		w = weaponSlot[s];
-		if( w == -1 ){ //slot is empty
-			continue;
-		}
-
-		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		tempAmmoType = AmmoIndexForWeaponClass( weap, NULL );
-
-		if( tempAmmoType == ammoType ) numfound++;
-	}
-	*/
-	
-	//gameLocal.Printf("number of weapons with same ammo type: %d\n", numfound );
 	return numfound;
 }
 
@@ -1199,7 +1165,7 @@ idPlayer::idPlayer() {
 
 	noclip					= false;
 	godmode					= false;
-	telishield				= 1;	//added Revility 2018 for shield spells, player taking no damage 
+	telishield				= 1;	//added Rev 2018 for shield spell
 	//ivan start
 	animMoveNoGravity		= false; 
 	animMoveType			= ANIMMOVE_NONE;
@@ -1756,34 +1722,7 @@ void idPlayer::Init( void ) {
 	}
 
 	cvarSystem->SetCVarBool( "ui_chat", false );
-
-	/*
-	//ivan start from hq2
-	health_lost				= 0;
-	save_walk_dir			= false;
-	keep_walk_dir			= false;
-	old_viewAngles_yaw		= 0.0f;
-	fw_toggled				= false;
-	fw_inverted				= false;
-	viewPos					= 0.0f;
-	lockedXpos				= 0.0f;
-	isXlocked				= true;
-	blendModelYaw			= false;
-	forcedMovIncreasingX	= false;
-	forcedMovCanBeAborted	= false;
-	forcedMovTotalForce		= false;
-	forcedMovAborted		= false;
-	forcedMovDelta			= vec3_zero;
-	forcedMovOldOrg			= vec3_zero;
-	forcedMovTarget			= NULL;
-	skipCameraZblend		= true; //force instant update first frame
-	enableCameraYblend		= false;
-	forceCameraY			= false;
-	inhibitInputTime		= 0;
-	inhibitAimCrouchTime	= 0;
-	forcedCameraYpos		= 0.0f;
-	//ivan end
-	*/
+	
 }
 
 /*
@@ -3129,7 +3068,7 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 		_hud->HandleNamedEvent( "armorPulse" );
 		inventory.armorPulse = false;
 	}
-	//2018 update.  show the hud when pressing the run key or zoom key... now both changed to walk and shield
+	//rev 2018 show the hud when pressing the run key or zoom key.
 	if(weapon.GetEntity()->GetIsFiring() || weapon.GetEntity()->GetIsSecFiring() || force_torso_override || (usercmd.buttons & BUTTON_RUN) || (usercmd.buttons & BUTTON_ZOOM) ){ //firing or combo
 		_hud->HandleNamedEvent( "weaponFiringOrCombo" );
 	}
@@ -3176,15 +3115,8 @@ void idPlayer::UpdateHudWeapon( bool flashWeapon ) {
 
 	//ivan start - upd weapon mode
 	if ( idealWeapon >= 0 ) {
-		//hud->SetStateInt( va( "mode_weapon%d", currentWeapon ), (inventory.weapon_mode[currentWeapon] ) );
 		hud->SetStateInt("current_weapon_mode", (inventory.weapon_mode[idealWeapon] ) );
 	}
-
-	/*
-	if( flashMode ){
-		hud->HandleNamedEvent( "modeChange" );
-	}
-	*/
 	//ivan end
 
 	if ( flashWeapon ) {
@@ -3377,20 +3309,8 @@ void idPlayer::UpdateConditions( void ) {
 		AI_STRAFE_RIGHT	= false;
 	}
 
-	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ); // || (( usercmd.buttons & BUTTON_ZOOM ) && ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) ));	//2018 update. Zoom key now uses stamina, run key does not because it is a walk animation now.
+	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ); //Rev 2018 Run does not use stamina gauge
 	AI_DEAD			= ( health <= 0 );
-		//ivan start
-	/*
-	if( weapon.GetEntity() ){
-		AI_RUN		= !( weapon.GetEntity()->GetIsFiring() || weapon.GetEntity()->GetIsSecFiring());
-	}else{
-		AI_RUN		= true;
-	}*/
-	
-
-	//AI_RUN = ( weapon.GetEntity() ) ? (!weapon.GetEntity()->HasToWalk()) : true;	/// commented out in 2018 Rev
-	//ivan end
-
 
 }
 
@@ -3795,7 +3715,6 @@ bool idPlayer::GiveItem( idItem *item ) {
 
 	// display the pickup feedback on the hud
 	if ( gave && ( numPickup == inventory.pickupItemNames.Num() ) ) {
-		//		inventory.AddPickupName( item->spawnArgs.GetString( "inv_name" ), item->spawnArgs.GetString( "inv_icon" ) );
 		inventory.AddPickupName( item->spawnArgs.GetString( "inv_name" ), item->spawnArgs.GetString( "inv_icon" ), this ); //New _D3XP
 
 	}
@@ -4506,13 +4425,6 @@ void idPlayer::NextWeapon( void ) {
 
 		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
 
-		/*
-		//the following should be already assured by slots
-		if ( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) ) {
-			continue;
-		}
-		*/
-
 		if ( !weap[ 0 ] ) {
 			continue;
 		}
@@ -4532,37 +4444,6 @@ void idPlayer::NextWeapon( void ) {
 			break;
 		}
 	}
-
-	/* was:
-	w = idealWeapon;
-	while( 1 ) {
-		w++;
-		if ( w >= MAX_WEAPONS ) {
-			w = 0;
-		}
-		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if ( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) ) {
-			continue;
-		}
-		if ( !weap[ 0 ] ) {
-			continue;
-		}
-		if ( ( inventory.weapons & ( 1 << w ) ) == 0 ) {
-			continue;
-		}
-
-		//ivan start - allow selecting empty weapons
-		if ( spawnArgs.GetBool( va( "weapon%d_allowempty", w ) ) ) {
-			break;
-		}
-		//ivan end
-
-		if ( inventory.HasAmmo( weap, true, this ) ) {//new 
-			//		if ( inventory.HasAmmo( weap ) ) {
-			break;
-		}
-	}
-	*/
 	//ivan end
 
 	if ( ( w != currentWeapon ) && ( w != idealWeapon ) ) {
@@ -4617,13 +4498,6 @@ void idPlayer::PrevWeapon( void ) {
 	
 		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
 
-		/*
-		//the following should be already assured by slots
-		if ( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) ) {
-			continue;
-		}
-		*/
-
 		if ( !weap[ 0 ] ) {
 			continue;
 		}
@@ -4643,31 +4517,6 @@ void idPlayer::PrevWeapon( void ) {
 			break;
 		}
 	}
-
-	/* was:
-	w = idealWeapon;
-	while( 1 ) {
-		w--;
-		if ( w < 0 ) {
-			w = MAX_WEAPONS - 1;
-		}
-		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
-		if ( !spawnArgs.GetBool( va( "weapon%d_cycle", w ) ) ) {
-			continue;
-		}
-		if ( !weap[ 0 ] ) {
-			continue;
-		}
-		if ( ( inventory.weapons & ( 1 << w ) ) == 0 ) {
-			continue;
-		}
-
-		if ( inventory.HasAmmo( weap, true, this ) ) { //new
-			//if ( inventory.HasAmmo( weap ) ) { 
-			break;
-		}
-	}
-	*/
 
 	//ivan end
 
@@ -7012,7 +6861,7 @@ void idPlayer::AdjustSpeed( void ) {
 	} else if ( noclip ) {
 		speed = pm_noclipspeed.GetFloat();
 		bobFrac = 0.0f;
-	} else if (( usercmd.buttons & BUTTON_ZOOM ) ) {	//2018 revility update.  holding zoom key now is the only thing to trigger loosing stamina for the shield spell
+	} else if (( usercmd.buttons & BUTTON_ZOOM ) ) {	//Rev 2018.  holding zoom key now is the only thing to trigger loosing stamina for the shield spell
 		if ( !gameLocal.isMultiplayer && !physicsObj.IsCrouching() && !PowerUpActive( ADRENALINE ) ) {
 			stamina -= MS2SEC( gameLocal.msec );
 		spawnArgs.Set( "telishield", "1" );		//rev 2018 used in code to change skin and animations for shield spell				
@@ -7047,7 +6896,7 @@ void idPlayer::AdjustSpeed( void ) {
 		speed = pm_walkspeed.GetFloat();
 		bobFrac = 0.0f;
 	}
-	//revility 2018 moved outside of the stamina stuff because run key is now aim walk.
+	//rev 2018 moved outside of the stamina stuff running is not associated with stamina gauge anymore.
 	if ( usercmd.buttons & BUTTON_RUN ) {
 		speed = pm_runspeed.GetFloat();
 	}
@@ -7059,40 +6908,6 @@ void idPlayer::AdjustSpeed( void ) {
 	}
 	physicsObj.SetSpeed( speed, pm_crouchspeed.GetFloat() );
 }
-/*
-//Commented out in 2018 by Rev
-void idPlayer::AdjustSpeed( void ) {
-	float speed;
-	//float rate;
-
-	if ( spectating ) {
-		speed = pm_spectatespeed.GetFloat();
-		bobFrac = 0.0f;
-	} else if ( noclip ) {
-		speed = pm_noclipspeed.GetFloat();
-		bobFrac = 0.0f;
-	}
-	//ivan start
-	else {
-		speed = pm_walkspeed.GetFloat();
-		bobFrac = 0.0f;
-
-		//weapon based walk speed
-		//if( weapon.GetEntity() ){
-			//speed *= weapon.GetEntity()->GetWalkSpeedMult();
-		//}
-	}
-	//ivan end
-	
-	speed *= PowerUpModifier(SPEED);
-
-	if ( influenceActive == INFLUENCE_LEVEL3 ) {
-		speed *= 0.33f;
-	}
-
-	physicsObj.SetSpeed( speed, pm_crouchspeed.GetFloat() );
-}
-*/
 
 /*
 ==============
@@ -7662,8 +7477,8 @@ void idPlayer::Think( void ) {
 	}
 
 	// zooming
-	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_RUN ) { //Updated Rev 2018 for walk aiming.  We want the zoom to trigger when pressing the Run key...  which is now walking
-		if ( ( usercmd.buttons & BUTTON_RUN ) && weapon.GetEntity() ) { //Updated Rev 2018 for walk aiming
+	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_RUN ) { //Rev 2018 for walk aiming.  trigger zooming when pressing run button
+		if ( ( usercmd.buttons & BUTTON_RUN ) && weapon.GetEntity() ) { //Rev 2018 
 			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
 		} else {
 			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
@@ -8220,17 +8035,14 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 										}
 									}
 
-
-									////REVILITY 2018 start.
+									//REV 2018 start.
 										telishield = spawnArgs.GetInt( "telishield" );
 										if ( (usercmd.buttons & BUTTON_ZOOM) && stamina > 0 ) {
-										//if ( telishield > 0 ) {	// we no longer have to check this key to trigger damage stopping...
+										//if ( telishield > 0 ) {	// we no longer have to check this to trigger damage stopping...
 										damage = 0;
 										//damage *= damageDef->GetFloat( "selfDamageScale", "0.5" );
 										//the above line is useful for reducing a specific % of damage.
 										}																		
-									////REVILITY END	
-
 
 									// inform the attacker that they hit someone
 									attacker->DamageFeedback( this, inflictor, damage );
@@ -8580,10 +8392,10 @@ float idPlayer::CalcFov( bool honorZoom ) {
 
 #ifdef _DENTONMOD_PLAYER_CPP
 	if ( zoomFov.IsDone( gameLocal.time ) ) {
-		fov = ( honorZoom && ((usercmd.buttons & BUTTON_RUN) || weaponZoom.startZoom )) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD	//Updated Rev 2018 for walk aiming
+		fov = ( honorZoom && ((usercmd.buttons & BUTTON_RUN) || weaponZoom.startZoom )) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD	//Updated Rev 2018
 #else
 	if ( zoomFov.IsDone( gameLocal.time ) ) {
-		fov = ( honorZoom && (usercmd.buttons & BUTTON_RUN)) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD //Updated Rev 2018 for walk aiming
+		fov = ( honorZoom && (usercmd.buttons & BUTTON_RUN)) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov(); // Updated By Clone JCD //Updated Rev 2018
 #endif// _DENTONMOD_PLAYER_CPP
 	} else {
 		fov = zoomFov.GetCurrentValue( gameLocal.time );
@@ -8802,10 +8614,10 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 
 	idMath::SinCos( DEG2RAD( angle ), sideScale, forwardScale );
 	view -= range * forwardScale * renderView->viewaxis[ 0 ];
-//// REVILITY START ALLOWS THE THIRDPERSON CAMERA TO BE OFFSET LEFT TO RIGHT
-	//view += range * sideScale * renderView->viewaxis[ 1 ];	
+	
+	//Rev move thirdperson camera sideways cvar	
 	view += range * (pm_thirdPersonSideScale.GetFloat()) * renderView->viewaxis[ 1 ];
-////REVILITY END
+	//Rev end
 
 	if ( clip ) {
 		// trace a ray from the origin to the viewpoint to make sure the view isn't
@@ -8898,10 +8710,10 @@ void idPlayer::CalculateFirstPersonView( void ) {
 		ang = viewBobAngles + playerView.AngleOffset();
 		ang.yaw += viewAxis[ 180 ].ToYaw();
 
-		jointHandle_t joint = animator.GetJointHandle( "SHOTGUN_ATTACHER" );	//now set to an actual joint on the player model Revility 2018.  This moves the line to draw the crosshair closer to the weapon.
+		jointHandle_t joint = animator.GetJointHandle( "SHOTGUN_ATTACHER" );	//rev 2018. origin of crossline when pm_modelview is 1.
 		animator.GetJointTransform( joint, gameLocal.time, origin, axis );
 		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
-		firstPersonViewAxis = renderView->viewaxis;	//changed to the axis of the camera and not the bone. Revility 2018
+		firstPersonViewAxis = renderView->viewaxis;	//Rev 2018 changed to the axis of the camera and not the bone. 
 	} else {
 		// offset for local bobbing and kicks
 		GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );
@@ -10303,25 +10115,6 @@ bool idPlayer::WeaponAvailable( const char* name ) {
 	return false;
 }
 
-/*  
-=================
-idPlayer::GetCurrentWeapon			//New
-=================
-
-idStr idPlayer::GetCurrentWeapon() {
-const char *weapon;
-
-if ( currentWeapon >= 0 ) {
-weapon = spawnArgs.GetString( va( "def_weapon%d", currentWeapon ) );
-return weapon;
-} else {
-return "";
-}
-}
-*/
-
-//Ivan start
-
 /*
 ===============
 idPlayer::IsComboActive
@@ -10475,8 +10268,6 @@ idPlayer::Event_StartWeaponParticle
 void idPlayer::Event_StartWeaponParticle( const char* prtName ) {	
 	if ( weapon.GetEntity() ) {
 		weapon.GetEntity()->StartWeaponParticle( prtName );
-
-		//weapon.GetEntity()->ProcessEvent( &EV_Weapon_StartWeaponParticle, "ruinblade_prt1" );
 	}
 }
 
@@ -10512,34 +10303,6 @@ void idPlayer::Event_StopAutoMelee( void ) {
 		weapon.GetEntity()->StopAutoMelee();
 	}
 }
-
-/*
-=====================
-idPlayer::Event_StartMeleeBeam
-=====================
-
-void idPlayer::Event_StartMeleeBeam( int num ) {  
-	if ( weapon.GetEntity() ) {
-		weapon.GetEntity()->StartMeleeBeam( num );
-	}
-}
-*/
-
-/*
-=====================
-idPlayer::Event_StopMeleeBeam
-=====================
-
-void idPlayer::Event_StopMeleeBeam( void ) {
-	if ( weapon.GetEntity() ) {
-		weapon.GetEntity()->StopMeleeBeam();
-	}
-}
-*/
-
-//ivan end
-
-//ivan test
 
 /*
 =====================
@@ -10809,14 +10572,6 @@ void idPlayer::ShowPossibleInteract( int flags ){
 	if( flags & INTERACT_IMPULSE ){ 
 		hud->HandleNamedEvent( "interactImpulse" );
 	}
-	/*
-	if( flags & INTERACT_UP ){ 
-		hud->HandleNamedEvent( "interactUp" );
-	}
-	if( flags & INTERACT_DOWN ){ 
-		hud->HandleNamedEvent( "interactDown" );
-	} 
-	*/
 }
 
 //ivan test end

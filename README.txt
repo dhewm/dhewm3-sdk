@@ -15,6 +15,7 @@ create a Visual Studio Solution for you so you can program and compile with
 Visual Studio like you might be used to.
 
 Over a dozen plus files are different from the original sdk.  Some features include:
+
 +improvements to thirdperson camera
 +Improved collision based melee combat system
 +"special move" style inputs for player attacks similar to fighting games
@@ -36,7 +37,7 @@ Over a dozen plus files are different from the original sdk.  Some features incl
 +Per weapon based zooming
 +Many improvements from the Doom 3 Denton mod, which is on Dhewm 3.
       -Attachment system for lights and particles to weapons 
-      -New ultra quality yet highly scalable(DX9+ only) bloom shader with HDR like shift sensitivity.
+      -New ultra quality yet highly scalable (DX9+ only) bloom shader with HDR like shift sensitivity.
       -Material based decals, particles and sound effects.
       -New blood splat and blood pool decals system
       -Enemies can leave behind trails of blood when damaged.
@@ -86,12 +87,7 @@ Also, the CMakeLists.txt file must be adjusted (see the dentonmod branch for exa
 Please note that currently I only accept mods that are released under the
 GPL license - the one used by Open Source Doom3 (i.e. *not* only the Doom3 SDK license) -
 because neither the GPL nor the SDK license allow merging code from both licenses.  
-So please get permission from the mod authors first.
-
-Yes, this unfortunately means that unless you manage to contact Sikkpin and get
-his permission, there will be no Sikkmod for dhewm3 (and neither other mods that
-use Sikkmod code) :-(  
-*(If you are Sikkpin, please get in touch!)*
+So please get permission from the mod authors first
 
 ### Getting in touch
 

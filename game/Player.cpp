@@ -7890,7 +7890,7 @@ void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 	animator.ClearAllJoints();
 
 	if ( StartRagdoll() ) {
-		pm_modelView.SetInteger( 0 );
+		pm_modelView.SetInteger( 1 );	//rev 2018 always keep on.  remove this?
 		minRespawnTime = gameLocal.time + RAGDOLL_DEATH_TIME;
 		maxRespawnTime = minRespawnTime + MAX_RESPAWN_TIME;
 	} else {
@@ -8700,7 +8700,7 @@ idPlayer::CalculateFirstPersonView
 ===============
 */
 void idPlayer::CalculateFirstPersonView( void ) {
-	if ( ( pm_modelView.GetInteger() == 1 ) || ( ( pm_modelView.GetInteger() == 2 ) && ( health <= 0 ) ) ) {
+	if ( ( pm_modelView.GetInteger() == 1 ) || ( ( pm_modelView.GetInteger() == 2 ) ) ) { //rev 2018 removed && ( health <= 0 ) cross hair origin fix
 		//	Displays the view from the point of view of the "camera" joint in the player model
 
 		idMat3 axis;
@@ -8785,6 +8785,7 @@ void idPlayer::CalculateRenderView( void ) {
 			}
 		} else if ( pm_thirdPerson.GetBool() ) {
 			OffsetThirdPersonView( pm_thirdPersonAngle.GetFloat(), pm_thirdPersonRange.GetFloat(), pm_thirdPersonHeight.GetFloat(), pm_thirdPersonClip.GetBool() );
+			cvarSystem->SetCVarInteger( "pm_modelView", 1 );	//Rev 2018. Cross hair origin fix.  Would reset everytime a map loads without this.
 		} else if ( pm_thirdPersonDeath.GetBool() ) {
 			range = gameLocal.time < minRespawnTime ? ( gameLocal.time + RAGDOLL_DEATH_TIME - minRespawnTime ) * ( 120.0f / RAGDOLL_DEATH_TIME ) : 120.0f;
 			OffsetThirdPersonView( 0.0f, 20.0f + range, 0.0f, false );

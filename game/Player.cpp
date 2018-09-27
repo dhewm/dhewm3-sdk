@@ -1200,6 +1200,7 @@ idPlayer::idPlayer() {
 	noclip					= false;
 	godmode					= false;
 	telishield				= 1;	//added Revility 2018 for shield spells, player taking no damage 
+	crossHairOrigin			= 1;	//rev 2018
 	//ivan start
 	animMoveNoGravity		= false; 
 	animMoveType			= ANIMMOVE_NONE;
@@ -8996,6 +8997,14 @@ void idPlayer::CalculateRenderView( void ) {
 	if ( g_showviewpos.GetBool() ) {
 		gameLocal.Printf( "%s : %s\n", renderView->vieworg.ToString(), renderView->viewaxis.ToAngles().ToString() );
 	}
+//Rev 2018 start 
+crossHairOrigin = cvarSystem->GetCVarInteger( "pm_crossHairOrigin" );
+if ( crossHairOrigin > 0 ) {
+	cvarSystem->SetCVarInteger(	"pm_modelview", 1 );
+} else {
+	cvarSystem->SetCVarInteger(	"pm_modelview", 0 );
+	}
+//Rev 2018 end	
 }
 
 #ifdef USE_AIM_DIR_FIX

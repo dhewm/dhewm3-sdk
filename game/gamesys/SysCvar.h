@@ -204,6 +204,7 @@ extern idCVar	pm_modelView;
 extern idCVar	pm_airTics;
 ////REVILITY START OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
 extern idCVar	pm_thirdPersonSideScale;
+extern idCVar	pm_crossHairOrigin; //rev 2018
 ////REVILITY END OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
 
 extern idCVar	g_showPlayerShadow;

@@ -334,8 +334,10 @@ public:
 	int						weapon_pda;
 	int						weapon_fists;
 
-	int						heartRate;
+	int						crossHairOrigin;		//rev 2018
 	int						telishield;		//player def key.  used in player script to change animations.
+	
+	int						heartRate;
 	idInterpolate<float>	heartInfo;
 	int						lastHeartAdjust;
 	int						lastHeartBeat;

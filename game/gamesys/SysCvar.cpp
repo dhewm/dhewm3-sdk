@@ -279,6 +279,7 @@ idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NE
 idCVar pm_modelView(				"pm_modelView",				"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_INTEGER, "draws camera from POV of a player model's joint (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
 idCVar pm_thirdPersonSideScale(		"pm_thirdPersonSideScale",	"-0.45",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "offsets camera from left to right in 3rd person. 0 is center. use negatives to move right and decimals for small offsets." );
 idCVar pm_crossHairOrigin(			"pm_crossHairOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to use the player's right hand to draw from.  Improves aiming around corners and less crosshair sticking.  set to 0 to draw from camera origin & less bobbing." );
+idCVar pm_projectileOrigin(			"pm_projectileOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to launch projectiles from the weapon's world model barrel joint & towards the crosshair. Launchfrombarrel needs to be set to 0 in projectile def to enable." );
 
 idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" );
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );

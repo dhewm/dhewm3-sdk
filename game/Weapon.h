@@ -238,6 +238,8 @@ public:
 //rev grab
 	int						AmmoCount( void ) const; //new
 
+	int						projectileOrigin;		//rev 2018
+	
 	//ivan start
 	bool					HasToWalk( void ) const;
 	float					GetWalkSpeedMult( void ) const;

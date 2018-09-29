@@ -202,10 +202,11 @@ extern idCVar	pm_thirdPerson;
 extern idCVar	pm_thirdPersonDeath;
 extern idCVar	pm_modelView;
 extern idCVar	pm_airTics;
-////REVILITY START OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
-extern idCVar	pm_thirdPersonSideScale;
+
+extern idCVar	pm_thirdPersonSideScale; //rev 2018
 extern idCVar	pm_crossHairOrigin; //rev 2018
-////REVILITY END OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
+extern idCVar	pm_projectileOrigin; //rev 2018
+
 
 extern idCVar	g_showPlayerShadow;
 extern idCVar	g_showHud;

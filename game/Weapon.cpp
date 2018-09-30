@@ -231,6 +231,8 @@ idWeapon::idWeapon() {
 	Clear();
 
 	fl.networkSync = true;
+	
+	projectileOrigin		= 1;	//rev 2018	
 }
 
 /*
@@ -4843,11 +4845,20 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		
 		if ( barrelLaunch || tracer || beam ) { // Do not execute this part unless projectile is barrel launched or has a tracer effect.
 
-			gameLocal.clip.Translation( tr, view_pos, view_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
-			traceDist = (tr.endpos - view_pos).LengthSqr();
-	
+			//Rev start
+			projectileOrigin = cvarSystem->GetCVarInteger( "pm_projectileOrigin" );	
+			if ( projectileOrigin > 0 ) {
+				gameLocal.clip.Translation( tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
+				traceDist = (tr.endpos - muzzle_pos).LengthSqr();	//THIS FIXES PROJECTILES FIRED FROM THE BARREL NOT GOING TO THE CROSSHAIR
+				//Launching projectiles now always comes from the thirdperson weapon's barrel model... even in first person.  Direction is always towards Thirdperson crosshair.
+				//Launchfrombarrel should be set to 0 in weapon defs.  setting to 1 is no longer needed.
+			} else {
+				gameLocal.clip.Translation( tr, view_pos, view_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, owner );
+				traceDist = (tr.endpos - view_pos).LengthSqr();
+				}			
+			//Rev end
+			
 			//ivan start - fix aim
-
 			// Problem: muzzleDistFromView is the dist from muzzle and viewpos. 
 			// It was usually very low in D3.
 			// If tracer lenght was smaller than it, then we are too close to a wall/something and the aim was corrected.

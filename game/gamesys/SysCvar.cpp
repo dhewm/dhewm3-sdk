@@ -268,17 +268,18 @@ idCVar pm_runroll(					"pm_runroll",				"0.005",		CVAR_GAME | CVAR_NETWORKSYNC |
 idCVar pm_bobup(					"pm_bobup",					"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
 idCVar pm_bobpitch(					"pm_bobpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
 idCVar pm_bobroll(					"pm_bobroll",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "camera distance from player in 3rd person" );
-idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC |  CVAR_ARCHIVE | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
-idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC |  CVAR_ARCHIVE | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
-idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" );
-idCVar pm_thirdPerson(				"pm_thirdPerson",			"1",			CVAR_GAME | CVAR_NETWORKSYNC |CVAR_BOOL, "enables third person view" ); //ivan
-idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" );
-idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
 idCVar pm_airTics(					"pm_air",					"1800",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" );
-////REVILITY START OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
-idCVar pm_thirdPersonSideScale(		"pm_thirdPersonSideScale",	"-0.45",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "offsets camera from left to right in 3rd person. 0 is center. use negatives to move right and decimals for small offsets." );
-////REVILITY END OFFSETS THE THIRDPERSON CAMERA LEFT TO RIGHT
+
+idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "camera distance from player in 3rd person" );
+idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
+idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
+idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" );
+idCVar pm_thirdPerson(				"pm_thirdPerson",			"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_BOOL, "enables third person view" ); //ivan
+idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" );
+idCVar pm_modelView(				"pm_modelView",				"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_INTEGER, "draws camera from POV of a player model's joint (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
+idCVar pm_thirdPersonSideScale(		"pm_thirdPersonSideScale",	"-0.45",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "offsets camera from left to right in 3rd person. 0 is center. use negatives to move right and decimals for small offsets." );
+idCVar pm_crossHairOrigin(			"pm_crossHairOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to use the player's right hand to draw from.  Improves aiming around corners and less crosshair sticking.  set to 0 to draw from camera origin & less bobbing." );
+idCVar pm_projectileOrigin(			"pm_projectileOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to launch projectiles from the weapon's world model barrel joint & towards the crosshair. Launchfrombarrel needs to be set to 0 in projectile def to enable." );
 
 idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" );
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );
@@ -353,35 +354,34 @@ idCVar g_grabberEnableShake(		"g_grabberEnableShake",		"1",			CVAR_GAME | CVAR_B
 idCVar g_grabberRandomMotion(		"g_grabberRandomMotion",	"1",			CVAR_GAME | CVAR_BOOL | CVAR_CHEAT, "enable random motion on the grabbed object" );
 idCVar g_grabberHardStop(			"g_grabberHardStop",		"1",			CVAR_GAME | CVAR_BOOL | CVAR_CHEAT, "hard stops object if too fast" );
 idCVar g_grabberDamping(			"g_grabberDamping",			"0.5",			CVAR_GAME | CVAR_FLOAT | CVAR_CHEAT, "damping of grabber" );
-//rev grab
+
 
 // HDR related - J.C.Denton
-
-idCVar r_HDR_enable				( "r_HDR_enable",				"1",			CVAR_GAME | CVAR_BOOL,		" Enables HDR Rendering & post-processing.");
-idCVar r_HDR_enableDebugMode		( "r_HDR_enableDebugMode",		"0",			CVAR_GAME | CVAR_INTEGER,	" Shows all the textures generated for HDR postprocess. \n 1: Shows all textures \n 2: Decodes and shows all textures");
-idCVar r_HDR_postProcess			( "r_HDR_postProcess",			"1",			CVAR_GAME | CVAR_INTEGER,	" Activates HDR bloom . \n 1: HDR Bloom with automatic eye exposure ");
-idCVar r_HDR_middleGray				( "r_HDR_middleGray",			"0.1",			CVAR_GAME | CVAR_FLOAT,		" Middle gray value for overall scene . Range 0 - 1. (Works only when automatic exposure is on) ");
-idCVar r_HDR_brightPassThreshold	( "r_HDR_brightPassThreshold",		"1.7",			CVAR_GAME | CVAR_FLOAT,		" brightness threshold for Bright-pass (Works only when automatic exposure is on)");
-idCVar r_HDR_brightPassOffset		( "r_HDR_brightPassOffset",		"5.0",			CVAR_GAME | CVAR_FLOAT,		" Brightness offset for bright pass (Works only when automatic exposure is on)");
-idCVar r_HDR_min_luminance			( "r_HDR_min_luminance",			"0.003",		CVAR_GAME | CVAR_FLOAT,		" Luminance is restricted to this value to control whiteness when in pitch dark areas. (Works only when automatic exposure is on)");
-idCVar r_HDR_max_luminance			( "r_HDR_max_luminance",			"0.22",			CVAR_GAME | CVAR_FLOAT,		" Luminance is restricted to this value to control darkness when in super-bright areas. (Works only when automatic exposure is on)");
-idCVar r_HDR_eyeAdjustmentDelay		( "r_HDR_eyeAdjustmentDelay",	"2.2",			CVAR_GAME | CVAR_FLOAT,		" Total time in second taken to adjust eye exposure.(Works only when automatic exposure is on)");
-idCVar r_HDR_colorCurveBias			( "r_HDR_colorCurveBias",			"0.26",			CVAR_GAME | CVAR_FLOAT,		" Applies Exponential Color Curve to final pass (range 0 to 1), 1 = color curve fully applied , 0= No color curve");
-idCVar r_HDR_sceneExposure			( "r_HDR_sceneExposure",		"1.0",			CVAR_GAME | CVAR_FLOAT,		" Scene exposure. Try values lower or greater than 1.0");
-idCVar r_HDR_gammaCorrection		( "r_HDR_gammaCorrection",		"1.0",			CVAR_GAME | CVAR_FLOAT,		" Gamma Correction.");
-idCVar r_HDR_maxColorIntensity		( "r_HDR_maxColorIntensity",	"1.0",			CVAR_GAME | CVAR_FLOAT,		" Adjusting this value will cause color burnout in a controllable fashion (range 0.0 - 256.0) \nHigher values reduces the contrast, lower values increases the contrast.");
-idCVar r_HDR_bloomIntensity			( "r_HDR_bloomIntensity",			"0.6",			CVAR_GAME | CVAR_FLOAT,		" Adjusts the Bloom intensity. 0.0 disables both bloom as well as halo passes");
-idCVar r_HDR_haloIntensity			( "r_HDR_HaloIntensity",			"1.0",			CVAR_GAME | CVAR_FLOAT,		" Adjusts the Halo intensity. Set to 0.0 disables halo pass. ");
-idCVar r_HDR_debugTextureIndex		( "r_HDR_debugTextureIndex",	"0",			CVAR_GAME | CVAR_INTEGER,	" Show intermediate textures used for HDR postprocess \n 1: scene Image(64x Scaled down) \n 2: Average Luminance Initial pass texture\n 3: Average luminance ");
-idCVar r_HDR_lumUpdateRate			( "r_HDR_lumUpdateRate",		"11",			CVAR_GAME | CVAR_INTEGER,	" Updates luminance data after every these many number of frames. "	);												
-idCVar r_HDR_eyeAdjustmentBias		( "r_HDR_eyeAdjustmentBias",		"0.09",			CVAR_GAME | CVAR_FLOAT,		" Automatic eye exposure factor (range 0 to 1) \n e.g. 0.0 - No automatic eye exposure, \n 0.5 - 50% automatic eye exposure, \n 1.0 Full automatic eye exposure. "	);												
-idCVar r_HDR_eyeAdjustmentBloomBias	( "r_HDR_eyeAdjustmentBloomBias",	"1",			CVAR_GAME | CVAR_FLOAT,		" Bloom can have a separate eye adjustment bias. See cvar descritption for r_HDR_eyeAdjustmentBias. " );
-idCVar r_HDR_vignetteBias			( "r_HDR_vignetteBias",			"0.45",			CVAR_GAME | CVAR_FLOAT,		" Vignette: Fading-of-edges-of-the-screen effect(range 0 to 1) "	);												
+idCVar r_HDR_enable					( "r_HDR_enable",					"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, " Enables HDR Rendering & post-processing.");
+idCVar r_HDR_enableDebugMode		( "r_HDR_enableDebugMode",			"0",			CVAR_GAME | CVAR_INTEGER, " Shows all the textures generated for HDR postprocess. \n 1: Shows all textures \n 2: Decodes and shows all textures");
+idCVar r_HDR_postProcess			( "r_HDR_postProcess",				"1",			CVAR_GAME | CVAR_INTEGER, " Activates HDR bloom . \n 1: HDR Bloom with automatic eye exposure ");
+idCVar r_HDR_middleGray				( "r_HDR_middleGray",				"0.1",			CVAR_GAME | CVAR_FLOAT,	" Middle gray value for overall scene . Range 0 - 1. (Works only when automatic exposure is on) ");
+idCVar r_HDR_brightPassThreshold	( "r_HDR_brightPassThreshold",		"1.7",			CVAR_GAME | CVAR_FLOAT, " brightness threshold for Bright-pass (Works only when automatic exposure is on)");
+idCVar r_HDR_brightPassOffset		( "r_HDR_brightPassOffset",			"5.0",			CVAR_GAME | CVAR_FLOAT,	" Brightness offset for bright pass (Works only when automatic exposure is on)");
+idCVar r_HDR_min_luminance			( "r_HDR_min_luminance",			"0.003",		CVAR_GAME | CVAR_FLOAT,	" Luminance is restricted to this value to control whiteness when in pitch dark areas. (Works only when automatic exposure is on)");
+idCVar r_HDR_max_luminance			( "r_HDR_max_luminance",			"0.22",			CVAR_GAME | CVAR_FLOAT,	" Luminance is restricted to this value to control darkness when in super-bright areas. (Works only when automatic exposure is on)");
+idCVar r_HDR_eyeAdjustmentDelay		( "r_HDR_eyeAdjustmentDelay",		"2.2",			CVAR_GAME | CVAR_FLOAT,	" Total time in second taken to adjust eye exposure.(Works only when automatic exposure is on)");
+idCVar r_HDR_colorCurveBias			( "r_HDR_colorCurveBias",			"0.26",			CVAR_GAME | CVAR_FLOAT,	" Applies Exponential Color Curve to final pass (range 0 to 1), 1 = color curve fully applied , 0= No color curve");
+idCVar r_HDR_sceneExposure			( "r_HDR_sceneExposure",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Scene exposure. Try values lower or greater than 1.0");
+idCVar r_HDR_gammaCorrection		( "r_HDR_gammaCorrection",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Gamma Correction.");
+idCVar r_HDR_maxColorIntensity		( "r_HDR_maxColorIntensity",		"1.0",			CVAR_GAME | CVAR_FLOAT,	" Adjusting this value will cause color burnout in a controllable fashion (range 0.0 - 256.0) \nHigher values reduces the contrast, lower values increases the contrast.");
+idCVar r_HDR_bloomIntensity			( "r_HDR_bloomIntensity",			"0.6",			CVAR_GAME | CVAR_FLOAT,	" Adjusts the Bloom intensity. 0.0 disables both bloom as well as halo passes");
+idCVar r_HDR_haloIntensity			( "r_HDR_HaloIntensity",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Adjusts the Halo intensity. Set to 0.0 disables halo pass. ");
+idCVar r_HDR_debugTextureIndex		( "r_HDR_debugTextureIndex",		"0",			CVAR_GAME | CVAR_INTEGER, " Show intermediate textures used for HDR postprocess \n 1: scene Image(64x Scaled down) \n 2: Average Luminance Initial pass texture\n 3: Average luminance ");
+idCVar r_HDR_lumUpdateRate			( "r_HDR_lumUpdateRate",			"11",			CVAR_GAME | CVAR_INTEGER, " Updates luminance data after every these many number of frames. "	);												
+idCVar r_HDR_eyeAdjustmentBias		( "r_HDR_eyeAdjustmentBias",		"0.09",			CVAR_GAME | CVAR_FLOAT, " Automatic eye exposure factor (range 0 to 1) \n e.g. 0.0 - No automatic eye exposure, \n 0.5 - 50% automatic eye exposure, \n 1.0 Full automatic eye exposure. "	);												
+idCVar r_HDR_eyeAdjustmentBloomBias	( "r_HDR_eyeAdjustmentBloomBias",	"1",			CVAR_GAME | CVAR_FLOAT,	" Bloom can have a separate eye adjustment bias. See cvar descritption for r_HDR_eyeAdjustmentBias. " );
+idCVar r_HDR_vignetteBias			( "r_HDR_vignetteBias",				"0.45",			CVAR_GAME | CVAR_FLOAT,	" Vignette: Fading-of-edges-of-the-screen effect(range 0 to 1) "	);												
 
 //----------------------------------
 
 
 //Ivan start
-idCVar s_music_volume(	"s_music_volume", "0",	CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "In-game music volume." );
-idCVar ruiner_bind_run_once( "ruiner_bind_run_once", "0", CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for Ruiner." );
+idCVar s_music_volume				( "s_music_volume", 				"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, 	"In-game music volume." );
+idCVar ruiner_bind_run_once			( "ruiner_bind_run_once", 			"0", 			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, 		"Rebind all controls once for Ruiner." );
 //Ivan end

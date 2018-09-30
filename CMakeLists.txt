@@ -22,7 +22,6 @@ set(src_game_mod
 	game/PlayerCursor.cpp
 	game/tracer.cpp
 	game/TrailGenerator.cpp
-	sourcehook/sourcehook.cpp
 )
 
 set(src_d3xp_mod

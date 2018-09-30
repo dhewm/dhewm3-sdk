@@ -57,19 +57,6 @@ const int	CINEMATIC_SKIP_DELAY	= SEC2MS( 2.0f );
 
 #ifdef GAME_DLL
 
-#ifdef _DENTONMOD
-#include "../sourcehook/sourcehook_impl.h"
-//============================================================================
-// Source hook related: Defining these vars here so that can be used globally 
-// anywhere by just declaring following vars as "extern"
-//============================================================================
-SourceHook::CSourceHookImpl g_SourceHook;
-SourceHook::ISourceHook *g_SHPtr = static_cast<SourceHook::ISourceHook*>(&g_SourceHook); 
-int g_PLID = 0;
-
-//============================================================================
-#endif // _DENTONMOD
-
 idSys *						sys = NULL;
 idCommon *					common = NULL;
 idCmdSystem *				cmdSystem = NULL;

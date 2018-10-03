@@ -1,3 +1,11 @@
+2018 NOTE:
+This is a very very old dev document.  
+Many parts of the thirdperson camera, crosshair and aiming system have changed dramatically.
+Many parts of it changed before the 2010 beta release of Rivensin/Ruiner.  I can tell instantly we do not use the same
+code to create the cross hairs.
+
+Kept for archiving reasons.
+
 setting up thirdperson view in doom3
 
 doom3worlds for source:

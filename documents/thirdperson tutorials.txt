@@ -1,6 +1,7 @@
 2018 NOTE:
 This is a very very old dev document.  
 Many parts of the thirdperson camera, crosshair and aiming system have changed dramatically.
+A good chunk of it was re written before release.  I believe this stuff was used before a programmer even joined the project.
 Many parts of it changed before the 2010 beta release of Rivensin/Ruiner.  I can tell instantly we do not use the same
 code to create the cross hairs.
 

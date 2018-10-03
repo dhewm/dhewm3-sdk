@@ -1,0 +1,51 @@
+trigger enemy to spawn with no fx
+trigger once->enemy.  set teleport 0
+
+To have a teleport fx, set teleport to 2.
+
+DOOR DIRECTIONS:
+down movdir -2
+up movedir -1
+left 180
+right 0
+
+lip -10
+
+door to lock by default.  set locked 1.
+
+entity to unlock doors:		target_lock  if a door is already locked, then set locked 0
+
+door sounds:
+
+snd_close 	hh_door_movement_3s
+snd_open	hh_door_movement_3s
+
+guardian floor explosions
+func_explosion
+cinematic 1
+hide 1
+s_shader	hh_rockslide_01
+start_off 1
+
+
+
+example script for music
+
+void wilderness_out()
+{
+   stop_music(); //$music_wilderness.fadeSound(SND_CHANNEL_ANY, -60, 9);
+   start_music($music_cumha); //$music_cumha.activate($player1);
+}
+
+
+Entity set up.  This is called via the script to start or stop.
+
+
+name	music_nothing
+class name music_speaker
+s_shader	nothing_music   
+
+s_shader for sin level music catacombs2_music
+s_shader for pinion level	repression_music
+s_shader for pinion boss	nothing_music
+s_shader for sin boss		nothing_music

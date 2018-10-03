@@ -1,0 +1,338 @@
+setting up thirdperson view in doom3
+
+doom3worlds for source:
+
+http://www.doom3world.org/phpbb2/viewtopic.php?t=16680
+this is for third person cross hair.  Remember when adding the new playercursor.cpp and h to put them in your solution for building or it will not compile
+After words you will need to remove the regular cross hair.
+To remove the regular cross hair:
+go to the player.cpp file and search for crosshair.  there is only one function.  void out the section of code and your good to go.
+
+At the end of the crosshair tutorial  you will notice for the weapon.cpp file it wants a material path.
+this is actually the path to the texture itself.  you do not have to put a .tga extentsion though.  the texture needs to be transparent though.
+
+
+thats it.  Make sure the tga your using is transparent.  You can control the color and alpha of it in the playercursor.cpp you create in the tutorial.
+
+////////////////////////////////////////////////////////////////////////////////
+///Third person cross hair tutorial by Deavile Aug 05, 2006 
+///////////////////////////////////////////////////////////////////////////////
+
+This tutorial will teach you how to create an accurate 3rd Person cross hair. The cross hair is actually a 2d sprite placed in the game world at a location that will indicate where the player's weapon will strike. The cross hair will work with any camera height and distance, and even works in first person. 
+
+
+Part one: The PlayerCursor class 
+To create our new cross hair you will need to implement a new class in the D3 SDK. This class will determine where the cross hair should be placed in the game world and will spawn a sprite at that location. 
+Step One: PlayerCursor.h 
+Create a new .h file in the GAME folder named PlayerCursor. The variables and functions defined with in PlayerCursor.h should be the same as the code below. 
+Code: 
+
+#ifndef   __PLAYERCURSOR_H__ 
+#define   __PLAYERCURSOR_H__ 
+/* 
+ Created on 4/19/06 by Paul Reed 
+ Draws a cross hair sprite 5 feet from the view origin along a line leading to where 
+ the player's weapon is pointing 
+ */ 
+class idPlayerCursor { 
+public: 
+   idPlayerCursor(); 
+   ~idPlayerCursor(); 
+   void   Draw( const idVec3 &origin,const idMat3 &axis,const char *material ); 
+public: 
+   renderEntity_t      renderEnt; 
+   qhandle_t         cursorHandle; 
+   bool            created; 
+public: 
+   void   FreeCursor( void ); 
+   bool   CreateCursor( idPlayer* player , const idVec3 &origin, const idMat3 &axis,const char *material); 
+   void   UpdateCursor( idPlayer* player ,const idVec3 &origin, const idMat3 &axis); 
+
+}; 
+#endif   /* !_PLAYERCURSOR_H_ */ 
+ 
+
+
+
+Step Two:PlayerCursor.cpp Basics 
+Create a new .cpp file in the GAME folder named PlayerCursor and include the following lines of code at the top of the file. 
+Code: 
+
+#include "../idlib/precompiled.h" 
+#pragma hdrstop 
+
+#include "Game_local.h" 
+#include "PlayerCursor.h" 
+ 
+
+Next you will want to create the constructor and deconstructor functions. The constructor function should look like this: 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::idPlayerCursor 
+=============== 
+*/ 
+idPlayerCursor::idPlayerCursor() { 
+   cursorHandle   = -1; 
+   created = false; 
+} 
+ 
+
+And the deconstructor like this: 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::~idPlayerCursor 
+=============== 
+*/ 
+idPlayerCursor::~idPlayerCursor() { 
+   FreeCursor(); 
+} 
+ 
+
+
+The Deconstructor makes a call to FreeCursor, which frees up the renderEntity (the image of the sprite) , sets the cursorHandle (which keeps track of our renderEntity) to -1, and sets the bool created to false. 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::FreeCursor 
+=============== 
+Post: tells the game render world to free the cross hair entity, sets the cursor 
+handle to -1 and sets created to false 
+*/ 
+void idPlayerCursor::FreeCursor( void ) { 
+   if ( cursorHandle != - 1 ) { 
+      gameRenderWorld->FreeEntityDef( cursorHandle ); 
+      cursorHandle = -1; 
+      created = false; 
+   } 
+} 
+ 
+
+
+Step Three:PlayerCursor.cpp The Draw function 
+This critical function does most of the work of the PlayerCursor class, and is called by an outside class to create the cross hair. The first two parameters are the location and facing of the player, while the third is the name of the material to be used for the cross hair. 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::Draw 
+=============== 
+*/ 
+void idPlayerCursor::Draw( const idVec3 &origin, const idMat3 &axis,const char *material) { 
+ 
+
+The first step is to trace a point from the player's position (variable origin) along the passed in axis(variable axis). The point where the trace stops is where the weapon is aiming. 
+Code: 
+
+   idPlayer *localPlayer = gameLocal.GetLocalPlayer(); 
+   trace_t         tr; 
+   float          distance = 60; 
+   float          length; 
+   //detemine the point at which the weapon is aiming 
+   idAngles angle = axis.ToAngles(); 
+   idVec3 endPos =(origin + (angle.ToForward() * 120000.0f)); 
+   gameLocal.clip.TracePoint(tr,origin,endPos,MASK_SHOT_RENDERMODEL,localPlayer); 
+   endPos = tr.endpos; 
+ 
+
+The next step is to find the distance between the camera (variables cameraOrigin, and cameraAxis), and the point where the weapon is aiming. The cross hair position is found by using the two vectors (the camera's position and the point where the player is aiming), and interpolating a point 60 inches (defined by variable distance) from the camera. If you like you may change the distance to any number of inches you like. Note that if you go to far the cross hair's sprite will be hidden by the player's model. 
+Code: 
+
+   //find the distance from the camera to the point at which the weapon is aiming 
+   idMat3 cameraAxis = localPlayer->GetRenderView()->viewaxis; 
+   idVec3 cameraOrigin = localPlayer->GetRenderView()->vieworg; 
+   idVec3 vectorLength = endPos - cameraOrigin; 
+   length = vectorLength.Length(); 
+   length = distance/length; 
+   //linearly interpolate 5 feet between the camera position and the point at which the weapon is aiming 
+   endPos.Lerp(cameraOrigin,endPos,length); 
+ 
+
+Finally we create a cursor if we haven't already done so, and if we have then we update it's position to the point we determined. Make sure to pass in the camera's axis (variable cameraAxis) so that the 2d sprite is facing the right direction. 
+Code: 
+
+   if ( !CreateCursor(localPlayer, endPos, cameraAxis,material )) { 
+      UpdateCursor(localPlayer,  endPos, cameraAxis); 
+   } 
+} 
+ 
+
+
+
+Step Four:PlayerCursor.cpp The CreateCursor function 
+The CreateCursor function's job is to create a renderEntity that the cross hair will be displayed on. The renderEntity will use a sprite as a model and will use the passed in material as it's texture. You can change the color parameters to whatever you want, as well as the size parameters, though I find 8 by 8 units to be about right. 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::CreateCursor 
+=============== 
+*/ 
+bool idPlayerCursor::CreateCursor( idPlayer *player, const idVec3 &origin, const idMat3 &axis, const char *material ) { 
+   const char *mtr =  material; 
+   int out = cursorHandle; 
+   if ( out >= 0 ) { 
+      return false; 
+   } 
+   FreeCursor(); 
+   memset( &renderEnt, 0, sizeof( renderEnt ) ); 
+   renderEnt.origin   = origin; 
+   renderEnt.axis      = axis; 
+   renderEnt.shaderParms[ SHADERPARM_RED ]            = 1.0f; 
+   renderEnt.shaderParms[ SHADERPARM_GREEN ]         = 1.0f; 
+   renderEnt.shaderParms[ SHADERPARM_BLUE ]         = 1.0f; 
+   renderEnt.shaderParms[ SHADERPARM_ALPHA ]         = 0.5f; 
+   renderEnt.shaderParms[ SHADERPARM_SPRITE_WIDTH ]   = 6.0f; 
+   renderEnt.shaderParms[ SHADERPARM_SPRITE_HEIGHT ]   = 6.0f; 
+   renderEnt.hModel = renderModelManager->FindModel( "_sprite" ); 
+   renderEnt.callback = NULL; 
+   renderEnt.numJoints = 0; 
+   renderEnt.joints = NULL; 
+   renderEnt.customSkin = 0; 
+   renderEnt.noShadow = true; 
+   renderEnt.noSelfShadow = true; 
+   renderEnt.customShader = declManager->FindMaterial( mtr ); 
+   renderEnt.referenceShader = 0; 
+   renderEnt.bounds = renderEnt.hModel->Bounds( &renderEnt ); 
+   cursorHandle = gameRenderWorld->AddEntityDef( &renderEnt ); 
+   return false; 
+} 
+ 
+
+
+Step Four:PlayerCursor.cpp The CreateCursor function 
+The final function in PlayerCursor is used to update the position of cross hair to the values passed in. 
+Code: 
+
+/* 
+=============== 
+idPlayerCursor::UpdateCursor 
+=============== 
+*/ 
+void idPlayerCursor::UpdateCursor(idPlayer* player,  const idVec3 &origin, const idMat3 &axis) { 
+   assert( cursorHandle >= 0 ); 
+   renderEnt.origin = origin; 
+   renderEnt.axis   = axis; 
+   gameRenderWorld->UpdateEntityDef( cursorHandle, &renderEnt ); 
+} 
+ 
+
+Note: If your cross hair is a GUI and you want to set a GUI variable (which you may have passed into the draw function) use this code: 
+Code: 
+
+renderEnt.customShader->GlobalGui()->SetStateBool("guiVariableName",yourVariable); 
+ 
+
+
+Part Two: Modifying other classes 
+Step One: gameLocal.h 
+Now that the PlayerCursor class has been created you need another class to use it, but before that you must add the following line to gameLocal.h around line # 730: 
+Code: 
+
+#include "PlayerCursor.h" 
+ 
+
+be sure to place it above the line: 
+Code: 
+
+#include "Entity.h" 
+ 
+
+
+Step Two:Weapoh.h 
+Since the point the player aims at is determined in Weapon, the playerCursor class should be defined here. Add a idPlayerCursor variable (either private or public) to Weapon.h. 
+Code: 
+
+idPlayerCursor   playerCursor; 
+ 
+
+
+Step Three:Weapon.cpp 
+The final step is the call the playerCursor's draw function inside the idWeapon::PresentWeapon function. Place the following line of code at the very bottom of the function: 
+Code: 
+
+playerCursor.Draw(muzzleOrigin,muzzleAxis,"pathNameToMaterialDefinition/MaterialName"); 
+ 
+
+
+That should do it, if you did everything right you should now have an accurate 3rd person cross hair! 
+
+Part Three: a few quick notes 
+I deleted the majority of my comments to help keep the tutorial length under control. I encourage everyone who implements this to put their own comments in as they code (or cut and paste  ). Comments are damn important and should never be left out or put aside to be done later. 
+
+I have not tested the cross hair in multiplayer, and I believe there may be trouble with seeing everyone else's cross hairs. If you implement this and give it an MP test please let me know if it works alright. 
+
+Finally a quick thanks. I discovered how to create the cross hair by looking at the playerIcon class; so thanks to whoever at ID wrote the class. 
+
+If you have any questions or comments please post them here or IM me. If you discover an error in my post OR in the code please point it out.
+
+Additional notes from Deuss231:
+
+Well, I just finished implementing it and I've gotta say it works great except for one small problem: muzzleOrigin and muzzleAxis don't update unless the weapon is firing. It's easy enough to solve simply by adding: 
+
+Code: 
+
+muzzleOrigin = playerViewOrigin; 
+muzzleAxis = playerViewAxis; 
+
+
+Right before the call to playerCursor.Draw in PresentWeapon. 
+
+
+//////////////////////////////////////////////////////////////////////
+// Third person hud code. Author, many.
+// http://www.doom3world.org/phpbb2/viewtopic.php?t=16624&highlight=enable+hud
+//////////////////////////////////////////////////////////////////////
+
+Yeah it's simple, you can do it for SP easier than MP. 
+You need to edit your Game SDK. 
+
+add in GameSys/SysCvar.h 
+Code: 
+extern idCVar   pm_thirdPersonHud; // New Cvar 
+
+
+add in GameSys/SysCvar.cpp 
+Code: 
+// Third Person Hud 
+idCVar pm_thirdPersonHud(         "pm_thirdPersonHud",      "1",         CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL | CVAR_NOCHEAT, "enables hud in third person mode" ); 
+
+
+(They are pretty simple adds, find the pm_thirdPerson in and add it below) 
+
+Then open up Player/PlayerView.cpp and find the SingleView class. 
+In there find this: 
+
+Code: 
+if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() ) { 
+
+
+and change it to 
+
+Code: 
+if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() || pm_thirdPersonHud.GetBool() ) { 
+
+
+I basically searched through the forums and found that answer, so I won't claim that as my own.
+
+////////////////////////////////////////////////////
+// Enable thirdperson view and setting by default
+///////////////////////////////////////////////////
+
+To have the game in thirdperson from the start:
+
+add the following to the player.def file  Under the entity def player_base.  Good to add it after the weapons part during the pm section.
+
+// start thirdpersoncamsettings
+	"pm_thirdperson"					"1"
+	"pm_thirdpersonheight"				"10"
+	"pm_thirdpersonangle"				"0"
+	"pm_thirdpersonrange"				"150"
+	"pm_thirdpersonclip"				"1"
+// REV END
+
+Change the values to your needs.

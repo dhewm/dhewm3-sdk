@@ -1,0 +1,76 @@
+List of  CVARS:
+
+r_HDR_enableDebugMode 
+r_HDR_debugTextureIndex 
+r_HDR_postProcess 
+r_HDR_middleGray 
+r_HDR_brightPassThreshold 
+r_HDR_brightPassOffset 
+r_HDR_min_luminance 
+r_HDR_max_luminance
+r_HDR_eyeAdjustmentDelay 
+r_HDR_colorCurveBias
+r_HDR_maxColorIntensity 
+r_HDR_bloomIntensity 
+
+
+r_HDR_enableDebugMode (Integer)
+default value 0
+Shows all the textures generated for HDR postprocess. 
+1: Shows all textures (Endecoded), namely: 64x Downscaled scene image, 64x64 luminance texture (stores averaged scene luminance), 4x4 luminance texture, 1x1 adapted luminance texture, bloom result texture. 
+2: Decodes and shows all textures
+
+r_HDR_debugTextureIndex (Integer)
+default value 0
+Show intermediate textures used for HDR postprocess 
+0: Off.
+1: scene Image(64x Scaled down) 
+2: Result of first bloom pass.
+3: Result of second bloom pass. 
+
+r_HDR_postProcess (Bool)
+default value 1
+Activates HDR tone mapping and bloom
+
+r_HDR_brightPassThreshold (Float)
+default value 5.0
+brightness threshold for Bright-pass. E.g. color intensities beyond 5.0 will be bloomed and hence only very bright areas would qualify for blooming. 
+
+r_HDR_brightPassOffset (Float)
+default value 10.0 
+Brightness offset for bright pass. E.g. Color intensities beyond r_HDR_brightPassThreshold will receive a nice gradually faded bloom from dark to bright giving color intensity of 10.0 the brightest bloom. To get a good understanding, set r_debugTextureIndex to 2 or 3 and then change this value to visualize the bloom image. 
+
+r_HDR_middleGray (Float)
+default value 0.08
+Middle gray value for overall scene ( Range 0 - 1) . Higher the value, brighter the scene.
+
+r_HDR_min_luminance (Float)
+default value 0.06 
+Measured luminance of the scene is restricted to this value to control how bright a lit area should get when standing in complete dark areas. 
+
+r_HDR_max_luminance (Float)
+default value 0.22
+Luminance is restricted to this value to control darkness when in super-bright areas. E.g. If you are looking at a very bright sky everything else around will get darker. This variable lets you control how much darker the surrounding should get when looking at full bright areas.
+
+r_HDR_eyeAdjustmentDelay (Float) 
+default value 1.6
+Total time in second taken to adjust eye exposure.
+
+r_HDR_colorCurveBias (Float) 
+default value 0.3
+Applies an exponential S-Shaped color curve to final pass (range 0 to 1), E.g. 1.0 = color curve fully applied , 0.0 = No color curve
+See following 2d graph to grasp the working of color-curve bias.
+
+
+r_HDR_maxColorIntensity (Float) 
+default value 3.0
+Adjusting this value will cause color burnout of high dynamic range values going beyond 255 in a controllable fashion (range 0.0 - 256.0). This step is performed while bringing the HDR values into displayable range (0-255), also known as tone mapping. 
+Higher values reduces the contrast, lower values increases the contrast.
+
+See Example Images:
+  
+
+
+r_HDR_bloomIntensity (Float) 
+default value 1.0
+Adjusts the Bloom intensity. This CVAR is not being used yet. 

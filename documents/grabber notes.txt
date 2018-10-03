@@ -1,0 +1,148 @@
+This was the list I used to port the grabber code from D3 ROE to Vanilla Doom3 -Rev
+
+look up and add the following stuff:
+
+grab
+x	Game_local.h
+x	AFEntity.cpp
+x	Entity.cpp
+x	Entity.h 
+X	Weapon.cpp
+X	weapon.h
+X	SysCvar.cpp
+X	SysCvar.h
+X	AI_events.cpp
+drag
+X	Weapon.cpp
+X	SysCvar.cpp
+X	SysCvar.h
+monster_damage
+X		Moveable.cpp
+attacker
+x	Moveable.cpp
+X	Moveable.h
+g_moveableDamageScale
+X	SysCvar.h
+X	syscvar.cpp
+x	Moveable.cpp
+IsStable
+X	Moveable.h	
+x	movalbe.cpp
+CatchProjectile
+X	Projectile.cpp  *****1162 OTHER STUFF WAS ADDED THAT COULD BE RELATED.
+x	Projectile.h
+StartBurning
+X	Moveable.cpp
+X	Moveable.h
+StopBurning
+X	Moveable.cpp
+X	Moveable.h
+SetThrown
+X	AFEntity.cpp
+X	AFEntity.h
+wasThrown
+X	AFEntity.cpp
+X	AFEntity.h
+SetAttacker
+X	Moveable.cpp
+X	Moveable.h
+SetStability
+X	Moveable.cpp
+X	Moveable.h
+GetProjectileState
+X	Projectile.cpp
+x	Projectile.h
+IsStable
+X	movables.cpp
+X	and h.
+monsterDamage 
+X	movables.cpp
+X	movables.h
+SetEnemy
+X	Projectile.h
+x	projectile.cpp
+attacker
+X	movables.cpp
+X	movables.h
+	
+to bypass the slow errors, we replaced those parts with gamelocal.time instead of gamelocal.slow.time in the grabber cpp.
+The time group stuff and anything with warp in it was also commented out of the grabber.cpp and grabber.h
+	
+The following stuff might be related, but most likely isn't.
+slow
+	Actor.cpp
+	AFEntity.cpp
+	AI.cpp
+	Fx.cpp
+	Class.cpp
+	Event.cpp
+	SysCvar.cpp
+	SysCvar.h
+	Game_local.cpp
+	Game_local.h
+	Game_network.cpp
+	Item.cpp
+	Mover.cpp
+	Physics_AF.h
+	Physics_Player.cpp
+	Player.cpp
+	Player.h
+	PlayerView.cpp
+	PlayerView.h	
+attacker
+	Actor.cpp
+	Actor.h
+	AfEntity.cpp
+	AfEntity.h
+	AI.cpp
+	AI.h
+	BrittleFracture.cpp
+	BrittleFracture.h
+	Entity.h
+	Game_local.cpp
+	Game_local.h
+	Light.h
+	Light.cpp
+	Misc.cpp
+	Misc.h
+	Mover.cpp
+	Mover.h
+	Player.cpp
+	Player.h
+	Projectile.cpp
+	Projectile.h
+	Script_Thread.h
+	SecurityCamera.cpp
+	SecurityCamera.h	
+	
+CreateProjectile 
+x	PROJECTILE.CPP
+	projectile.h
+x	WEAPON.CPP
+LaunchProjectile 
+	AI.CPP
+	AI.H
+	AI_EVENTS.CPP
+	ANIM_BLEND.CPP
+x	PROJECTILE.H
+X	WEAPON.H
+
+SetGravity
+	Projectile.h
+	Projectile.cpp
+	Player.cpp
+	Physics_StaticMulti.h
+	Physics_StaticMulti.cpp
+	Physics_Static.h
+	Physics_Static.cpp
+	Physics_Base.h
+	Physics_Base.cpp
+	Physics_Actor.h
+	Physics_Actor.CPP
+	Physics.h
+	Moveable.cpp
+	Item.cpp
+	BrittleFracture.cpp
+	AI.cpp
+	AFEntity.cpp
+	AF.cpp	

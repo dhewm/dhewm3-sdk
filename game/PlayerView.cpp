@@ -36,16 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "PlayerView.h"
 
-#ifdef _DENTONMOD
-#include "../sourcehook/sourcehook.h"
-
-extern SourceHook::ISourceHook *g_SHPtr;
-extern int g_PLID;
-
-SH_DECL_HOOK2_void( idCmdSystem, BufferCommandText, SH_NOATTRIB, 0, cmdExecution_t, const char * );
-
-#endif
-
 static int MakePowerOfTwo( int num ) {
 	int		pot;
 	for (pot = 1 ; pot < num ; pot<<=1) {
@@ -848,38 +838,37 @@ idPlayerView::dnPostProcessManager::dnPostProcessManager():
 
 	m_iScreenHeight = m_iScreenWidth = 0;
 	m_iScreenHeightPow2 = m_iScreenWidthPow2 = 0;
+	m_fShiftScale_x = m_fShiftScale_y = 0;
+	m_bForceUpdateOnCookedData = false;
+	m_nFramesSinceLumUpdate = 0;
 	m_nFramesToUpdateCookedData = 0;
 
 	// Initialize once this object is created.	
 	this->Initialize();
 
-	SH_ADD_HOOK_MEMFUNC(idCmdSystem, BufferCommandText, cmdSystem, this, &idPlayerView::dnPostProcessManager::Hook_BufferCommandText, false );
-
+	if(!common->SetCallback(idCommon::CB_ReloadImages, (idCommon::FunctionPointer)ReloadImagesCallback, this))
+	{
+		gameLocal.Warning("Couldn't set ReloadImages Callback from Ruiner game DLL! This could lead to errors on vid_restart and similar!\n");
+	}
 }
 
- idPlayerView::dnPostProcessManager::~dnPostProcessManager()
- {
- 	// Remove Source Hook before closing. 
-	 SH_REMOVE_HOOK_MEMFUNC(idCmdSystem, BufferCommandText, cmdSystem, this, &idPlayerView::dnPostProcessManager::Hook_BufferCommandText, false );
- }
+idPlayerView::dnPostProcessManager::~dnPostProcessManager()
+{
+	// remove callback because this object is destroyed (and this was passed as userArg)
+	common->SetCallback(idCommon::CB_ReloadImages, NULL, NULL);
+}
 
- void idPlayerView::dnPostProcessManager::Hook_BufferCommandText( cmdExecution_t a_eType, const char *a_pcText )
- {
-	 // Using idStr::FindText to make sure that we account for trailing white spaces. However, even an invalid command 
-	 // e.g. like "reloadImagesADEAW" would update the cooked data, but that should not be a problem.
-	 if( NULL != a_pcText && 
-		( 0 == idStr::FindText( a_pcText, "reloadimages", false ) || 0 == idStr::FindText(a_pcText, "vid_restart", false ) )
-		 )
-	 {
-		 m_nFramesToUpdateCookedData = 1;
-		 if( r_HDR_postProcess.GetBool() )
-			gameLocal.Printf("Cooked Data will be updated after %d frames...\n", m_nFramesToUpdateCookedData  );
-		 else
-			 gameLocal.Printf("Cooked Data will be updated after %d frames immediately after r_HDR_postProcess is enabled.\n", m_nFramesToUpdateCookedData  );
-	 }
-
-	 RETURN_META(MRES_IGNORED );
- }
+// this is called by the engine whenever vid_restart or reloadImages is executed
+// (replaces old SourceHook hack)
+/* static */ void idPlayerView::dnPostProcessManager::ReloadImagesCallback(void* arg, const idCmdArgs& cmdArgs)
+{
+	idPlayerView::dnPostProcessManager* self = (idPlayerView::dnPostProcessManager*)arg;
+	self->m_nFramesToUpdateCookedData = 1;
+	if( r_HDR_postProcess.GetBool() )
+		gameLocal.Printf("Cooked Data will be updated after %d frames...\n", self->m_nFramesToUpdateCookedData  );
+	else
+		gameLocal.Printf("Cooked Data will be updated after %d frames immediately after r_HDR_postProcess is enabled.\n", self->m_nFramesToUpdateCookedData  );
+}
 
 void idPlayerView::dnPostProcessManager::Initialize()
 {

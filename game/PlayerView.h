@@ -198,7 +198,10 @@ private:
 		void RenderDebugTextures		();		
 		void UpdateCookedData			();
 		void UpdateInteractionShader	(); 	// Chooses between the various VFP files according to the CVAR settings. Only call this if settings got changed.
-		void Hook_BufferCommandText( cmdExecution_t a_eType, const char *a_pcText );	// Source Hook for idCmdSystem::BufferCommandText - JC.
+
+		// will be called whenever vid_restart or reloadImages is executed
+		// (set via common->SetCallback())
+		static void ReloadImagesCallback(void* arg, const idCmdArgs& cmdArgs);
 	};
 
 	dnPostProcessManager m_postProcessManager;

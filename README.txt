@@ -1,3 +1,8 @@
+IMPORTANT! the code is not compatible with the ruiner 2010 build.  you could make it compatible by commenting out the updateskin lines in the player.cpp file related to the new telekinetic shield... you just won't have the visuals.
+Additionaly the movement speed when walk aiming will not be slower & zooming will be off.  those 2 parts are player.def & script related. Finally the updates to aiming only work if launchfrombarrel is set to 0 in a weapon's projectile def... most weapons in the 2010 build are set to 1  None of it will be an issue when the 2018 build is released.
+
+I am also aware of the issue interacting with guis  due to the thirdperson camera... looking to fix that up soon too :)
+
 # dhewm3 Mod SDK For Scarlet Rivensin: The Ruiner
 Websites:
 https://www.moddb.com/mods/ruiner

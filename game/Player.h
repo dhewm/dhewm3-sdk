@@ -334,7 +334,8 @@ public:
 	int						weapon_pda;
 	int						weapon_fists;
 
-	int						crossHairOrigin;		//rev 2018
+	int						crossHairOrigin;	//rev 2018
+	int						CheckCrossHairOrigin;	//rev 2018
 	int						telishield;		//player def key.  used in player script to change animations.
 	
 	int						heartRate;

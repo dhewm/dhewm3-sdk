@@ -5761,6 +5761,19 @@ void idPlayer::UpdateFocus( void ) {
 			command = focusUI->Activate( true, gameLocal.time );
 			HandleGuiCommands( focusGUIent, command );
 			StartSound( "snd_guienter", SND_CHANNEL_ANY, 0, false, NULL );
+//rev 2018 start set the game to first person when at a gui
+//We check the current cvar for crosshair origin just incase the player changed it.  This way we can set it back if needed.
+//If the origin isn't set to camera, the view will be offset during firstperson gui use.
+		crossHairOrigin = cvarSystem->GetCVarInteger( "pm_crossHairOrigin" );
+		if  (crossHairOrigin == 1 ){
+			CheckCrossHairOrigin = 1;
+		} else {
+			CheckCrossHairOrigin = 0;
+			}				
+			cvarSystem->SetCVarInteger(	"pm_crossHairOrigin", 0 );				
+			cvarSystem->SetCVarInteger(	"pm_thirdperson", 0 );	
+			spawnArgs.Set( "PlayerInGui", "1" );	//key in player def.  We use this to check if the player is in a gui or not in scripts.
+//rev 2018 end			
 			// HideTip();
 			// HideObjective();
 		}
@@ -5768,6 +5781,16 @@ void idPlayer::UpdateFocus( void ) {
 		command = oldUI->Activate( false, gameLocal.time );
 		HandleGuiCommands( oldFocus, command );
 		StartSound( "snd_guiexit", SND_CHANNEL_ANY, 0, false, NULL );
+//rev 2018 start set the game back to thirdperson when leaving the gui
+		if  (CheckCrossHairOrigin == 1 ){
+		cvarSystem->SetCVarInteger(	"pm_crossHairOrigin", 1 );			
+		} else {
+			CheckCrossHairOrigin == 0;
+		cvarSystem->SetCVarInteger(	"pm_crossHairOrigin", 0 );			
+			}
+		cvarSystem->SetCVarInteger(	"pm_thirdperson", 1 );	
+		spawnArgs.Set( "PlayerInGui", "0" );		
+//rev 2018 end			
 	}
 
 	if ( cursor && ( oldTalkCursor != talkCursor ) ) {

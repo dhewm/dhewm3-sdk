@@ -1,4 +1,5 @@
 RUIN BLADE MECHANICS 2018
+Copy of the mechanics document on Rivensin's mod db site
 
 The Ruin Blade has received an over haul for the 2018 patch. This document details doing finishing moves, directional, light & heavy attacks and damage amounts.
 

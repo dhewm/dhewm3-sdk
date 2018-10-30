@@ -205,6 +205,7 @@ extern idCVar	pm_airTics;
 
 extern idCVar	pm_thirdPersonSideScale; //rev 2018
 extern idCVar	pm_crossHairOrigin; //rev 2018
+extern idCVar	pm_crossHairSideScale; //rev 2018
 extern idCVar	pm_projectileOrigin; //rev 2018
 
 

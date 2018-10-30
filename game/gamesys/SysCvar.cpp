@@ -271,15 +271,16 @@ idCVar pm_bobroll(					"pm_bobroll",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC |
 idCVar pm_airTics(					"pm_air",					"1800",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" );
 
 idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "camera distance from player in 3rd person" );
-idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
+idCVar pm_thirdPersonHeight(			"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
 idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
 idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" );
 idCVar pm_thirdPerson(				"pm_thirdPerson",			"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view" ); //ivan //rev 2018 removed archive so it always resets to 1.
 idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" );
 idCVar pm_modelView(				"pm_modelView",				"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_INTEGER, "draws camera from POV of a player model's joint (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
-idCVar pm_thirdPersonSideScale(		"pm_thirdPersonSideScale",	"-0.45",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "offsets camera from left to right in 3rd person. 0 is center. use negatives to move right and decimals for small offsets." );
+idCVar pm_thirdPersonSideScale(			"pm_thirdPersonSideScale",	"-0.45",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "offsets camera from left to right in 3rd person. 0 is center. use negatives to move right and decimals for small offsets." );
 idCVar pm_crossHairOrigin(			"pm_crossHairOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to use the player's right hand to draw from.  Improves aiming around corners and less crosshair sticking.  set to 0 to draw from camera origin & less bobbing." );
-idCVar pm_projectileOrigin(			"pm_projectileOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to launch projectiles from the weapon's world model barrel joint & towards the crosshair. Launchfrombarrel needs to be set to 0 in projectile def to enable." );
+idCVar pm_crossHairSideScale(			"pm_crossHairSideScale",	"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Offsets the x position of the view position. Effects crosshair trace origin if pm_croshairorigin is 0." );
+idCVar pm_projectileOrigin(			"pm_projectileOrigin",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "Set to 1 to launch the tracers, models or particles for projectile from the weapon's world model barrel joint & towards the crosshair. Launchfrombarrel needs to be set to 0 in projectile def to enable." );
 
 idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" );
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );

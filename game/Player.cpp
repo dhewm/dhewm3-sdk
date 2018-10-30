@@ -8903,6 +8903,8 @@ void idPlayer::GetViewPos( idVec3 &origin, idMat3 &axis ) const {
 		// adjust the origin based on the camera nodal distance (eye distance from neck)
 		origin += physicsObj.GetGravityNormal() * g_viewNodalZ.GetFloat();
 		origin += axis[0] * g_viewNodalX.GetFloat() + axis[2] * g_viewNodalZ.GetFloat();
+		origin += (pm_crossHairSideScale.GetFloat()) * axis[ 1 ];	//rev 2018 allow offsetting the x position which influences the origin of the crosshair
+
 	}
 }
 

@@ -8924,7 +8924,7 @@ void idPlayer::CalculateFirstPersonView( void ) {
 
 		jointHandle_t joint = animator.GetJointHandle( "SHOTGUN_ATTACHER" );	//now set to an actual joint on the player model Revility 2018.  This moves the line to draw the crosshair closer to the weapon.
 		animator.GetJointTransform( joint, gameLocal.time, origin, axis );
-		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
+		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin(); // + viewBob; Rev 2018
 		firstPersonViewAxis = renderView->viewaxis;	//changed to the axis of the camera and not the bone. Revility 2018
 	} else {
 		// offset for local bobbing and kicks

@@ -1787,6 +1787,26 @@ void idPlayer::Init( void ) {
 	*/
 }
 
+// DG: helper function for idPlayer::Spawn() and idPlayer::Restore() - both need to load the HUD
+static idUserInterface* loadHUD()
+{
+	idUserInterface* hud = NULL;
+	float aspectRatio = float(renderSystem->GetScreenWidth()) / float(renderSystem->GetScreenHeight());
+	if ( gameLocal.isMultiplayer ) {
+		// TODO: we could do the same here as below, if we had mphud16_9.gui
+		hud = uiManager->FindGui( "guis/mphud.gui", true, false, true );
+	} else {
+		if(aspectRatio > 1.49f) {
+			// widescreen (4:3 is 1.333 3:2 is 1.5, 16:10 is 1.6, 16:9 is 1.7778)
+			hud = uiManager->FindGui( "guis/hud16_9.gui", true, false, true );
+		}
+		if(hud == NULL) { // not widescreen or couldn't find hud16_9.gui => use default gui
+			hud = uiManager->FindGui( "guis/hud.gui", true, false, true );
+		}
+	}
+	return hud;
+}
+
 /*
 ==============
 idPlayer::Spawn
@@ -1826,11 +1846,7 @@ void idPlayer::Spawn( void ) {
 	if ( !gameLocal.isMultiplayer || entityNumber == gameLocal.localClientNum ) {
 
 		// load HUD
-		if ( gameLocal.isMultiplayer ) {
-			hud = uiManager->FindGui( "guis/mphud.gui", true, false, true );
-		} else if ( spawnArgs.GetString( "hud", "", temp ) ) {
-			hud = uiManager->FindGui( temp, true, false, true );
-		}
+		hud = loadHUD();
 
 		if ( hud ) {
 			hud->Activate( true, gameLocal.time );
@@ -2066,7 +2082,9 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	weapon.Save( savefile );
 
 	
-	savefile->WriteUserInterface( hud, false );
+	//savefile->WriteUserInterface( hud, false ); // DG: don't save HUD, just create it like in Spawn()
+	savefile->WriteString( "" ); // DG: write empty string which is handled as "HUD is NULL" by Restore() for backwards-compat
+
 	savefile->WriteUserInterface( objectiveSystem, false );
 	savefile->WriteBool( objectiveSystemOpen );
 
@@ -2353,6 +2371,10 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	
 	savefile->ReadUserInterface( hud );
+	// DG: load the appropriate HUD based on screen aspect-ratio instead (only calling ReadUserInterface(hud) for backwards-compat)
+	delete hud;
+	hud = loadHUD();
+
 	savefile->ReadUserInterface( objectiveSystem );
 	savefile->ReadBool( objectiveSystemOpen );
 

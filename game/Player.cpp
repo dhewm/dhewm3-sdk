@@ -1853,9 +1853,26 @@ void idPlayer::Spawn( void ) {
 		}
 
 		// load cursor
-		if ( spawnArgs.GetString( "cursor", "", temp ) ) {
+		//Rev 2018 start.  We need to have 2 cursor guis just like the main menu.
+		//This is because the cordinate translation for crosshair position will not be correct if the cursor is 4:3 over a 16:9 renderview
+		float aspectRatio = float(renderSystem->GetScreenWidth()) / float(renderSystem->GetScreenHeight());
+		cursor = NULL;
+		if ( aspectRatio > 1.49f ) {
+			if ( spawnArgs.GetString( "cursor16_9", "", temp ) ) {
+				cursor = uiManager->FindGui( temp, true, gameLocal.isMultiplayer, gameLocal.isMultiplayer );
+			}
+		}
+
+		// if the cursor is NULL we either aspectRatio < 1.49f or the 16:9 cursor wasn't found
+		// either way, try to load the normal cursor
+		if ( cursor == NULL && spawnArgs.GetString( "cursor", "", temp ) ) {
 			cursor = uiManager->FindGui( temp, true, gameLocal.isMultiplayer, gameLocal.isMultiplayer );
 		}
+		//if ( spawnArgs.GetString( "cursor", "", temp ) ) {
+		//	cursor = uiManager->FindGui( temp, true, gameLocal.isMultiplayer, gameLocal.isMultiplayer );
+		//}
+		//Rev 2018 end
+
 		if ( cursor ) {
 			cursor->Activate( true, gameLocal.time );
 		}
@@ -1869,6 +1886,9 @@ void idPlayer::Spawn( void ) {
 			combolist = uiManager->FindGui( temp, true );
 		}
 		if ( combolist ) {
+			combolist->SetStateBool("scaleto43", true);	//Rev 2018 don't strech the combo list
+			combolist->StateChanged(gameLocal.time);	//Rev 2018 don't strech the combo list
+
 			combolist->Activate( true, gameLocal.time );
 		}
 		combolistOpen = false;

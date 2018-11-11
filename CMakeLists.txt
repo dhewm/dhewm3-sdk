@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
-set(BASE_NAME	"ruiner" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
+set(BASE_NAME	"rivensin" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
 # TODO: what about TRAIL_FX_CHAIN;TEST_TRAIL ?
 set(BASE_DEFS	"GAME_DLL;NDEBUG;_DENTONMOD;_PORTALSKY;_HDR" CACHE STRING "Compiler definitions for the mod built from game/")
 

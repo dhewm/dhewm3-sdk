@@ -19,6 +19,8 @@ the source under GPL; you can find these in their own branches:
 [Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod) and
 [HardQore2](https://github.com/dhewm/dhewm3-sdk/tree/hardqore2)
 
+You can find Win32 DLLs of those mods that work with dhewm3 1.5.0RC1 (and newer) at https://github.com/dhewm/dhewm3/releases/download/1.5.0_RC1/dhewm3_1.5.0_RC1_win32.zip
+
 ## How to build
 
 (I should eventually expand this, especially for Windows)

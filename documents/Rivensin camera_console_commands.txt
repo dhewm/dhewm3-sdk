@@ -1,4 +1,0 @@
-pm_thirdPersonSideScale: used to move the camera sideways.  0 is center.
-pm_thirdPersonAngle: used to move the camera around the player.  0 is behind.
-pm_thirdPersonHeight:  Used to move the camera up and down
-pm_thirdPersonRange: Move the camera closer or further away from the player.

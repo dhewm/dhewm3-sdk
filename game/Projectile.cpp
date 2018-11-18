@@ -462,7 +462,9 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	
 	if ( spawnArgs.GetBool( "tracers" ) ) {
 		if( !damageDict->GetString( "snd_tracer", "", sound ) ){
-			spawnArgs.GetString( "snd_tracer", "", sound );
+			if(!spawnArgs.GetString( "snd_tracer", "", sound )) {
+				gameLocal.Warning("%s doesn't have snd_tracer set (neither in spawnArgs nor in damageDict)!", spawnArgs.GetString("classname", "<unknown classname>"));
+			}
 		}
 #ifdef _DENTONMOD
 		if( spawnArgs.GetBool( "launchFromBarrel") ) {
@@ -486,7 +488,8 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 		}
 	}
 
-	StartSoundShader(declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
+	if(sound[0] != '\0')
+		StartSoundShader(declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
 	//StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
 
 

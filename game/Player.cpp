@@ -4934,11 +4934,15 @@ bool idPlayer::DropWeapon( bool died, bool selectNext ) { //ivan - bool selectNe
 	}
 	// set the appropriate ammo in the dropped object
 	const idKeyValue * keyval = item->spawnArgs.MatchPrefix( "inv_ammo_" );
+	idStr inclipOrigKey;
 	if ( keyval ) {
 		//item->spawnArgs.SetInt( keyval->GetKey(), ammoavailable ); //ivan - commented out
 		idStr inclipKey = keyval->GetKey();
+		inclipOrigKey = inclipKey;
 		inclipKey.Insert( "inclip_", 4 );
 		inclipKey.Insert( va("%.2d", currentWeapon), 11);//new
+		// DG: the following line seems to cause keyval to be deleted (via idList<idKeyValue>::Resize())
+		//     that's why I copied the old key to inclipOrigKey and use that below in ivans code
 		item->spawnArgs.SetInt( inclipKey, inclip );
 	}
 
@@ -4946,13 +4950,13 @@ bool idPlayer::DropWeapon( bool died, bool selectNext ) { //ivan - bool selectNe
 	//was: if ( !died ) {
 	if ( died ) {
 		//don't call WeaponStolen on weapon in this case bacause OwnerDied will be called instead (so it will be in scripts too).
-		if ( keyval ) item->spawnArgs.SetInt( keyval->GetKey(), ammoavailable );
+		if ( !inclipOrigKey.IsEmpty() ) item->spawnArgs.SetInt( inclipOrigKey, ammoavailable );
 	}else{
 	//ivan end
 		// remove from our local inventory completely
 		inventory.Drop( spawnArgs, item->spawnArgs.GetString( "inv_weapon" ), -1 , &dropAmmoInItem ); //ivan - dropAmmoInItem added
 		
-		if ( keyval ) item->spawnArgs.SetInt( keyval->GetKey(), dropAmmoInItem ? ammoavailable : 0 ); //ivan
+		if ( !inclipOrigKey.IsEmpty() ) item->spawnArgs.SetInt( inclipOrigKey, dropAmmoInItem ? ammoavailable : 0 ); //ivan
 		
 		weapon.GetEntity()->ResetAmmoClip();
 		

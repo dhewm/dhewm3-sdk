@@ -476,8 +476,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	savefile->WriteFloat( dynamicSpreadValue ); 
 	savefile->WriteFloat( spreadBaseValue ); 
 	savefile->WriteFloat( spreadVelocityFactor ); 
-	savefile->WriteFloat( spreadCrouchFactor ); 
-	savefile->WriteFloat( spreadCrouchFactor ); 
+	savefile->WriteFloat( spreadCrouchFactor );
 	//ivan end
 	
 

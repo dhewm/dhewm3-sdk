@@ -84,7 +84,7 @@ void idWinding2D::ExpandForAxialBox( const idVec2 bounds[2] ) {
 			continue;
 		}
 		plane = Plane2DFromPoints( p[i], p[j], true );
-		if ( i ) {
+		if ( numPlanes ) { // DG: was if(i), but if we continued above at i=0, numPlanes is still 0 and numPlanes-1 is invalid...
 			if ( GetAxialBevel( planes[numPlanes-1], plane, p[i], bevel ) ) {
 				planes[numPlanes++] = bevel;
 			}

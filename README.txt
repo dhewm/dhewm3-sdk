@@ -4,6 +4,6 @@ the source under GPL, so I could port it to dhewm3! :-)
 (see https://github.com/dhewm/dhewm3/issues/198)
 
 You can  get the game data at:
-https://www.moddb.com/mods/hardqore-2/downloads/hardqore-2-demo
-https://www.moddb.com/mods/hardqore-2/downloads/hardqore-2-11-patch
+https://www.moddb.com/mods/hardqore/downloads/hardqore-2-demo
+https://www.moddb.com/mods/hardqore/downloads/hardqore-2-11-patch
 (yes, you need both)

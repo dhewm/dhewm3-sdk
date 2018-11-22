@@ -5204,7 +5204,8 @@ Toss a shell model out from the breach if the bone is present
 ================
 */
 void idWeapon::Event_EjectBrass( void ) {
-	if ( !g_showBrass.GetBool() || !owner->CanShowWeaponViewmodel() ) {
+	if ( !g_showBrass.GetBool() ) { //Rev 2018 viewmodels not used. all brass code now refers to world model. Was stopping brass from ejecting.
+	//if ( !g_showBrass.GetBool() || !owner->CanShowWeaponViewmodel() ) {
 		return;
 	}
 

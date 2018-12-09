@@ -2687,6 +2687,12 @@ void idGameLocal::CalcFov( float base_fov, float &fov_x, float &fov_y ) const {
 		ratio_x = 16.0f;
 		ratio_y = 10.0f;
 		break;
+
+	case 3 :
+		// 21:9
+		ratio_x = 21.0f;
+		ratio_y = 9.0f;
+		break;
 	}
 
 	y = ratio_y / tan( fov_y / 360.0f * idMath::PI );

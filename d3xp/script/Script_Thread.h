@@ -78,6 +78,11 @@ extern const idEventDef EV_Thread_FadeOut;
 extern const idEventDef EV_Thread_FadeTo;
 extern const idEventDef EV_Thread_Restart;
 
+
+//bc
+extern const idEventDef EV_Thread_getClassEntity;
+
+
 class idThread : public idClass {
 private:
 	static idThread				*currentThread;
@@ -107,6 +112,12 @@ private:
 
 	void						Event_Execute( void );
 	void						Event_SetThreadName( const char *name );
+
+
+	//bc
+	void						Event_getClassEntity( const char *classname, int lastFound );
+
+
 
 	//
 	// script callable Events

@@ -1494,10 +1494,7 @@ void idPlayer::Init( void ) {
 	weapon_pda				= SlotForWeapon( "weapon_pda" );
 	weapon_fists			= SlotForWeapon( "weapon_fists" );
 #ifdef _D3XP
-	weapon_bloodstone		= SlotForWeapon( "weapon_bloodstone_passive" );
-	weapon_bloodstone_active1 = SlotForWeapon( "weapon_bloodstone_active1" );
-	weapon_bloodstone_active2 = SlotForWeapon( "weapon_bloodstone_active2" );
-	weapon_bloodstone_active3 = SlotForWeapon( "weapon_bloodstone_active3" );
+
 	harvest_lock			= false;
 #endif
 	showWeaponViewModel		= GetUserInfo()->GetBool( "ui_showGun" );
@@ -1645,19 +1642,19 @@ void idPlayer::Init( void ) {
 	value = spawnArgs.GetString( "bone_hips", "" );
 	hipJoint = animator.GetJointHandle( value );
 	if ( hipJoint == INVALID_JOINT ) {
-		gameLocal.Error( "Joint '%s' not found for 'bone_hips' on '%s'", value, name.c_str() );
+		gameLocal.Warning( "Joint '%s' not found for 'bone_hips' on '%s'", value, name.c_str() );
 	}
 
 	value = spawnArgs.GetString( "bone_chest", "" );
 	chestJoint = animator.GetJointHandle( value );
 	if ( chestJoint == INVALID_JOINT ) {
-		gameLocal.Error( "Joint '%s' not found for 'bone_chest' on '%s'", value, name.c_str() );
+		gameLocal.Warning( "Joint '%s' not found for 'bone_chest' on '%s'", value, name.c_str() );
 	}
 
 	value = spawnArgs.GetString( "bone_head", "" );
 	headJoint = animator.GetJointHandle( value );
 	if ( headJoint == INVALID_JOINT ) {
-		gameLocal.Error( "Joint '%s' not found for 'bone_head' on '%s'", value, name.c_str() );
+		gameLocal.Warning( "Joint '%s' not found for 'bone_head' on '%s'", value, name.c_str() );
 	}
 
 	// initialize the script variables
@@ -3031,14 +3028,7 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	_hud->SetStateString( "player_ammo_count", va("%i", weapon.GetEntity()->AmmoCount()));
 #endif
 
-#ifdef _D3XP
-	//Make sure the hud always knows how many bloodstone charges there are
-	int ammoRequired;
-	ammo_t ammo_i = inventory.AmmoIndexForWeaponClass( "weapon_bloodstone_passive", &ammoRequired );
-	int bloodstoneAmmo = inventory.HasAmmo( ammo_i, ammoRequired );
-	_hud->SetStateString("player_bloodstone_ammo", va("%i", bloodstoneAmmo));
-	_hud->HandleNamedEvent( "bloodstoneAmmoUpdate" );
-#endif
+
 
 	_hud->HandleNamedEvent( "updateAmmo" );
 }
@@ -3186,7 +3176,9 @@ idPlayer::DrawHUD
 */
 void idPlayer::DrawHUD( idUserInterface *_hud ) {
 
-	if ( !weapon.GetEntity() || influenceActive != INFLUENCE_NONE || privateCameraView || gameLocal.GetCamera() || !_hud || !g_showHud.GetBool() ) {
+
+
+	if ( !weapon.GetEntity() || influenceActive != INFLUENCE_NONE || privateCameraView || /*bc gameLocal.GetCamera() ||*/ !_hud || !g_showHud.GetBool() ) {
 		return;
 	}
 
@@ -3243,7 +3235,7 @@ void idPlayer::EnterCinematic( void ) {
 
 	physicsObj.SetLinearVelocity( vec3_origin );
 
-	SetState( "EnterCinematic" );
+	//bc SetState( "EnterCinematic" );
 	UpdateScript();
 
 	if ( weaponEnabled && weapon.GetEntity() ) {
@@ -3284,7 +3276,7 @@ void idPlayer::ExitCinematic( void ) {
 		weapon.GetEntity()->ExitCinematic();
 	}
 
-	SetState( "ExitCinematic" );
+	//bc SetState( "ExitCinematic" );
 	UpdateScript();
 }
 
@@ -3507,23 +3499,7 @@ bool idPlayer::Give( const char *statname, const char *value ) {
 		}
 	} else {
 		bool ret = inventory.Give( this, spawnArgs, statname, value, &idealWeapon, true );
-		if(!idStr::Icmp( statname, "ammo_bloodstone" ) ) {
-			//int i = inventory.AmmoIndexForAmmoClass( statname );
-			//int max = inventory.MaxAmmoForAmmoClass( this, statname );
-			//if(hud && inventory.ammo[ i ] >= max) {
-			if(hud) {
-
-				//Force an update of the bloodstone ammount
-				int ammoRequired;
-				ammo_t ammo_i = inventory.AmmoIndexForWeaponClass( "weapon_bloodstone_passive", &ammoRequired );
-				int bloodstoneAmmo = inventory.HasAmmo( ammo_i, ammoRequired );
-				hud->SetStateString("player_bloodstone_ammo", va("%i", bloodstoneAmmo));
-
-				hud->HandleNamedEvent("bloodstoneReady");
-				//Make sure we unlock the ability to harvest
-				harvest_lock = false;
-			}
-		}
+		
 		return ret;
 #else
 		return inventory.Give( this, spawnArgs, statname, value, &idealWeapon, true );
@@ -5265,6 +5241,7 @@ Searches nearby locations
 ================
 */
 void idPlayer::UpdateLocation( void ) {
+	
 	if ( hud ) {
 		idLocationEntity *locationEntity = gameLocal.LocationForPoint( GetEyePosition() );
 		if ( locationEntity ) {
@@ -7416,7 +7393,7 @@ void idPlayer::Think( void ) {
 		// update GUIs, Items, and character interactions
 		UpdateFocus();
 
-		UpdateLocation();
+		//UpdateLocation();
 
 		// update player script
 		UpdateScript();

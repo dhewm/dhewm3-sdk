@@ -88,8 +88,12 @@ void idCursor3D::Present( void ) {
 
 	const idVec3 &origin = GetPhysics()->GetOrigin();
 	const idMat3 &axis = GetPhysics()->GetAxis();
-	gameRenderWorld->DebugArrow( colorYellow, origin + axis[1] * -5.0f + axis[2] * 5.0f, origin, 2 );
-	gameRenderWorld->DebugArrow( colorRed, origin, draggedPosition, 2 );
+
+	if (developer.GetBool())
+	{	
+		gameRenderWorld->DebugArrow( colorYellow, origin + axis[1] * -5.0f + axis[2] * 5.0f, origin, 2 );
+		gameRenderWorld->DebugArrow( colorRed, origin, draggedPosition, 2 );
+	}
 }
 
 /*
@@ -113,7 +117,7 @@ void idCursor3D::Think( void ) {
 ===============================================================================
 */
 
-#define MAX_DRAG_TRACE_DISTANCE			2048.0f
+#define MAX_DRAG_TRACE_DISTANCE			128.0f
 
 /*
 ==============
@@ -277,10 +281,17 @@ void idDragEntity::Update( idPlayer *player ) {
 		if ( joint != INVALID_JOINT && renderEntity && dragAnimator ) {
 			dragAnimator->GetJointTransform( joint, gameLocal.time, cursor->draggedPosition, axis );
 			cursor->draggedPosition = renderEntity->origin + cursor->draggedPosition * renderEntity->axis;
-			gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
+			
+			
+			if (developer.GetBool())
+				gameRenderWorld->DrawText( va( "%s\n%s\n%s, %s", drag->GetName(), drag->GetType()->classname, dragAnimator->GetJointName( joint ), bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
+
 		} else {
 			cursor->draggedPosition = cursor->GetPhysics()->GetOrigin();
-			gameRenderWorld->DrawText( va( "%s\n%s\n%s", drag->GetName(), drag->GetType()->classname, bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
+			
+			
+			if (developer.GetBool())
+				gameRenderWorld->DrawText( va( "%s\n%s\n%s", drag->GetName(), drag->GetType()->classname, bodyName.c_str() ), cursor->GetPhysics()->GetOrigin(), 0.1f, colorWhite, viewAxis, 1 );
 		}
 	}
 
@@ -289,7 +300,10 @@ void idDragEntity::Update( idPlayer *player ) {
 		// draw the bbox of the selected entity
 		renderEntity_t *renderEntity = selected.GetEntity()->GetRenderEntity();
 		if ( renderEntity ) {
-			gameRenderWorld->DebugBox( colorYellow, idBox( renderEntity->bounds, renderEntity->origin, renderEntity->axis ) );
+			
+			
+			if (developer.GetBool())
+				gameRenderWorld->DebugBox( colorYellow, idBox( renderEntity->bounds, renderEntity->origin, renderEntity->axis ) );
 		}
 	}
 }

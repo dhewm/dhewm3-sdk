@@ -125,6 +125,9 @@ const idEventDef EV_Thread_DebugBounds( "debugBounds", "vvvf" );
 const idEventDef EV_Thread_DrawText( "drawText", "svfvdf" );
 const idEventDef EV_Thread_InfluenceActive( "influenceActive", NULL, 'd' );
 
+//bc
+const idEventDef EV_Thread_getClassEntity( "getClassEntity", "sd", 'e' );
+
 CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_Execute,				idThread::Event_Execute )
 	EVENT( EV_Thread_TerminateThread,		idThread::Event_TerminateThread )
@@ -215,6 +218,15 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_DebugBounds,			idThread::Event_DebugBounds )
 	EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 	EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
+
+
+
+	//bc
+	EVENT( EV_Thread_getClassEntity,		idThread::Event_getClassEntity)
+	
+
+
+
 END_CLASS
 
 idThread			*idThread::currentThread = NULL;
@@ -1920,4 +1932,53 @@ void idThread::Event_InfluenceActive( void ) {
 	} else {
 		idThread::ReturnInt( false );
 	}
+}
+
+
+
+//bc
+void idThread::Event_getClassEntity( const char *classname, int lastFound )
+{
+	int i;
+	lastFound++;
+
+	if (lastFound >= gameLocal.num_entities || lastFound < 0)
+	{
+		idThread::ReturnEntity( NULL );
+		return;
+	}
+
+	for ( i = lastFound; i < gameLocal.num_entities; i++ )
+	{
+		if ( !gameLocal.entities[ i ] )
+			continue;
+
+		//check if the classname matches.
+
+		//BC 12-18-2013 wildcard support.
+
+		idStr strClassname = classname;
+		int subIndex = strClassname.Find("*", false, 0, -1);
+
+		if (subIndex >= 0)
+		{
+			//Has a wildcard.
+			idStr classnameChunk = strClassname.Mid(0, subIndex);
+			idStr entityClassname = gameLocal.entities[ i ]->spawnArgs.GetString( "classname" );
+
+			if (idStr::Icmpn(classnameChunk, entityClassname, subIndex) != 0)
+			{
+				continue;
+			}
+		}
+		else if (idStr::Icmp(  classname, gameLocal.entities[ i ]->spawnArgs.GetString( "classname" )) != 0) //No wildcard. Do normal check.
+		{
+			continue;
+		}
+
+		idThread::ReturnEntity( gameLocal.entities[ i ] );
+		return;		
+	}
+
+	idThread::ReturnEntity( NULL );
 }

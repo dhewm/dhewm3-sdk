@@ -1154,7 +1154,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 		renderEntity.gui[ 0 ] = uiManager->FindGui( guiName, true, false, true );
 	}
 
-	zoomFov = weaponDef->dict.GetInt( "zoomFov", "70" );
+	zoomFov = weaponDef->dict.GetInt( "zoomFov", "10" );
 	berserk = weaponDef->dict.GetInt( "berserk", "2" );
 
 	weaponAngleOffsetAverages = weaponDef->dict.GetInt( "weaponAngleOffsetAverages", "10" );
@@ -2360,7 +2360,7 @@ void idWeapon::EnterCinematic( void ) {
 	StopSound( SND_CHANNEL_ANY, false );
 
 	if ( isLinked ) {
-		SetState( "EnterCinematic", 0 );
+		//bc SetState( "EnterCinematic", 0 );
 		thread->Execute();
 
 		WEAPON_ATTACK		= false;
@@ -2390,7 +2390,7 @@ void idWeapon::ExitCinematic( void ) {
 	disabled = false;
 
 	if ( isLinked ) {
-		SetState( "ExitCinematic", 0 );
+		//bc SetState( "ExitCinematic", 0 );
 		thread->Execute();
 	}
 
@@ -2459,7 +2459,7 @@ ammo_t idWeapon::GetAmmoNumForName( const char *ammoname ) {
 
 	ammoDict = gameLocal.FindEntityDefDict( "ammo_types", false );
 	if ( !ammoDict ) {
-		gameLocal.Error( "Could not find entity definition for 'ammo_types'\n" );
+		gameLocal.Warning( "Could not find entity definition for 'ammo_types'\n" );
 	}
 
 	if ( !ammoname[ 0 ] ) {
@@ -2513,7 +2513,7 @@ const char *idWeapon::GetAmmoNameForNum( ammo_t ammonum ) {
 
 	ammoDict = gameLocal.FindEntityDefDict( "ammo_types", false );
 	if ( !ammoDict ) {
-		gameLocal.Error( "Could not find entity definition for 'ammo_types'\n" );
+		gameLocal.Warning( "Could not find entity definition for 'ammo_types'\n" );
 	}
 
 	sprintf( text, "%d", ammonum );

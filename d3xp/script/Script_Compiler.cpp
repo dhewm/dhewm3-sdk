@@ -233,12 +233,16 @@ idCompiler::idCompiler() {
 
 	memset( &immediate, 0, sizeof( immediate ) );
 	memset( punctuationValid, 0, sizeof( punctuationValid ) );
+
+	
+	//BC todo
 	for( ptr = punctuation; *ptr != NULL; ptr++ ) {
 		id = parserPtr->GetPunctuationId( *ptr );
 		if ( ( id >= 0 ) && ( id < 256 ) ) {
 			punctuationValid[ id ] = true;
 		}
 	}
+	
 }
 
 /*

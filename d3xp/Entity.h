@@ -488,6 +488,11 @@ private:
 	void					Event_GetGuiParmFloat(int guiNum, const char *key);
 	void					Event_GuiNamedEvent(int guiNum, const char *event);
 #endif
+
+
+	//bc
+	void					Event_GetIndex( void );
+	void					Event_SetSolid( int enable );
 };
 
 /*

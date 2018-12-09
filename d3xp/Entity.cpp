@@ -130,6 +130,13 @@ const idEventDef EV_MotionBlurOff( "motionBlurOff" );
 const idEventDef EV_GuiNamedEvent ( "guiNamedEvent", "ds" );
 #endif
 
+
+//bc
+const idEventDef EV_GetIndex( "getIndex", NULL, 'd' );
+const idEventDef EV_SetSolid( "setSolid", "d" ); 
+
+
+
 ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_GetName,				idEntity::Event_GetName )
 	EVENT( EV_SetName,				idEntity::Event_SetName )
@@ -201,6 +208,12 @@ ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_GetGuiParmFloat,		idEntity::Event_GetGuiParmFloat )
 	EVENT( EV_GuiNamedEvent,		idEntity::Event_GuiNamedEvent )
 #endif
+
+
+	//bc
+	EVENT( EV_GetIndex,				idEntity::Event_GetIndex)
+	EVENT( EV_SetSolid,				idEntity::Event_SetSolid) 
+
 END_CLASS
 
 /*
@@ -5068,6 +5081,30 @@ bool idEntity::IsGrabbed() {
 }
 #endif
 
+
+
+
+//bc
+void idEntity::Event_GetIndex( void )
+{
+	idThread::ReturnInt( this->entityNumber);
+}
+
+void idEntity::Event_SetSolid( int enable )
+{
+	if ( enable > 0 )
+	{
+		GetPhysics()->SetContents( CONTENTS_SOLID );
+	}
+	else
+	{
+		GetPhysics()->SetContents( 0 );
+	}
+}
+
+
+
+
 /*
 ===============================================================================
 
@@ -5613,3 +5650,4 @@ void idAnimatedEntity::Event_GetJointAngle( jointHandle_t jointnum ) {
 	idVec3 vec( ang[ 0 ], ang[ 1 ], ang[ 2 ] );
 	idThread::ReturnVector( vec );
 }
+

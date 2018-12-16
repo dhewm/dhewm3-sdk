@@ -17,10 +17,12 @@ This repository also contains ports of existing mods whichs authors released
 the source under GPL; you can find these in their own branches:
 [Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom),
 [Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod),
+[Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz)
 [HardQore2](https://github.com/dhewm/dhewm3-sdk/tree/hardqore2) and
 [Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin)
 
-You can find Win32 DLLs of those mods that work with dhewm3 1.5.0RC1 (and newer) at https://github.com/dhewm/dhewm3/releases/download/1.5.0_RC1/dhewm3_1.5.0_RC1_win32.zip
+You can find Win32 DLLs of those mods that work with dhewm3 1.5.0 at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_win32.zip  
+The equivalent Linux amd64 (x86_64) libs can be downloaded at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_Linux_amd64.tar.gz
 
 ## How to build
 

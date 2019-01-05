@@ -26,7 +26,33 @@ The equivalent Linux amd64 (x86_64) libs can be downloaded at https://github.com
 
 ## How to build
 
-(I should eventually expand this, especially for Windows)
+### On Windows
+
+You need [CMake](https://cmake.org/) either Visual Studio (2010 and newer have been tested) or [MinGW-w64](https://mingw-w64.org/)
+
+1. Clone the dhewm3-sdk git repo
+2. (optional: switch to an existing mods branch: `git checkout dentonmod`)
+3. create a **build directory** in your `dhewm3-sdk/` directory (`build/` or `build-dentonmod/` or whatever)
+4. Start the CMake GUI
+5. Select your `dhewm3-sdk/` folder for *"Where is the source code"* and your  
+   **build directory** from step 3 for *"Where to build the binaries"*.
+6. Click `[Configure]`, select what you want to build with, e.g. "Visual Studio 15 2017", click `[Finish]`, wait for CMake to do its thing
+   - If you're using **MinGW** you'll have to select your build type now, e.g. `Debug` (not optimized but debuggable) or `Release` (optimized and thus faster, but can't be debugged that well).
+   - (For Visual Studio you don't have to select a build type now, you  can do it in in Visual Studio)
+7. Click `[Generate]`
+8. Building:
+   * If you're using **Visual Studio**, you should be able to just click `[Open Project]` to open the generated Project in Visual Studio. You can now compile the SDK in Visual Studio (and of course make your changes to the code).
+   * (Untested:) For **MinGW**, open your MinGW or MSys shell, switch to your **build directory** and execute `make -j4` to build the game DLL
+9. Now it's time to copy the DLL (e.g. `dentonmod.dll`) to your dhewm3 install, where base.dll and d3xp.dll are
+   - For **Visual Studio** the DLL should be in a subdirectory of your **build directory**, depending on the build type you selected in `build/Debug/` or `build/Release/` or similar
+   - For **MinGW** the DLL should be directly in your **build directory**.
+10. start the game with that mod, like `dhewm3 +set fs_game dentonmod`
+
+(Make sure to actually have the mods game data in the right directory as well;
+the directory name should be the same as the game lib name, but without .dll,
+for example dentonmod/ for dentonmod.dll)
+
+### On Linux and other Unix-likes
 
 On Linux and similar the following should work (if you have cmake, make and GCC/g++ installed):
 1. Clone the dhewm3-sdk git repo
@@ -41,12 +67,8 @@ On Linux and similar the following should work (if you have cmake, make and GCC/
 9. start the game with that mod, like `dhewm3 +set fs_game dentonmod`
 
 (Make sure to actually have the mods game data in the right directory as well;
-the directory name should be the same as the game lib name, but without .so/.dylib/.dll,
+the directory name should be the same as the game lib name, but without .so/.dylib,
 for example dentonmod/ for dentonmod.so)
-
-On Windows it should be kinda similar, but you have to tell CMake to create
-a Visual Studio solution for the VS version you're using, or Makefiles for
-MinGW-w64 or whatever.
 
 ## How to port a Mod to dhewm3
 
@@ -73,4 +95,5 @@ please contact me, I can probably help you :-)
 
 The easiest way to contact me is by creating an issue in this Github repository,
 or by sending a DM to *caedes* in the [id Tech Forums](http://idtechforums.fuzzylogicinc.com/)
-or by pinging *caedes* in the #iodoom3 IRC channel on FreeNode.
+or by pinging *caedes* in the #iodoom3 IRC channel on FreeNode.  
+If you prefer E-Mail, you can find my address in the [git commits](https://github.com/dhewm/dhewm3-sdk/commit/b7d77c468a42892fa3c03a9ce0683916a110e8db.patch).

@@ -61,6 +61,7 @@ On Linux and similar the following should work (if you have cmake, make and GCC/
 4. create a build directory: `mkdir build`
 5. switch to build directory: `cd build`
 6. create Makefile with CMake: `cmake ..`
+   - by default, this will create an *RelWithDebInfo* build, which is optimized but still has debug info, so it's somewhat debuggable. You can select another kind of build with `cmake -DCMAKE_BUILD_TYPE=Debug ..` for a Debug build with less optimization, which will make it easier to debug (but possibly slower). You could also replace "Debug" with "Release" for a proper optimized Release build without any Debug info.
 7. compile the mod .so: `make -j4`
 8. it (e.g. `dentonmod.so`) should now be in the build/ directory,
    copy it to your dhewm3 install, where base.so and d3xp.so are

@@ -2262,12 +2262,17 @@ bool idEntity::GetMasterPosition( idVec3 &masterOrigin, idMat3 &masterAxis ) con
 		// if bound to a joint of an animated model
 		if ( bindJoint != INVALID_JOINT ) {
 			masterAnimator = bindMaster->GetAnimator();
-			if ( !masterAnimator ) {
+			// DG: not sure this is the proper solution, but I had idMoveableArrows where
+			//     masterAnimator->modelDef was NULL, so masterAnimator->GetJointTransform()
+			//     wouldn't do anything and masterOrigin/Axis would remain uninitialized
+			//     and eventually spread NaNs all over the place
+			if ( !masterAnimator || !masterAnimator->ModelDef() ) {
 				masterOrigin = vec3_origin;
 				masterAxis = mat3_identity;
 				return false;
 			} else {
-				masterAnimator->GetJointTransform( bindJoint, gameLocal.time, masterOrigin, masterAxis );
+				bool b = masterAnimator->GetJointTransform( bindJoint, gameLocal.time, masterOrigin, masterAxis );
+				assert(b); // DG: this mustn't fail, else masterAxis/Origin remain uninitialized!
 				masterAxis *= bindMaster->renderEntity.axis;
 				masterOrigin = bindMaster->renderEntity.origin + masterOrigin * bindMaster->renderEntity.axis;
 			}

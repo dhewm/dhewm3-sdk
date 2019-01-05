@@ -126,8 +126,8 @@ However, you can still enable this for your WIN_DESKTOP GUIs, either in the .gui
 WIN_DESKTOP means that this can currently only be set for the top-level window in a .gui (all its subwindows/widgets will be scaled implicitly).
 
 There are two ways to make a GUI use this:
-1. in the .gui add a window variable `scaleto43 1`, like
-```
+1. in the **.gui** add a window variable `scaleto43 1`, like
+   ```
 	windowDef Desktop {
 	rect	0 ,0 ,640 ,480
 	nocursor	1
@@ -136,9 +136,9 @@ There are two ways to make a GUI use this:
 	scaleto43 1
 
 	// .. etc rest of windowDef
-```
+   ```
 
-2. When creating the GUI from C++ code, you can afterwards make the
+2. When creating the GUI from **C++ code**, you can afterwards make the
    UserInterface scale to 4:3 like this:
    ```c++
     idUserInterface* ui = Whatever(); // create it

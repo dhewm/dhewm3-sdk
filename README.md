@@ -98,3 +98,56 @@ The easiest way to contact me is by creating an issue in this Github repository,
 or by sending a DM to *caedes* in the [id Tech Forums](http://idtechforums.fuzzylogicinc.com/)
 or by pinging *caedes* in the #iodoom3 IRC channel on FreeNode.  
 If you prefer E-Mail, you can find my address in the [git commits](https://github.com/dhewm/dhewm3-sdk/commit/b7d77c468a42892fa3c03a9ce0683916a110e8db.patch).
+
+## New features that mods can use
+
+dhewm3 has some features that the original Doom3 didn't have that are interesting for Mods.
+
+### Injecting all supported resolutions into the video menu
+
+Mods that have their own video settings menu can tell dhewm3 to replace
+the "choices" and "values" entries in their choiceDef with the
+resolutions supported by dhewm3 (and corresponding modes).  
+So if we add new video modes to dhewm3, they'll automatically appear in
+the menu without changing the .gui  
+To enable this, you only need to add a `injectResolutions 1`
+entry to the resolution choiceDef. By default, the first entry will
+be "r_custom*" for r_mode -1, which means "custom resolution, use
+r_customWidth and r_customHeight".  
+If the "r_custom*" entry should be disabled for your mod, just add another entry:
+`injectCustomResolutionMode 0`
+
+### Scale GUIs to 4:3
+
+Fullscreen menus (like the main menu and the PDA) are scaled to 4:3 by default, adding black bars on the left/right when using widescreen resolutions (users can disable this with `r_scaleMenusTo43 0`).  
+By default, this is not done for other GUIs, mainly because the HUD is a fullscreen GUI and also handles damage effects (coloring the whole screen red), which would look shitty if scaled to 4:3 with black/empty bars on the left/right.  
+However, you can still enable this for your WIN_DESKTOP GUIs, either in the .gui itself or via C++ code when loading the GUI (I found this especially useful for the crosshairs/cursor GUI).
+
+WIN_DESKTOP means that this can currently only be set for the top-level window in a .gui (all its subwindows/widgets will be scaled implicitly).
+
+There are two ways to make a GUI use this:
+1. in the .gui add a window variable `scaleto43 1`, like
+```
+	windowDef Desktop {
+	rect	0 ,0 ,640 ,480
+	nocursor	1
+	float	talk 	0
+
+	scaleto43 1
+
+	// .. etc rest of windowDef
+```
+
+2. When creating the GUI from C++ code, you can afterwards make the
+   UserInterface scale to 4:3 like this:
+   ```c++
+    idUserInterface* ui = Whatever(); // create it
+    ui->SetStateBool("scaleto43", true);
+    ui->StateChanged(gameLocal.time);
+   ```
+   Both lines are important!  
+   
+   Keep in mind that if the GUI is saved to the savegame, you need to call this after restoring the GUI from the savegame,
+   see https://github.com/dhewm/dhewm3-sdk/commit/5070b8c7ec6f3a8ba1cb4123de37732f9cd9437f for an example.
+   
+   Also note that you can *not* generally inject variables into GUIs like that from C++, dhewm3 has special code to make the `"scaleto43"` case work.

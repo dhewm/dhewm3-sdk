@@ -45,6 +45,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Pvs.h"
 #include "MultiplayerGame.h"
 
+#include "../d3cclib/CCBst.h" // DG: for d3cc
+
 #ifdef ID_DEBUG_UNINITIALIZED_MEMORY
 // This is real evil but allows the code to inspect arbitrary class variables.
 #define private		public
@@ -293,6 +295,8 @@ public:
 
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
+
+	ccBst					ccDisplayInfo;			// DG: added for d3cc
 
 	// ---------------------- Public idGame Interface -------------------
 

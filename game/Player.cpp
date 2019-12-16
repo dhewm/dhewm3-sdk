@@ -2608,9 +2608,11 @@ idPlayer::DrawHUD
 */
 void idPlayer::DrawHUD( idUserInterface *_hud ) {
 
+	/* DG: commented out for d3cc - TODO: really don't return in any of those cases?
 	if ( !weapon.GetEntity() || influenceActive != INFLUENCE_NONE || privateCameraView || gameLocal.GetCamera() || !_hud || !g_showHud.GetBool() ) {
 		return;
 	}
+	*/
 
 	UpdateHudStats( _hud );
 

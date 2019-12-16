@@ -312,6 +312,9 @@ void idGameLocal::Init( void ) {
 
 	smokeParticles = new idSmokeParticles;
 
+	// DG: added this to cleanly init d3cc
+	ccDisplayInfo.InitOnce();
+
 	// set up the aas
 	dict = FindEntityDefDict( "aas_types" );
 	if ( !dict ) {
@@ -931,6 +934,15 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	for( i = 0; i < aasNames.Num(); i++ ) {
 		aasList[ i ]->Init( idStr( mapFileName ).SetFileExtension( aasNames[ i ] ).c_str(), mapFile->GetGeometryCRC() );
 	}
+
+	// DG: added for d3cc
+	// will only initialize the colors once
+	if(!ccDisplayInfo.GetColorInit())
+	{
+		ccDisplayInfo.Init("/caption/colors.dcc", false);
+	}
+	ccDisplayInfo.Init(mapFileName, false);
+	// DG end
 
 	// clear the smoke particle free list
 	smokeParticles->Init();
@@ -2298,6 +2310,8 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 
 		// free the player pvs
 		FreePlayerPVS();
+
+		ccDisplayInfo.Update(); // DG: added for d3cc
 
 		// do multiplayer related stuff
 		if ( isMultiplayer ) {

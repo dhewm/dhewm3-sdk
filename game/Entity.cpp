@@ -1621,6 +1621,16 @@ bool idEntity::StartSoundShader( const idSoundShader *shader, const s_channelTyp
 		*length = len;
 	}
 
+	// DG: for d3cc
+	idVec3 temp;
+	idMat3 temp2;
+	if ( !GetMasterPosition(temp, temp2) )
+	{
+		temp = GetWorldCoordinates(physics->GetOrigin());
+	}
+	gameLocal.ccDisplayInfo.Display( idStr(shader->GetSound(0)), len, temp, shader->GetMaxDistance(), name );
+	// DG end
+
 	// set reference to the sound for shader synced effects
 	renderEntity.referenceSound = refSound.referenceSound;
 

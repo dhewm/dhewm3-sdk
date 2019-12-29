@@ -537,6 +537,9 @@ idTrigger_EntityName::idTrigger_EntityName( void ) {
 	random_delay = 0.0f;
 	nextTriggerTime = 0;
 	triggerFirst = false;
+
+	//added for LM
+	testPartialName = false;
 }
 
 /*
@@ -552,6 +555,8 @@ void idTrigger_EntityName::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( nextTriggerTime );
 	savefile->WriteBool( triggerFirst );
 	savefile->WriteString( entityName );
+	//added For LM
+	savefile->WriteBool( testPartialName );
 }
 
 /*
@@ -567,6 +572,8 @@ void idTrigger_EntityName::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( nextTriggerTime );
 	savefile->ReadBool( triggerFirst );
 	savefile->ReadString( entityName );
+	//added for LM
+	savefile->ReadBool( testPartialName );
 }
 
 /*
@@ -602,6 +609,9 @@ void idTrigger_EntityName::Spawn( void ) {
 	if ( !spawnArgs.GetBool( "noTouch" ) ) {
 		GetPhysics()->SetContents( CONTENTS_TRIGGER );
 	}
+
+	//added for LM
+	testPartialName = spawnArgs.GetBool( "testPartialName", testPartialName );
 }
 
 /*
@@ -648,9 +658,24 @@ void idTrigger_EntityName::Event_Trigger( idEntity *activator ) {
 		return;
 	}
 
+	//added for LM
+	bool validEntity = false;
+	if ( activator ) {
+		if ( testPartialName ) {
+			if ( activator->name.Find( entityName, false ) >= 0 ) {
+				validEntity = true;
+			}
+		}
+		if ( activator->name == entityName ) {
+			validEntity = true;
+		}
+	}
+
+	/*
 	if ( !activator || ( activator->name != entityName ) ) {
 		return;
 	}
+	*/
 
 	if ( triggerFirst ) {
 		triggerFirst = false;
@@ -684,9 +709,27 @@ void idTrigger_EntityName::Event_Touch( idEntity *other, trace_t *trace ) {
 		return;
 	}
 
+	//added for LM
+	bool validEntity = false;
+	if ( other ) {
+		if ( testPartialName ) {
+			if ( other->name.Find( entityName, false ) >= 0 ) {
+				validEntity = true;
+			}
+		}
+		if ( other->name == entityName ) {
+			validEntity = true;
+		}
+	}
+
+	if ( !validEntity ) {
+		return;
+	}
+	/*
 	if ( !other || ( other->name != entityName ) ) {
 		return;
 	}
+	*/
 
 	nextTriggerTime = gameLocal.time + 1;
 	if ( delay > 0 ) {

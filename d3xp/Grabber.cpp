@@ -385,6 +385,12 @@ void idGrabber::StopDrag( bool dropOnly ) {
 				ent->GetPhysics()->SetContents( savedContents );
 				ent->GetPhysics()->SetClipMask( savedClipmask );
 
+				//added for LM
+				idProjectile *projectile = static_cast< idProjectile* >( ent );
+				if ( projectile != NULL ) {
+					projectile->SetLaunchedFromGrabber( true );
+				}
+
 			} else if ( ent->IsType( idMoveable::Type ) ) {
 				// Turn on damage for this object
 				idMoveable *obj = static_cast<idMoveable*>(ent);

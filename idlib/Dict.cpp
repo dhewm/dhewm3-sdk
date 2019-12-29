@@ -339,6 +339,24 @@ bool idDict::GetBool( const char *key, const char *defaultString, bool &out ) co
 	return found;
 }
 
+//Added for LM
+
+/*
+================
+idDict::GetBool
+================
+*/
+bool idDict::GetBool( const char *key, const bool defaultBool, bool &out ) const {
+	const idKeyValue *kv = FindKey( key );
+	if ( kv ) {
+		out = ( atoi( kv->GetValue() ) != 0 );
+		return true;
+	} else {
+		out = defaultBool;
+		return false;
+	}
+}
+
 /*
 ================
 idDict::GetAngles

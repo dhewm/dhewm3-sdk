@@ -142,6 +142,8 @@ private:
 	int					nextTriggerTime;
 	bool				triggerFirst;
 	idStr				entityName;
+	//added for LM
+	bool				testPartialName;
 
 	void				TriggerAction( idEntity *activator );
 	void				Event_TriggerAction( idEntity *activator );

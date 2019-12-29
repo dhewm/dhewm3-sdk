@@ -345,6 +345,42 @@ private:
 };
 
 
+
+//added for LM
+
+/*
+===============================================================================
+idFuncShootProjectile
+===============================================================================
+*/
+
+class idFuncShootProjectile : public idStaticEntity {
+public:
+	CLASS_PROTOTYPE( idFuncShootProjectile );
+
+	idFuncShootProjectile();
+
+	void						Save( idSaveGame *savefile ) const;
+	void						Restore( idRestoreGame *savefile );
+
+	void						Spawn();
+	void						Event_Activate( idEntity *activator );
+
+	virtual void				Think();
+
+	virtual void				WriteToSnapshot( idBitMsg &msg ) const;
+	virtual void				ReadFromSnapshot( const idBitMsg &msg );
+
+private:
+	int							mRespawnDelay;
+	int							mRespawnTime;
+	float						mShootSpeed;
+	idVec3						mShootDir;
+	idStr						mEntityDefName;
+	idEntityPtr< idEntity >		mLastProjectile;
+
+};
+
 /*
 ===============================================================================
 

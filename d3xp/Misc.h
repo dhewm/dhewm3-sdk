@@ -368,8 +368,9 @@ public:
 
 	virtual void				Think();
 
-	virtual void				WriteToSnapshot( idBitMsg &msg ) const;
-	virtual void				ReadFromSnapshot( const idBitMsg &msg );
+	// DG: at least in vanilla Doom3 the arguments should really be idBitMsgDelta, not idBitMsg!
+	virtual void				WriteToSnapshot( idBitMsgDelta &msg ) const;
+	virtual void				ReadFromSnapshot( const idBitMsgDelta &msg );
 
 private:
 	int							mRespawnDelay;

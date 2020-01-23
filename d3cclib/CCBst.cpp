@@ -55,7 +55,6 @@ ccBst::ccBst()
 	Tree = NULL;
 	ccColorInfo.Reset();
 	CInit = false;
-	output = new ccOutput[3];
 	output[0].Data.Reset();
 	output[1].Data.Reset();
 	output[2].Data.Reset();
@@ -81,36 +80,35 @@ ccBst::ccBst()
 }
 ccBst::~ccBst()
 {
-	// FIXME: DG: shouldn't all nodes be deleted recursively?
 	delete Tree;
 }
 
 void ccBst::InitOnce()
 {
 	language = cc_languageSelector.GetInteger();
+	initLanguages();
 }
 
 // FIXME: DG: apparently initLanguages() is never called? what's this good for?
 void ccBst::initLanguages()
 {
-	char* buf;  //For initing languages, scope is only inside the constructor. Added Jason 04/02/05
-    idStr currentLanguage = "";
-    bool comment = false; // DG: make sure to init this..
-    numLanguages = 0;
-    languagesLoaded = false;
-	
-	
+	char* buf = NULL;  // For initing languages, scope is only inside the constructor. Added Jason 04/02/05
+	idStr currentLanguage = "";
+	bool comment = false; // DG: make sure to init this..
+	numLanguages = 0;
+	languagesLoaded = false;
+
 	idFile *pFile = idLib::fileSystem->OpenFileRead("caption/languages.dcc");
-	
-    if (pFile)
-    {
-        int length = pFile->Length();
-	    buf = new char[length];
-	    buf[length] = '\0';//allocate enough memory to read the whole file
-	    pFile->Read( buf, length );//read the file
+
+	if (pFile)
+	{
+		int length = pFile->Length();
+		buf = new char[length+1]; // DG: +1 for terminating '\0' set in the next line
+		buf[length] = '\0'; // allocate enough memory to read the whole file
+		pFile->Read( buf, length ); // read the file
 		bool read = false;
 
-        for(int x = 0; x < length;x++)
+		for(int x = 0; x < length; x++)
 		{
 			if(buf[x] == '/' && buf[x + 1] == '/')
 			{
@@ -121,20 +119,20 @@ void ccBst::initLanguages()
 				}
 				else
 					comment = true;
-	    	}
+			}
 			else if(comment)
 			{
 				if(buf[x] == '\n')
 				{
 					comment = false;
 				}
-            }
+			}
 			else if(read && buf[x] != '"')
 			{
 				currentLanguage += buf[x];
 			}
-            else if(buf[x] == '"')
-            {
+			else if(buf[x] == '"')
+			{
 				if (!read)
 				{
 					read = true;
@@ -143,35 +141,33 @@ void ccBst::initLanguages()
 				{
 					read = false;
 					numLanguages++;
-                    idStr *temp = new idStr[numLanguages];
-                    for (int i = 0; i < numLanguages - 1; i++)
-                    {
-                        temp[i] = languages[i];
-                    }
-                    temp[numLanguages - 1] = currentLanguage;
-                    languages = temp;
+					idStr *temp = new idStr[numLanguages];
+					for (int i = 0; i < numLanguages - 1; i++)
+					{
+						temp[i] = languages[i];
+					}
+					temp[numLanguages - 1] = currentLanguage;
+					languages = temp;
 					//gameLocal.Printf(languages[numLanguages - 1] + "\n");
-                    currentLanguage = "";
-               
-				
-                }
-            }
-        }
-        languagesLoaded = true;
-    }
-    else
-    {
-        gameLocal.Printf("\nError: languages.dcc missing!\n");
-    }
+					currentLanguage = "";
+				}
+			}
+		}
+		languagesLoaded = true;
+
+		delete[] buf;
+	}
+	else
+	{
+		gameLocal.Printf("\nError: languages.dcc missing!\n");
+	}
 
 	/*for(int x = 0; x < numLanguages; x++)
 	{
 		gameLocal.Printf(idStr(x) + " " + languages[x] + "\n");
 	}*/
-
-
-
 }
+
 //added November 20, 2004
 //resets the Root of the BST
 void  ccBst::Reset()
@@ -194,7 +190,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 	if (!checkLanguage())
 	{
 		idStr languagePath = getLanguageName(language);
-			
+
 		bool flag = false;
 		int period;
 		int slash;
@@ -219,7 +215,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 		}
 
 		idFile *f = idLib::fileSystem->OpenFileRead(mapName);
-	
+
 		if ( f ) 
 		{
 			length = f->Length();
@@ -238,78 +234,78 @@ void	ccBst::Init(idStr mapName, bool MFS)
 			bool comment = false;
 			if(mapName.FindText(mapName, "colors", false) >= 0)
 			{
-			//ADDED 1-30-05
-			//a specail reader for the color file could not get it to load while in another function
+				//ADDED 1-30-05
+				//a specail reader for the color file could not get it to load while in another function
 				ccColor tempcolor;
 				tempcolor.Reset();
 				for(int x = 0; x < length;x++)
+				{
+					if(buf[x] == '/' && buf[x + 1] == '/')
 					{
-						if(buf[x] == '/' && buf[x + 1] == '/')
+						x++;
+						if(comment)
 						{
-							x++;
-							if(comment)
-							{
-								comment = false;
-							}
-							else
-								comment = true;
-						}
-						else if(comment)
-						{
-							if(buf[x] == '\n')
-							{
-								comment = false;
-							}
-						}
-						else if(buf[x] <= ' ' || buf[x] == '\n')
-						{
-							if(inside == false && temp != "")
-							{
-								if(temp == "None" || temp == "none" || temp == "NONE")
-								{
-									ccColorInfo.Default = true;
-									return;
-								}
-								tempcolor.WordToString(temp);
-								//gameLocal.Printf("Color: " + temp + "\n");
-								temp = "";
-							}
-							else if(inside == true && temp!= "")
-							{
-								tempcolor.Name[tempcolor.size - 1] = temp;
-								tempcolor.Resize(tempcolor.size+1);
-								//gameLocal.Printf("Name: " + temp + "\n");
-								temp = "";
-							}
-								
-						}
-						else if(buf[x] == '{')
-						{
-							inside = true;
-						}
-						else if(buf[x] == '}')
-						{
-							inside = false;
-							//tempcolor.Check();
-							ccColorInfo.Colors[ccColorInfo.size - 1] = tempcolor;
-							ccColorInfo.Resize(ccColorInfo.size + 1);
-
-							//gameLocal.Printf("Added \n\n");
-							tempcolor.Reset();
+							comment = false;
 						}
 						else
+							comment = true;
+					}
+					else if(comment)
+					{
+						if(buf[x] == '\n')
 						{
-							temp+= buf[x];
+							comment = false;
 						}
 					}
+					else if(buf[x] <= ' ' || buf[x] == '\n')
+					{
+						if(inside == false && temp != "")
+						{
+							if(temp == "None" || temp == "none" || temp == "NONE")
+							{
+								ccColorInfo.Default = true;
+								return;
+							}
+							tempcolor.WordToString(temp);
+							//gameLocal.Printf("Color: " + temp + "\n");
+							temp = "";
+						}
+						else if(inside == true && temp!= "")
+						{
+							tempcolor.Name[tempcolor.size - 1] = temp;
+							tempcolor.Resize(tempcolor.size+1);
+							//gameLocal.Printf("Name: " + temp + "\n");
+							temp = "";
+						}
+
+					}
+					else if(buf[x] == '{')
+					{
+						inside = true;
+					}
+					else if(buf[x] == '}')
+					{
+						inside = false;
+						//tempcolor.Check();
+						ccColorInfo.Colors[ccColorInfo.size - 1] = tempcolor;
+						ccColorInfo.Resize(ccColorInfo.size + 1);
+
+						//gameLocal.Printf("Added \n\n");
+						tempcolor.Reset();
+					}
+					else
+					{
+						temp+= buf[x];
+					}
+				}
 				CInit = true;
 			}
-			
+
 			else
 			{//regular dcc file loader
 
 				ccParamaters ntemp;
-				
+
 				ntemp.empty = false;
 				ntemp.Reset();
 				ntemp.Clear();
@@ -336,42 +332,42 @@ void	ccBst::Init(idStr mapName, bool MFS)
 					{
 						if(ntemp.timecode && quote )
 						{ //if it is in the time code, resize the list for one more and go to the next one
-							
-								if(lenscroll >= cc_SCROLLHALF && lenscroll < cc_SCROLLFULL)
-								{
-									ntemp.scroll[y] = 1;
-									//added to make sure the display() knows it scrolls somewhere
-									ntemp.needsscroll = true;
-								}
-								else if(lenscroll >= cc_SCROLLFULL && lenscroll < cc_SCROLLONEANDHALF)
-								{
-									ntemp.scroll[y] = 2;
-									ntemp.needsscroll = true;
-								}
-								else if(lenscroll >= cc_SCROLLONEANDHALF && lenscroll < cc_SCROLLTWO)
-								{
-									ntemp.scroll[y] = 3;
-									ntemp.needsscroll = true;
-								}
-								else if(lenscroll >= cc_SCROLLTWO)
-								{
-									ntemp.scroll[y] = 4;
-									ntemp.needsscroll = true;
-								}
-								else
-									ntemp.scroll[y] = 0;
-								ntemp.caption[y] = temp;
-								lenscroll = 0;
-								temp = "";
-								y++;
-								ntemp.Resize(y + 1);
+
+							if(lenscroll >= cc_SCROLLHALF && lenscroll < cc_SCROLLFULL)
+							{
+								ntemp.scroll[y] = 1;
+								//added to make sure the display() knows it scrolls somewhere
+								ntemp.needsscroll = true;
+							}
+							else if(lenscroll >= cc_SCROLLFULL && lenscroll < cc_SCROLLONEANDHALF)
+							{
+								ntemp.scroll[y] = 2;
+								ntemp.needsscroll = true;
+							}
+							else if(lenscroll >= cc_SCROLLONEANDHALF && lenscroll < cc_SCROLLTWO)
+							{
+								ntemp.scroll[y] = 3;
+								ntemp.needsscroll = true;
+							}
+							else if(lenscroll >= cc_SCROLLTWO)
+							{
+								ntemp.scroll[y] = 4;
+								ntemp.needsscroll = true;
+							}
+							else
+								ntemp.scroll[y] = 0;
+							ntemp.caption[y] = temp;
+							lenscroll = 0;
+							temp = "";
+							y++;
+							ntemp.Resize(y + 1);
 							//gameLocal.Printf("TCC: " + ntemp.caption[y-1] + "\n");
-							
+
 						}
 					}
 					else if(buf[x] <= ' ' && !quote)
 					{
-						
+
 						if(ntemp.soundName == "" && !inside)
 						{
 							if(temp != "")
@@ -387,7 +383,6 @@ void	ccBst::Init(idStr mapName, bool MFS)
 							ntemp.timecode = true;
 							//gameLocal.Printf("Timecode == true \n");
 							temp = "";
-
 						}
 					}
 					else
@@ -410,7 +405,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 									status = ntemp.Check();
 								}
 								//make sure it is not true
-								
+
 								Add(ntemp);
 								y = 0;
 								/*gameLocal.Printf(ntemp.soundName + "\n");
@@ -434,7 +429,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 						}
 						else if(buf[x] == '"')
 						{
-							
+
 							if(!quote)
 							{
 								quote = true;
@@ -468,7 +463,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 									ntemp.scroll[0] = 0;
 									ntemp.needsscroll = false;
 								}
-								
+
 								lenscroll = 0;
 								ntemp.caption[0] = temp;
 								//gameLocal.Printf("C: " + ntemp.caption + "\n\n");
@@ -487,7 +482,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 									Init("caption/" + getLanguageName(language) + "/" +ntemp.soundName + ".dcc", true);
 									//gameLocal.Printf("Loading File: /" + ntemp.soundName + ".dcc \n");
 								}
-								
+
 								if(ntemp.timecode)
 								{
 									quote = true;
@@ -498,7 +493,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 								temp = "";
 							}
 						}
-							
+
 						else if(quote && buf[x] != '\n')
 						{
 							if(ntemp.timecode)
@@ -507,7 +502,6 @@ void	ccBst::Init(idStr mapName, bool MFS)
 								{
 									first = true;
 									code = 0;
-								
 								}
 								else if(code < 3)
 								{
@@ -521,7 +515,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 									{
 										tm += toInt(buf[x]);
 										first = true;
-										
+
 										if(code == 0)
 										{
 											ntemp.time[y] = tm * 60000;
@@ -540,7 +534,6 @@ void	ccBst::Init(idStr mapName, bool MFS)
 											x++;
 										}
 										code++;
-
 									}
 								}
 								if(code == 3)
@@ -555,8 +548,8 @@ void	ccBst::Init(idStr mapName, bool MFS)
 									}
 									else
 									{
-									lenscroll++;
-									temp += buf[x];
+										lenscroll++;
+										temp += buf[x];
 									}
 
 								}
@@ -579,10 +572,7 @@ void	ccBst::Init(idStr mapName, bool MFS)
 						}
 					}
 				}
-				}
-					
-			
-				
+			}
 		}
 		else
 		{
@@ -709,7 +699,6 @@ void	ccBst::Display(idStr soundName, int length, idVec3 ent_vec, float max, idSt
 				
 				//INSTEAD OF THE FOLLOWING IF:
 
-
 				if(output[2].Data.caption[0].Find("continues", true, 0, -1) < 0)
 				{
 					output[2].Data.caption[0] += " continues";
@@ -719,7 +708,6 @@ void	ccBst::Display(idStr soundName, int length, idVec3 ent_vec, float max, idSt
 		}
 		else
 		{
-
 			ccParamaters display;
 			display.Reset();
 			display = Find(soundName);
@@ -740,17 +728,14 @@ void	ccBst::Display(idStr soundName, int length, idVec3 ent_vec, float max, idSt
 
 			if(display.caption[0] == "ERROR")
 			{
-				player = player;
+				// player = player;
 				gameLocal.Printf("Error: Couldn't find sound, " + soundName + "\n");
 			}
 
 			else if ((display.priority[0] == '0' && cc_dialogue.GetBool()) || (display.priority[0] != '0' && cc_environment.GetBool())) 
 			{
-			
 				if(inDistance(ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), max, false) || gameLocal.inCinematic || display.priority[0] == '0')
 				{
-
-
 					idVec3 temp  = player->GetWorldCoordinates(player->GetPhysics()->GetOrigin());
 				//	if(display.priority[0] != 'A' && ent_vec != temp)
 				//	{
@@ -758,7 +743,6 @@ void	ccBst::Display(idStr soundName, int length, idVec3 ent_vec, float max, idSt
 				//	HandleRadar(ent_vec - temp, player->viewAngles.yaw);
 					
 				//	}
-
 
 					display.ent_vec = ent_vec;
 					display.max = max;
@@ -944,7 +928,9 @@ void	ccBst::Update()
 	idVec3 temppos  = player->GetWorldCoordinates(player->GetPhysics()->GetOrigin());
 
 	//check for the end of the first windowdef box (high priority) and shift accordingly
-	if(!output[0].Data.empty && output[0].length <= gameLocal.GetTime() - output[0].time || (!inDistance(output[0].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[0].Data.max, output[0].Data.empty) && !gameLocal.inCinematic && (output[0].Data.priority[0] != '0' || output[0].Data.timecode)))
+	if( (!output[0].Data.empty && output[0].length <= gameLocal.GetTime() - output[0].time)
+	   || (!inDistance(output[0].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[0].Data.max, output[0].Data.empty)
+	        && !gameLocal.inCinematic && (output[0].Data.priority[0] != '0' || output[0].Data.timecode) ) )
 	{
 		int pos = output[0].Data.caption[0].Find("continues", true, 0, -1);
 		if(pos > 0)//make sure the continues is removed
@@ -999,17 +985,17 @@ void	ccBst::Update()
 	}
 
 	//check the second, and shift accordingly
-	if(!output[1].Data.empty && output[1].length <= gameLocal.GetTime() - output[1].time || (!inDistance(output[1].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[1].Data.max , output[1].Data.empty) && !gameLocal.inCinematic && (output[1].Data.priority[0] != '0' || output[1].Data.timecode)))
+	if( (!output[1].Data.empty && output[1].length <= gameLocal.GetTime() - output[1].time)
+	   || (!inDistance(output[1].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[1].Data.max , output[1].Data.empty)
+	        && !gameLocal.inCinematic && (output[1].Data.priority[0] != '0' || output[1].Data.timecode) ) )
 	{
 		int pos = output[1].Data.caption[0].Find("continues", true, 0, -1);
 		if(pos > 0)
 		{
 			output[1].Data.caption[0] = output[1].Data.caption[0].Mid(0, pos - 1);
-
 		}
 
 		output[1] = output[2];
-		
 		
 		if(output[1].Data.scrolled)
 		{
@@ -1039,13 +1025,14 @@ void	ccBst::Update()
 	}
 
 	//check third, shift accordingly
-	if(!output[2].Data.empty && output[2].length <= gameLocal.GetTime() - output[2].time || (!inDistance(output[2].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[2].Data.max , output[2].Data.empty)  && !gameLocal.inCinematic && (output[2].Data.priority[0] != '0' || output[2].Data.timecode)))
+	if( (!output[2].Data.empty && output[2].length <= gameLocal.GetTime() - output[2].time)
+	    || (!inDistance(output[2].Data.ent_vec, player->GetWorldCoordinates(player->GetPhysics()->GetOrigin()), output[2].Data.max , output[2].Data.empty)
+	         && !gameLocal.inCinematic && (output[2].Data.priority[0] != '0' || output[2].Data.timecode)) )
 	{//should not need a check since the previous was not empty
 		int pos = output[2].Data.caption[0].Find("continues", true, 0, -1);
 		if(pos > 0)
 		{
 			output[2].Data.caption[0] = output[2].Data.caption[0].Mid(0, pos - 1);
-
 		}
 		player->hud->SetStateString("Ldialog", "");
 		player->hud->HandleNamedEvent("resetLow");
@@ -1071,12 +1058,11 @@ void	ccBst::Update()
 				player->hud->SetStateString("Hdialog",  output[0].Data.caption[output[0].Data.current]);
 			}
 		}
-
 	}
+
 	//check for timecode switch, mid
 	if(output[1].Data.timecode)
-	{	
-		
+	{
 		if(output[1].Data.current != output[1].Data.size -1)
 		{
 			if(gameLocal.GetTime() >= output[1].time + output[1].Data.time[output[1].Data.current + 1])
@@ -1098,7 +1084,6 @@ void	ccBst::Update()
 		{
 			if(gameLocal.GetTime() >= output[2].time + output[2].Data.time[output[2].Data.current + 1])
 			{
-
 				output[2].Data.current++;
 				player->hud->HandleNamedEvent("resetLow");
 				output[2].Data.scrolled = false;
@@ -1152,26 +1137,21 @@ void	ccBst::Update()
 		//}
 	}
 
-
 	//These will update the radar accordingly to the sounds first known position, and the players latest.
 	if(output[0].Data.radar)
 	{
-
 		HandleRadar(output[0].Data.ent_vec - temppos, player->viewAngles.yaw, "High", output[0].Data.currentcolor);
-
 	}
+
 	if(output[1].Data.radar)
 	{
 		HandleRadar(output[1].Data.ent_vec - temppos, player->viewAngles.yaw, "Mid", output[1].Data.currentcolor);
-
 	}
+
 	if(output[2].Data.radar)
 	{
 		HandleRadar(output[2].Data.ent_vec - temppos, player->viewAngles.yaw, "Low", output[2].Data.currentcolor);
-
 	}
-
-
 }
 
 
@@ -1188,7 +1168,7 @@ ccParamaters	ccBst::Find(idStr requisition)
 		while(p != NULL)
 		{
 			//gameLocal.Printf(p->data.soundName + "\n");
-            int comp = requisition.Cmp(requisition, p->data.soundName);
+			int comp = requisition.Cmp(requisition, p->data.soundName);
 			if(comp == 0 || requisition == p->data.soundName)
 			{
 				temp = p->data;
@@ -1204,7 +1184,6 @@ ccParamaters	ccBst::Find(idStr requisition)
 				p = p->left;
 			}
 		}
-
 	}
 	return temp;
 }
@@ -1225,9 +1204,9 @@ void	ccBst::Add(ccParamaters newData)
 	{
 		AddHelper(Tree, newData);
 	}
-	return;
-
 }
+
+
 void	ccBst::AddHelper(Node *head, ccParamaters newData)
 {
 	if(newData.soundName.Cmp(newData.soundName, head->data.soundName) < 0 && head->left == NULL)
@@ -1258,7 +1237,6 @@ void	ccBst::AddHelper(Node *head, ccParamaters newData)
 	{
 		AddHelper(head->left, newData);
 	}
-	return;
 }
 
 int ccBst::toInt(char t)
@@ -1287,10 +1265,8 @@ int ccBst::toInt(char t)
 			return 9;
 		case 'A' :
 			return 10;
-
 	}
 	return 0;
-
 }
 //added 11/29/04
 void  ccBst::Scroll(int scr, idStr prefix)
@@ -1391,7 +1367,7 @@ bool	ccBst::inDistance(idVec3 ent_vec, idVec3 player_vec, float maxDis, bool emp
 	float temp = sqrt((player_vec.x - ent_vec.x)*(player_vec.x - ent_vec.x) + (player_vec.y - ent_vec.y)*(player_vec.y - ent_vec.y) +(player_vec.z - ent_vec.z)*(player_vec.z - ent_vec.z))*DOOM_TO_METERS;
 	//idVec2 tempy= ent_vec.ToVec2() - player_vec.ToVec2();
 	//float tmp =  tempy.Length() * DOOM_TO_METERS; //used to verify the correctness of my equation
-    //gameLocal.Printf("Max: " + idStr(maxDis) + "Dis: " + idStr(temp) + "\n");
+	//gameLocal.Printf("Max: " + idStr(maxDis) + "Dis: " + idStr(temp) + "\n");
 	//gameLocal.Printf("tempy: " + idStr(tmp) + "\n");
 	if(temp < maxDis)
 		return true;
@@ -1404,13 +1380,13 @@ bool	ccBst::inDistance(idVec3 ent_vec, idVec3 player_vec, float maxDis, bool emp
 idStr	ccBst::getLanguageName(int index)
 {
 	
-    if (languagesLoaded)
+	if (languagesLoaded)
 	{
 		//languages[index].ToLower();
-        return languages[index];
+		return languages[index];
 	}
-    else
-        return "english";    //Default to english if languages.dcc missing.
+	else
+		return "english";    //Default to english if languages.dcc missing.
 }
 
 bool	ccBst::checkLanguage()
@@ -1452,12 +1428,12 @@ bool ccBst::HandleRadar(idVec3 difVec, float vAngle, idStr Prior, idStr Color)
 		y = -30;
 	x = 1.5*x;
 	y = 1.5*y;
-	if(angle >= 0 && angle <= 90 || angle == 360)
+	if((angle >= 0 && angle <= 90) || angle == 360)
 	{
 		x = abs(x);
 		y = abs(y);
 	}
-	if(angle > 90 && angle <= 180 || angle == -180)
+	if((angle > 90 && angle <= 180) || angle == -180)
 	{
 		x = abs(x) * -1;
 		y = abs(y);
@@ -1479,7 +1455,6 @@ bool ccBst::HandleRadar(idVec3 difVec, float vAngle, idStr Prior, idStr Color)
 	y += 3;
 
 
-
 	idPlayer *player = gameLocal.GetLocalPlayer();
 	player->hud->SetStateFloat(Prior+"X", x);
 	player->hud->SetStateFloat(Prior+"Y", y);
@@ -1487,13 +1462,7 @@ bool ccBst::HandleRadar(idVec3 difVec, float vAngle, idStr Prior, idStr Color)
 	//method not working, will needs to be reworked the way it is done for captions
 	player->hud->HandleNamedEvent(Color + Prior + "R");
 	
-
-	
-
-
 	return true;
-	
-	
 }
 
 

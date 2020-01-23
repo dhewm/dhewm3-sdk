@@ -278,12 +278,4 @@ struct ccParamaters {
 	
 };
 
-
-
-
-
-
-
-
-
 #endif

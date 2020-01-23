@@ -81,6 +81,7 @@ ccBst::ccBst()
 }
 ccBst::~ccBst()
 {
+	// FIXME: DG: shouldn't all nodes be deleted recursively?
 	delete Tree;
 }
 
@@ -89,11 +90,12 @@ void ccBst::InitOnce()
 	language = cc_languageSelector.GetInteger();
 }
 
+// FIXME: DG: apparently initLanguages() is never called? what's this good for?
 void ccBst::initLanguages()
 {
 	char* buf;  //For initing languages, scope is only inside the constructor. Added Jason 04/02/05
     idStr currentLanguage = "";
-    bool comment;
+    bool comment = false; // DG: make sure to init this..
     numLanguages = 0;
     languagesLoaded = false;
 	
@@ -174,7 +176,7 @@ void ccBst::initLanguages()
 //resets the Root of the BST
 void  ccBst::Reset()
 {
-	Tree = NULL;
+	Tree = NULL; // TODO: DG: remove elements?
 	output[0].Data.Reset();
 	output[1].Data.Reset();
 	output[2].Data.Reset();
@@ -219,18 +221,17 @@ void	ccBst::Init(idStr mapName, bool MFS)
 		idFile *f = idLib::fileSystem->OpenFileRead(mapName);
 	
 		if ( f ) 
-		{	
-
-
+		{
 			length = f->Length();
 			buf = (char *) Mem_Alloc( length + 1 );
 			buf[length] = '\0';//allocate enough memory to read the whole file
 			f->Read( buf, length );//read the file
 			bool quote = false;
 			bool inside = false;
-			bool first; //used to keep track of first and second digits in timecode
-			int code; //used to keep track between minutes, seconds and milliseconds
-			int tm; //used to add up the time
+			// DG: made sure the next 3 variables are initialized (compiler was complaining)
+			bool first = false; //used to keep track of first and second digits in timecode
+			int code = 0; //used to keep track between minutes, seconds and milliseconds
+			int tm = 0; //used to add up the time
 			int lenscroll = 0;
 			int y = 0;
 			idStr temp = "";

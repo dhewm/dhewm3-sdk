@@ -230,6 +230,7 @@ struct ccParamaters {
 	void	Resize(int newsize)
 	{//only works if size is less than newsize
 		//could be easily changed with a conditional
+		// FIXME: DG: who deletes those arrays?
 		idStr *temp = new idStr[newsize];
 		int *tempint = new int[newsize];
 		int *tempbool = new int[newsize];
@@ -251,7 +252,7 @@ struct ccParamaters {
 		if(caption[size - 1] == "")
 		{
 			c = true;
-			delete caption[size - 1];
+			// delete caption[size - 1]; DG: trying to delete an element of an array doesn't really make sense (and crashes)
 			size--;
 		}
 		current = 0;

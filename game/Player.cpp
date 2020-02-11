@@ -1632,7 +1632,7 @@ void idPlayer::Init( void ) {
 	}
 	// disable stamina on hell levels
 	if ( gameLocal.world && gameLocal.world->spawnArgs.GetBool( "no_stamina" ) ) {
-		pm_stamina.SetFloat( 0.0f );
+		//pm_stamina.SetFloat( 0.0f );  //revility 2020 stamina in Rivensin is used for energy shield gauge.
 	}
 
 	// stamina always initialized to maximum

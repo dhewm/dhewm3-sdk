@@ -4092,7 +4092,7 @@ void idAI::UpdateIsOnScreen( void ) {
 		return;
 	}
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if ( !player ) { 
+	if( player == NULL || player->GetRenderView() == NULL ) {
 		isOnScreen = false; //no player, no camera
 		return;
 	}

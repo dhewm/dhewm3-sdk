@@ -1016,13 +1016,19 @@ bool idAI_Bot::SelectWeapon( int weaponNum ) {
 		//ammo
 		if(weapons[ weaponNum ].clipSize > 0){ //only if limited clip size
 			if(weapons[ weaponNum ].ammoInClip <= 0){
-				AI_WEAPON_NEED_RELOAD = true;
+				if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
+					AI_WEAPON_NEED_RELOAD = true;
+				}
 			}else{
-				AI_WEAPON_NEED_RELOAD = false;
+				if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
+					AI_WEAPON_NEED_RELOAD = false;
+				}
 			}
 		}
 	}else{ //no weapon selected
-		AI_WEAPON_NEED_RELOAD = false;
+		if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
+			AI_WEAPON_NEED_RELOAD = false;
+		}
 	}
 
 	//remove the current projectileClipModel so that it'll be recreated the next time GetAimDir is called
@@ -1046,7 +1052,9 @@ bool idAI_Bot::SelectWeapon( int weaponNum ) {
 	setWeaponMuzzleFlash(); //ok because currentWeapon already updated
 
 	//upd script
-	AI_WEAPON_CHANGED = true;
+	if(AI_WEAPON_CHANGED.IsLinked()) { // DG: otherwise the assignment will cause an assertion
+		AI_WEAPON_CHANGED = true;
+	}
 	return true;
 }
 

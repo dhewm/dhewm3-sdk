@@ -921,8 +921,9 @@ void idWeapon::Clear( void ) {
 	memset( &renderEntity, 0, sizeof( renderEntity ) );
 	renderEntity.entityNum	= entityNumber;
 
-	renderEntity.noShadow		= true;
-	renderEntity.noSelfShadow	= true;
+//rev 2020 enable weapons to cast shadows
+	renderEntity.noShadow		= false;	//true;
+	renderEntity.noSelfShadow	= false;	//true;
 	renderEntity.customSkin		= NULL;
 
 	// set default shader parms

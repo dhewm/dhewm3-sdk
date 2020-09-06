@@ -2652,6 +2652,13 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( currentSlot );
 	//ivan end - kick
+
+	// DG: workaround for lingering messages that are shown forever after loading a savegame
+	//     (one way to get them is saving again, while the message from first save is still
+	//      shown, and then load)
+	if ( hud ) {
+		hud->SetStateString( "message", "" );
+	}
 }
 
 /*

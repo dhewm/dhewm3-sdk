@@ -127,6 +127,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_compile_options(-Wno-switch)
 	add_compile_options(-Wno-strict-overflow)
 	add_compile_options(-Wno-format-security)
+	
+	if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+		# ‘void* memset(void*, int, size_t)’ clearing an object of type ‘struct refSound_t’ with no trivial copy-assignment; use assignment or value-initialization instead
+		# ‘void* memcpy(void*, const void*, size_t)’ writing to an object of type ‘class idDrawVert’ with no trivial copy-assignment; use copy-assignment or copy-initialization instead
+		# etc - I don't care, all the cases I've checked were safe and I'm not gonna add (void*) casts in 1000 places
+		#       (that would make merging new mods painful)
+		add_compile_options(-Wno-class-memaccess)
+	endif()
 
 	CHECK_CXX_COMPILER_FLAG("-Woverloaded-virtual" cxx_has_Woverload_virtual)
 	if(cxx_has_Woverload_virtual)

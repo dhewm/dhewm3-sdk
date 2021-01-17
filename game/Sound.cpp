@@ -97,6 +97,10 @@ void idSound::Restore( idRestoreGame *savefile ) {
 	savefile->ReadVec3( shakeTranslate );
 	savefile->ReadAngles( shakeRotate );
 	savefile->ReadInt( playingUntilTime );
+
+	if ( spawnArgs.GetBool( "s_music" ) ) { //SnoopJeDi/DG
+		gameLocal.musicSpeakers.Append( entityNumber );
+	}
 }
 
 /*

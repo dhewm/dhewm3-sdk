@@ -78,7 +78,10 @@ void idAnimState::Save( idSaveGame *savefile ) const {
 	savefile->WriteObject( self );
 
 	// Save the entity owner of the animator
-	savefile->WriteObject( animator->GetEntity() );
+	if(animator != NULL) // DG: don't crash if it's NULL
+		savefile->WriteObject( animator->GetEntity() );
+	else
+		savefile->WriteInt(0);
 
 	savefile->WriteObject( thread );
 

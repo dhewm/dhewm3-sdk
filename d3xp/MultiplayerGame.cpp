@@ -204,12 +204,15 @@ void idMultiplayerGame::Reset() {
 	mapList = uiManager->AllocListGUI( );
 	mapList->Config( mainGui, "mapList" );
 	// set this GUI so that our Draw function is still called when it becomes the active/fullscreen GUI
-	mainGui->SetStateBool( "gameDraw", true );
-	mainGui->SetKeyBindingNames();
-	mainGui->SetStateInt( "com_machineSpec", cvarSystem->GetCVarInteger( "com_machineSpec" ) );
-	SetMenuSkin();
+	if(mainGui) { // DG: in fitz this is NULL
+		mainGui->SetStateBool( "gameDraw", true );
+		mainGui->SetKeyBindingNames();
+		mainGui->SetStateInt( "com_machineSpec", cvarSystem->GetCVarInteger( "com_machineSpec" ) );
+		SetMenuSkin();
+	}
 	msgmodeGui = uiManager->FindGui( "guis/mpmsgmode.gui", true, false, true );
-	msgmodeGui->SetStateBool( "gameDraw", true );
+	if(msgmodeGui) // DG: in fitz this is NULL
+		msgmodeGui->SetStateBool( "gameDraw", true );
 	ClearGuis();
 	ClearChatData();
 	warmupEndTime = 0;
@@ -304,14 +307,16 @@ void idMultiplayerGame::ClearGuis() {
 	int i;
 
 	for ( i = 0; i < MAX_CLIENTS; i++ ) {
-		scoreBoard->SetStateString( va( "player%i",i+1 ), "" );
-		scoreBoard->SetStateString( va( "player%i_score", i+1 ), "" );
-		scoreBoard->SetStateString( va( "player%i_tdm_tscore", i+1 ), "" );
-		scoreBoard->SetStateString( va( "player%i_tdm_score", i+1 ), "" );
-		scoreBoard->SetStateString( va( "player%i_wins", i+1 ), "" );
-		scoreBoard->SetStateString( va( "player%i_status", i+1 ), "" );
-		scoreBoard->SetStateInt( va( "rank%i", i+1 ), 0 );
-		scoreBoard->SetStateInt( "rank_self", 0 );
+		if(scoreBoard) { // DG: in fitz, this is NULL
+			scoreBoard->SetStateString( va( "player%i",i+1 ), "" );
+			scoreBoard->SetStateString( va( "player%i_score", i+1 ), "" );
+			scoreBoard->SetStateString( va( "player%i_tdm_tscore", i+1 ), "" );
+			scoreBoard->SetStateString( va( "player%i_tdm_score", i+1 ), "" );
+			scoreBoard->SetStateString( va( "player%i_wins", i+1 ), "" );
+			scoreBoard->SetStateString( va( "player%i_status", i+1 ), "" );
+			scoreBoard->SetStateInt( va( "rank%i", i+1 ), 0 );
+			scoreBoard->SetStateInt( "rank_self", 0 );
+		}
 
 		idPlayer *player = static_cast<idPlayer *>( gameLocal.entities[ i ] );
 		if ( !player || !player->hud ) {
@@ -320,7 +325,8 @@ void idMultiplayerGame::ClearGuis() {
 		player->hud->SetStateString( va( "player%i",i+1 ), "" );
 		player->hud->SetStateString( va( "player%i_score", i+1 ), "" );
 		player->hud->SetStateString( va( "player%i_ready", i+1 ), "" );
-		scoreBoard->SetStateInt( va( "rank%i", i+1 ), 0 );
+		if(scoreBoard)
+			scoreBoard->SetStateInt( va( "rank%i", i+1 ), 0 );
 		player->hud->SetStateInt( "rank_self", 0 );
 
 	}

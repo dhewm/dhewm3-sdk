@@ -4397,6 +4397,8 @@ idPlayer::NextWeapon
 */
 void idPlayer::NextWeapon( void ) {
 
+	return; // DG: don't run into endless loop when using mousewheel due to lack of weapons
+
 	const char *weap;
 	int w;
 
@@ -4452,6 +4454,8 @@ idPlayer::PrevWeapon
 ===============
 */
 void idPlayer::PrevWeapon( void ) {
+
+	return; // DG: don't run into endless loop when using mousewheel due to lack of weapons
 
 	const char *weap;
 	int w;

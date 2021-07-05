@@ -1,3 +1,30 @@
+/*
+===========================================================================
+
+DOOM3[CC] Source Code
+Copyright (C) 2004-2005 the DOOM3[CC] team
+Copyright (C) 2004-2005 Reid Kimball, Jason Sadler, Kevin Maulding and Matt Sefton
+Copyright (C) 2020 Reid Kimball
+Copyright (C) 2020-2021 Daniel Gibson
+
+This file is part of the DOOM3[CC] GPL Source Code ("DOOM3[CC]
+Source Code").
+
+DOOM3[CC] Source Code is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+DOOM3[CC] Source Code is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with DOOM3[CC] Source Code.  If not, see <http://www.gnu.org/licenses/>.
+
+===========================================================================
+*/
 
 //#define GAME_DLL
 //#include "../src/idlib/precompiled.h"

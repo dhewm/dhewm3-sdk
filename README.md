@@ -1,3 +1,24 @@
+# Doom3[CC] port for dhewm3
+
+## License
+
+All the C++ source is released under GPLv3, like dhewm3 itself (see COPYING.txt).  
+Most of it is  
+> Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.  
+> Copyright (C) 2011-2021 dhewm3 contributors
+
+The **Doom3[CC]** parts, especially in `d3cclib/` are  
+> Copyright (C) 2004-2005 and 2020 the DOOM3[CC] team (Reid Kimball, Jason Sadler, Kevin Maulding and Matt Sefton)  
+
+## Other information
+
+Currently the most up to date gamedata for this mod and discussion regarding its
+future development can be found [here](https://github.com/dhewm/dhewm3-sdk/issues/12).
+
+Below, dhewm3 SDK README (incl. build instructions):
+
+---
+
 # dhewm3 Mod SDK
 
 This repository contains an SDK that can be used to create modifications ("mods")
@@ -10,19 +31,6 @@ instead of SCons + VS Project files.
 This means that you need CMake to build it, but don't worry, on Windows it can
 create a Visual Studio Solution for you so you can program and compile with
 Visual Studio like you might be used to.
-
-## Some ports of existing Mods
-
-This repository also contains ports of existing mods whichs authors released
-the source under GPL; you can find these in their own branches:
-[Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom),
-[Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod),
-[Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz)
-[HardQore2](https://github.com/dhewm/dhewm3-sdk/tree/hardqore2) and
-[Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin)
-
-You can find Win32 DLLs of those mods that work with dhewm3 1.5.0 at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_win32.zip  
-The equivalent Linux amd64 (x86_64) libs can be downloaded at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_Linux_amd64.tar.gz
 
 ## How to build
 

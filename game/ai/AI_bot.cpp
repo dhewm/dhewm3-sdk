@@ -1376,6 +1376,7 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 
 	noAim  = spawnArgs.GetInt( "noaim" );	
 	if ( noAim > 0 ) {
+		// FIXME: DG: the following line is not good
 		if ( target = NULL ) {  //rev 202 reverted back to = NULL.  != NULL broke noaim from working.  i am sure this is the wrong way to do this. :p
 			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
 			tmp.Normalize();

@@ -4668,7 +4668,7 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 */
 	noAim  = spawnArgs.GetInt( "noaim" );	
 	if ( noAim > 0 ) {
-		if ( target = NULL ) {
+		if ( target = NULL ) { // FIXME: DG: this is not good
 			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
 			tmp.Normalize();
 			axis = tmp.ToMat3();

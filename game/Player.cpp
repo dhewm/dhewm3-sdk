@@ -8320,8 +8320,8 @@ idPlayer::SetChargeMoveState
 ==============
 */
 void idPlayer::SetChargeMoveState( void ) {
-	//const function_t *newstate = GetScriptFunction( "ChargeMoveF" );	
-	const function_t *newstate;	
+	//const function_t *newstate = GetScriptFunction( "ChargeMoveF" );
+	const function_t *newstate = NULL; // DG: make sure this is initialized, so if(newstate) check below works reliably
 	if (chargeDir == 1){
 		newstate = GetScriptFunction( "ChargeMoveU" );		
 	}

@@ -4140,6 +4140,8 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		if(num_projectiles > 1){				//Example: spread = 90, num projs = 5
 			ang = 2*spread/(num_projectiles-1); //Spread step: 2* 90 /(5-1) = 45 degrees
 			ang = ang/180.0f;					//normalized from 0 to 1: 45/180 = 0.5 --> % of 180 degrees to use: 0, 0.25, -0.25, 0.5, -0.5
+		} else { // DG: make sure ang is initialized, I hope doing the same as WP_FIREMODE_DEFAULT makes at least a bit sense
+			ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
 		}
 	} 
 	//ivan end

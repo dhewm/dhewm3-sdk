@@ -269,7 +269,7 @@ idCVar pm_normalviewheight(			"pm_normalviewheight",		"68",			CVAR_GAME | CVAR_N
 idCVar pm_deadheight(				"pm_deadheight",			"20",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while dead" );
 idCVar pm_deadviewheight(			"pm_deadviewheight",		"10",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's view while dead" );
 idCVar pm_crouchrate(				"pm_crouchrate",			"0.87",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "time it takes for player's view to change from standing to crouching" );
-idCVar pm_bboxwidth(				"pm_bboxwidth",				"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "x/y size of player's bounding box" );
+idCVar pm_bboxwidth(				"pm_bboxwidth",				"20",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "x/y size of player's bounding box" );
 idCVar pm_crouchbob(				"pm_crouchbob",				"0.5",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob much faster when crouched" );
 idCVar pm_walkbob(					"pm_walkbob",				"0.3",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob slowly when walking" );
 idCVar pm_runbob(					"pm_runbob",				"0.4",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob faster when running" );
@@ -286,6 +286,7 @@ idCVar pm_thirdPerson(				"pm_thirdPerson",			"1",			CVAR_GAME | CVAR_NETWORKSYN
 idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" ); // un noted changes from original sdk
 idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> ); // un noted changes from original sdk
 idCVar pm_airTics(					"pm_air",					"35000",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" ); //ivan -was "1800"
+idCVar pm_character(				"pm_character",				"0",			CVAR_GAME | CVAR_BOOL, "Change Player character. 1 = Scarlet. 0 = Doom Marine");
 
 idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" ); // un noted changes from original sdk
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );
@@ -354,26 +355,38 @@ idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_AR
 
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
 
-//un noted changes to add in bloom from old sdk.  was originally denton code
-idCVar r_bloom( "r_bloom", "1", CVAR_GAME | CVAR_INTEGER, "activates bloom with gaussian blur ( Requires DX9 compliant Hardware ). \n 1: Bloom with shift sensitivity and variable blurring \n 2: Bloom with shift sensitivity \n 3: Normal Bloom ");
-idCVar r_bloom_blur_mult( "r_bloom_blur_mult", "0.5", CVAR_GAME | CVAR_FLOAT, "blurred image multiplier for bloom");
-idCVar r_bloom_src_mult( "r_bloom_src_mult", "1.0", CVAR_GAME | CVAR_FLOAT, "source image multiplier for bloom");
-idCVar r_bloom_contrast( "r_bloom_contrast", "1", CVAR_GAME | CVAR_INTEGER, "contrast type. 0: no contrast  1: modulate 2x  2: minus 0.1");
+// HDR related - J.C.Denton
+idCVar r_HDR_enable					( "r_HDR_enable",					"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, " Enables HDR Rendering & post-processing.");
+idCVar r_HDR_enableDebugMode		( "r_HDR_enableDebugMode",			"0",			CVAR_GAME | CVAR_INTEGER, " Shows all the textures generated for HDR postprocess. \n 1: Shows all textures \n 2: Decodes and shows all textures");
+idCVar r_HDR_postProcess			( "r_HDR_postProcess",				"1",			CVAR_GAME | CVAR_INTEGER, " Activates HDR bloom . \n 1: HDR Bloom with automatic eye exposure ");
+idCVar r_HDR_middleGray				( "r_HDR_middleGray",				"0.1",			CVAR_GAME | CVAR_FLOAT,	" Middle gray value for overall scene . Range 0 - 1. (Works only when automatic exposure is on) ");
+idCVar r_HDR_brightPassThreshold	( "r_HDR_brightPassThreshold",		"1.7",			CVAR_GAME | CVAR_FLOAT, " brightness threshold for Bright-pass (Works only when automatic exposure is on)");
+idCVar r_HDR_brightPassOffset		( "r_HDR_brightPassOffset",			"5.0",			CVAR_GAME | CVAR_FLOAT,	" Brightness offset for bright pass (Works only when automatic exposure is on)");
+idCVar r_HDR_min_luminance			( "r_HDR_min_luminance",			"0.003",		CVAR_GAME | CVAR_FLOAT,	" Luminance is restricted to this value to control whiteness when in pitch dark areas. (Works only when automatic exposure is on)");
+idCVar r_HDR_max_luminance			( "r_HDR_max_luminance",			"0.22",			CVAR_GAME | CVAR_FLOAT,	" Luminance is restricted to this value to control darkness when in super-bright areas. (Works only when automatic exposure is on)");
+idCVar r_HDR_eyeAdjustmentDelay		( "r_HDR_eyeAdjustmentDelay",		"2.2",			CVAR_GAME | CVAR_FLOAT,	" Total time in second taken to adjust eye exposure.(Works only when automatic exposure is on)");
+idCVar r_HDR_colorCurveBias			( "r_HDR_colorCurveBias",			"0.26",			CVAR_GAME | CVAR_FLOAT,	" Applies Exponential Color Curve to final pass (range 0 to 1), 1 = color curve fully applied , 0= No color curve");
+idCVar r_HDR_sceneExposure			( "r_HDR_sceneExposure",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Scene exposure. Try values lower or greater than 1.0");
+idCVar r_HDR_gammaCorrection		( "r_HDR_gammaCorrection",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Gamma Correction.");
+idCVar r_HDR_maxColorIntensity		( "r_HDR_maxColorIntensity",		"1.0",			CVAR_GAME | CVAR_FLOAT,	" Adjusting this value will cause color burnout in a controllable fashion (range 0.0 - 256.0) \nHigher values reduces the contrast, lower values increases the contrast.");
+idCVar r_HDR_bloomIntensity			( "r_HDR_bloomIntensity",			"0.6",			CVAR_GAME | CVAR_FLOAT,	" Adjusts the Bloom intensity. 0.0 disables both bloom as well as halo passes");
+idCVar r_HDR_haloIntensity			( "r_HDR_HaloIntensity",			"1.0",			CVAR_GAME | CVAR_FLOAT,	" Adjusts the Halo intensity. Set to 0.0 disables halo pass. ");
+idCVar r_HDR_debugTextureIndex		( "r_HDR_debugTextureIndex",		"0",			CVAR_GAME | CVAR_INTEGER, " Show intermediate textures used for HDR postprocess \n 1: scene Image(64x Scaled down) \n 2: Average Luminance Initial pass texture\n 3: Average luminance ");
+idCVar r_HDR_lumUpdateRate			( "r_HDR_lumUpdateRate",			"11",			CVAR_GAME | CVAR_INTEGER, " Updates luminance data after every these many number of frames. "	);												
+idCVar r_HDR_eyeAdjustmentBias		( "r_HDR_eyeAdjustmentBias",		"0.09",			CVAR_GAME | CVAR_FLOAT, " Automatic eye exposure factor (range 0 to 1) \n e.g. 0.0 - No automatic eye exposure, \n 0.5 - 50% automatic eye exposure, \n 1.0 Full automatic eye exposure. "	);												
+idCVar r_HDR_eyeAdjustmentBloomBias	( "r_HDR_eyeAdjustmentBloomBias",	"1",			CVAR_GAME | CVAR_FLOAT,	" Bloom can have a separate eye adjustment bias. See cvar descritption for r_HDR_eyeAdjustmentBias. " );
+idCVar r_HDR_vignetteBias			( "r_HDR_vignetteBias",				"0.45",			CVAR_GAME | CVAR_FLOAT,	" Vignette: Fading-of-edges-of-the-screen effect(range 0 to 1) "	);												
 
-idCVar r_bloom_buffer( "r_bloom_buffer", "4", CVAR_GAME | CVAR_INTEGER, "Bloom buffer image size. \n 1:64x32, 2:128x64, 3:256x128, 4:512x256(default), 5:1024x512"); // New by Clone JCD
-
-idCVar r_bloom_contrast_mult( "r_bloom_contrast_mult", "1.55", CVAR_GAME | CVAR_FLOAT, "Contrast multiplier. \nWorks only with bloom type 1 and bloom type 2.");
-idCVar r_bloom_contrast_min( "r_bloom_contrast_min", "0.1", CVAR_GAME | CVAR_FLOAT, "This is the minimum contrast value when (shift sensitivity based)bloom drops; works only for bloom type 1 and bloom type 2. \nWhen shift sensitivty is turned on bloom contrast varies from (constrast_image x r_bloom_contrast_min) to (constrast_image x r_bloom_contrast_mult).");
-idCVar r_bloom_shiftSensitivity_delay( "r_bloom_shiftSensitivity_delay", "130", CVAR_GAME | CVAR_INTEGER, "Delay in millisecs for shifting the bloom sensitivity. \n0 : No shift sensitivity delay, sensitvity shifts immediately. \n-1 : Disables sensitivity shifting"); // New by Clone JCD
-idCVar r_bloom_blurIterations( "r_bloom_blurIterations", "1", CVAR_GAME | CVAR_INTEGER, "Blur iterations for bloom"); // New by Clone JCD
 
 //Ivan start
-idCVar hardqore2_bind_run_once(		"hardqore2_bind_run_once",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for HardQore 2." );
+idCVar hardcorps_bind_run_once(		"hardcorps_bind_run_once",		"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Rebind all controls once for Hard Corps." );
 idCVar s_music_volume(				"s_music_volume",				"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "In-game music volume." );
 idCVar g_mouselook(					"g_mouselook",					"1",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Use the mouse to aim" );
 //idCVar ai_debugXlock(				"ai_debugXlock",				"0",			CVAR_GAME | CVAR_INTEGER, "print X-lock information for monsters. 1 = few info. 2 = more info." );
-
 //Ivan end
+
+//rev 2020
+//idCVar pm_thirdPersonZ(				"pm_thirdPersonZ",				"0",			CVAR_GAME | CVAR_BOOL , "Allows the camera to follow the player vertically." );			//ivan: default 1
 
 /*
 //Revility Start

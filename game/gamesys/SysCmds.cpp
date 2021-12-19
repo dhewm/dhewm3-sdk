@@ -307,7 +307,7 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) {
 			gameLocal.world->spawnArgs.SetBool( "no_Weapons", false );
 			for( i = 0; i < gameLocal.numClients; i++ ) {
-				if ( gameLocal.entities[ i ] ) {
+				if ( gameLocal.entities[ i ] ) {			
 					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon0" ) ); //ivan - was: def_weapon1 - 0 is chainsaw
 				}
 			}
@@ -2008,6 +2008,18 @@ static void Cmd_SaveParticles_f( const idCmdArgs &args ) {
 	mapFile->Write( mapName, ".map" );
 }
 
+#ifdef _DENTONMOD
+/*
+==================
+Cmd_UpdateCookedMathData_f
+==================
+*/
+static void Cmd_UpdateCookedMathData_f( const idCmdArgs &args )
+{
+	// This would cause a cooked math data update. 
+	r_HDR_colorCurveBias.SetModified();
+}
+#endif
 
 /*
 ==================

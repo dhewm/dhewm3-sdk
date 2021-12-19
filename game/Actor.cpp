@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Projectile.h"
 #include "WorldSpawn.h"
 
+#include "Player.h" //rev 2020 was in rivensin
+
 #include "Actor.h"
 
 #include "Fx.h" // DG: for hq2

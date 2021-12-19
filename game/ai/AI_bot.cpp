@@ -397,10 +397,10 @@ idAI_Bot::Spawn
 void idAI_Bot::Spawn( void ) {
 	//gameLocal.Printf("idAI_Bot::Spawn\n");
 
+	LinkScriptVariables();
 	CreateWeapons();
 	SelectInitialWeapon();
 	ShowOnlyCurrentWeapon();
-	LinkScriptVariables();
 
 	//spawnArgs.GetFloat("attackNodesMaxDist", "0", attackNodesMaxDist );
 	spawnArgs.GetBool( "can_speak",				"0", canSpeak );
@@ -714,7 +714,10 @@ void idAI_Bot::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 	idAI::Killed( inflictor, attacker, damage, dir, location );
 	
 	// drop the current weapon
-	DropWeapon(currentWeapon);
+	
+//rev 2021 start. prevent bots from dropping weapons because we want them to drop ammo instead.
+	//DropWeapon(currentWeapon);
+//rev 2021 end
 
 	//now we can remove all the weapons
 	RemoveWeapons();
@@ -1016,19 +1019,28 @@ bool idAI_Bot::SelectWeapon( int weaponNum ) {
 		//ammo
 		if(weapons[ weaponNum ].clipSize > 0){ //only if limited clip size
 			if(weapons[ weaponNum ].ammoInClip <= 0){
-				if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
-					AI_WEAPON_NEED_RELOAD = true;
-				}
+				//AI_WEAPON_NEED_RELOAD = true;		
+			//REV 2021 dHEWM 3 1.5.1 UPDATE start
+				if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start //REV 2021 dHEWM 3 1.5.1 UPDATE
+					AI_WEAPON_NEED_RELOAD = true;	
+			//REV 2021 dHEWM 3 1.5.1 UPDATE END
+				}				
 			}else{
+				//AI_WEAPON_NEED_RELOAD = false;
+			//REV 2021 dHEWM 3 1.5.1 UPDATE start	
 				if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
 					AI_WEAPON_NEED_RELOAD = false;
-				}
+				}				
+			//REV 2021 dHEWM 3 1.5.1 UPDATE END	
 			}
 		}
 	}else{ //no weapon selected
+		//AI_WEAPON_NEED_RELOAD = false;
+	//REV 2021 dHEWM 3 1.5.1 UPDATE start		
 		if(AI_WEAPON_NEED_RELOAD.IsLinked()) { // DG: otherwise this asserts at level start
 			AI_WEAPON_NEED_RELOAD = false;
-		}
+		}		
+	//REV 2021 dHEWM 3 1.5.1 UPDATE END			
 	}
 
 	//remove the current projectileClipModel so that it'll be recreated the next time GetAimDir is called
@@ -1052,9 +1064,12 @@ bool idAI_Bot::SelectWeapon( int weaponNum ) {
 	setWeaponMuzzleFlash(); //ok because currentWeapon already updated
 
 	//upd script
+	//AI_WEAPON_CHANGED = true;
+//REV 2021 DHEWM 3 1.5.1 UPDATES START	
 	if(AI_WEAPON_CHANGED.IsLinked()) { // DG: otherwise the assignment will cause an assertion
 		AI_WEAPON_CHANGED = true;
-	}
+	}	
+//REV 2021 DHEWM 3 1.5.1 UPDATES END	
 	return true;
 }
 
@@ -1322,7 +1337,8 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 	idMat3				axis;
 	idVec3				tmp;
 	idProjectile		*lastProjectile;
-
+	int 				noAim; //rev 2019
+	
 	if ( currentWeapon < 0){
 		gameLocal.Warning( "%s (%s) is trying to fire but doesn't have a weapon selected", name.c_str(), GetEntityDefName() );
 		return NULL;
@@ -1347,6 +1363,8 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 
 	lastProjectile = projectile.GetEntity();
 
+//rev 2019 start.  make the ai shoot only shoot straight ahead when the noaim key is set to 1 in their def file	
+/*	
 	if ( target != NULL ) {
 		tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
 		tmp.Normalize();
@@ -1354,6 +1372,29 @@ idProjectile *idAI_Bot::LaunchProjectile( const char *jointname, idEntity *targe
 	} else {
 		axis = viewAxis;
 	}
+*/
+
+	noAim  = spawnArgs.GetInt( "noaim" );	
+	if ( noAim > 0 ) {
+		if ( target = NULL ) {  //rev 202 reverted back to = NULL.  != NULL broke noaim from working.  i am sure this is the wrong way to do this. :p
+			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
+			tmp.Normalize();
+			axis = tmp.ToMat3();
+		} else {
+			axis = viewAxis;
+		}
+	}
+	if ( noAim < 1 ) {
+		if ( target != NULL ) {
+			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
+			tmp.Normalize();
+			axis = tmp.ToMat3();
+		} else {
+			axis = viewAxis;
+		}
+	}
+		
+//rev 2019 noaim end
 
 	// rotate it because the cone points up by default
 	tmp = axis[2];

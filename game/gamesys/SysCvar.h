@@ -212,6 +212,7 @@ extern idCVar	pm_thirdPerson;
 extern idCVar	pm_thirdPersonDeath;
 extern idCVar	pm_modelView;
 extern idCVar	pm_airTics;
+extern idCVar	pm_character;	//rev 2019
 
 extern idCVar	g_showPlayerShadow;
 extern idCVar	g_showHud;
@@ -278,13 +279,39 @@ extern idCVar   r_bloom_shiftSensitivity_delay;		// clone_jc_denton
 extern idCVar   r_bloom_blurIterations;				// clone_jc_denton
 extern idCVar   r_bloom_buffer;						// clone_jc_denton
 
+// HDR related - J.C.Denton
+
+extern idCVar r_HDR_enable;
+extern idCVar r_HDR_postProcess;				
+extern idCVar r_HDR_middleGray;			
+extern idCVar r_HDR_brightPassThreshold;
+extern idCVar r_HDR_brightPassOffset;	
+extern idCVar r_HDR_min_luminance;	
+extern idCVar r_HDR_max_luminance;	
+extern idCVar r_HDR_colorCurveBias;
+extern idCVar r_HDR_sceneExposure;
+extern idCVar r_HDR_gammaCorrection;
+extern idCVar r_HDR_enableDebugMode;
+extern idCVar r_HDR_debugTextureIndex;
+extern idCVar r_HDR_eyeAdjustmentDelay;
+extern idCVar r_HDR_maxColorIntensity;
+extern idCVar r_HDR_bloomIntensity;
+extern idCVar r_HDR_haloIntensity;
+extern idCVar r_HDR_lumUpdateRate;
+extern idCVar r_HDR_eyeAdjustmentDelay;
+extern idCVar r_HDR_eyeAdjustmentBias;	
+extern idCVar r_HDR_eyeAdjustmentBloomBias;
+extern idCVar r_HDR_vignetteBias;
+
 //Ivan start
-extern idCVar hardqore2_bind_run_once;
+extern idCVar hardcorps_bind_run_once;
 extern idCVar s_music_volume;
 extern idCVar g_mouselook;
 //extern idCVar ai_debugXlock;
 //Ivan end
 
+//rev 2020
+extern idCVar	pm_thirdPersonZ;
 /*
 //Revility start
 extern idCVar	pm_thirdPersonUp;

@@ -425,8 +425,19 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	}
 	physicsObj.SetBouncyness( bounce );
 	physicsObj.SetGravity( gravVec * gravity );
-	physicsObj.SetContents( contents );
-	physicsObj.SetClipMask( clipMask );
+	
+//rev 2021 start enemies can't hurt each other
+	if ( owner.GetEntity()->IsType( idAI::Type ) && owner.GetEntity()->spawnArgs.GetBool( "friendly_fire" ) ) {
+		physicsObj.SetClipMask( CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_PROJECTILE);
+		UpdateVisuals();
+	} else {
+		physicsObj.SetContents( contents );
+		physicsObj.SetClipMask( clipMask );			
+	}
+	//physicsObj.SetContents( contents );
+	//physicsObj.SetClipMask( clipMask );	
+//rev 2021 end
+	
 	physicsObj.SetLinearVelocity( axis[ 2 ] * speed + pushVelocity );
 	physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() * axis );
 	physicsObj.SetOrigin( start );
@@ -853,6 +864,13 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 		PostEventMS( &EV_Remove, 0 );
 		return true;
 	}
+
+//rev 2021 start.  Check if AI's projectiles can damage something.  Used for Item containers	
+	if ( owner.GetEntity()->IsType( idAI::Type ) && ent->spawnArgs.GetBool( "ai_cant_damage" ) ) {
+		PostEventMS( &EV_Remove, 0 );
+		return true;
+	}
+//rev 2021 end
 
 	// direction of projectile
 	dir = velocity;

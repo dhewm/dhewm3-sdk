@@ -521,7 +521,9 @@ idDamagable::Spawn
 */
 void idDamagable::Spawn( void ) {
 	idStr broken;
-
+	bool actorSolid;	//Rev 2020
+	
+	actorSolid = spawnArgs.GetBool( "solid_to_actors");	//Rev 2020
 	health = spawnArgs.GetInt( "health", "5" );
 	spawnArgs.GetInt( "count", "1", count );
 	nextTriggerTime = 0;
@@ -538,7 +540,17 @@ void idDamagable::Spawn( void ) {
 	}
 
 	fl.takedamage = true;
-	GetPhysics()->SetContents( CONTENTS_SOLID );
+//Rev 2020 Start. Allow actors to pass through breakables.  Can be used for item holders as seen in many 2d games	
+	//	GetPhysics()->SetContents( CONTENTS_SOLID );
+	if( !actorSolid ){
+		//The entity still needs to take damage.  So we need to make sure projectiles & Charge attack can hurt it.
+		//Note that the model has no physics basically and can float in the air.  This is intentional.
+		GetPhysics()->SetContents( CONTENTS_PROJECTILE|CONTENTS_RENDERMODEL );
+	} else {
+		//Monsters & Player can pass through corpses.  Corpses can still take damage & detect collision.  That is why we keep using it.
+		GetPhysics()->SetContents( CONTENTS_SOLID );
+	}	
+//Rev 2020 end
 
 	//ivan start
 	particleModelDefHandle = -1;
@@ -1931,7 +1943,10 @@ idStaticEntity::Spawn
 void idStaticEntity::Spawn( void ) {
 	bool solid;
 	bool hidden;
+	bool platform; //rev 2019
+	
 
+	
 	// an inline static model will not do anything at all
 	if ( spawnArgs.GetBool( "inline" ) || gameLocal.world->spawnArgs.GetBool( "inlineAllStatics" ) ) {
 		Hide();
@@ -1941,11 +1956,32 @@ void idStaticEntity::Spawn( void ) {
 	solid = spawnArgs.GetBool( "solid" );
 	hidden = spawnArgs.GetBool( "hide" );
 
+/*
 	if ( solid && !hidden ) {
 		GetPhysics()->SetContents( CONTENTS_SOLID );
 	} else {
 		GetPhysics()->SetContents( 0 );
 	}
+*/
+
+//rev 2019 start
+	platform = spawnArgs.GetBool( "platform" );  //rev 2019
+	
+	if (!platform) {
+		if ( solid && !hidden ) {
+			GetPhysics()->SetContents( CONTENTS_SOLID );
+		} else {
+			GetPhysics()->SetContents( 0 );
+		}
+	} else {
+		if ( spawnArgs.GetBool( "jpt_monster_pass" ) ) {	//rev 2021 check if monster should be able to pass
+			GetPhysics()->SetContents( CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+		} else {
+			GetPhysics()->SetContents( CONTENTS_MONSTERCLIP|CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+		}		
+	}
+//rev 2019 end	
+
 
 	spawnTime = gameLocal.time;
 	active = false;
@@ -2042,9 +2078,30 @@ idStaticEntity::Show
 */
 void idStaticEntity::Show( void ) {
 	idEntity::Show();
+	float solid;
+	
+	bool platform; //rev 2019	
+	platform = spawnArgs.GetBool( "platform" ); //rev 2019
+
+//rev 2019 start
+	if (!platform){
+		if ( spawnArgs.GetBool( "solid" ) ) {	
+			GetPhysics()->SetContents( CONTENTS_SOLID );
+		}
+	} else {
+		if ( spawnArgs.GetBool( "jpt_monster_pass" ) ) {
+			GetPhysics()->SetContents( CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+		} else {
+			GetPhysics()->SetContents( CONTENTS_MONSTERCLIP|CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+		}		
+	}
+//rev 2019 end
+
+/*
 	if ( spawnArgs.GetBool( "solid" ) ) {
 		GetPhysics()->SetContents( CONTENTS_SOLID );
 	}
+*/
 }
 
 /*
@@ -2056,9 +2113,14 @@ void idStaticEntity::Event_Activate( idEntity *activator ) {
 	idStr activateGui;
 
 	spawnTime = gameLocal.time;
-	active = !active;
+	active = !active;	
 
+	bool platform; //rev 2019	
+	platform = spawnArgs.GetBool( "platform" ); //rev 2019	
+	
 	const idKeyValue *kv = spawnArgs.FindKey( "hide" );
+	
+if (!platform){		//rev 2020	
 	if ( kv ) {
 		if ( IsHidden() ) {
 			Show();
@@ -2066,7 +2128,7 @@ void idStaticEntity::Event_Activate( idEntity *activator ) {
 			Hide();
 		}
 	}
-
+}	//rev 2020
 	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( spawnTime );
 	renderEntity.shaderParms[5] = active;
 	// this change should be a good thing, it will automatically turn on
@@ -2114,7 +2176,245 @@ void idStaticEntity::ReadFromSnapshot( const idBitMsgDelta &msg ) {
 	}
 }
 
+ //rev 2019 start
+//ivan start
+/*
+===============================================================================
 
+	idTrailWrapper
+
+	Some static entities may be optimized into inline geometry by dmap
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idTrailWrapper )
+	EVENT( EV_Activate,				idTrailWrapper::Event_Activate )
+END_CLASS
+
+/*
+===============
+idTrailWrapper::idTrailWrapper
+===============
+*/
+idTrailWrapper::idTrailWrapper( void ) {
+	trailGen	= NULL;
+	trailSize	= 0;
+	oldLowPoint = vec3_origin;
+	oldHighPoint = vec3_origin;
+	newLowPoint = vec3_origin;
+	newHighPoint = vec3_origin;
+}
+
+/*
+===============
+idTrailWrapper::~idTrailWrapper
+===============
+*/
+idTrailWrapper::~idTrailWrapper( void ) {
+	gameLocal.trailsManager->RemoveTrailGen( trailGen );
+}
+
+/*
+===============
+idTrailWrapper::Save
+===============
+*/
+void idTrailWrapper::Save( idSaveGame *savefile ) const {
+	//trailGen is saved elsewhere. Here we save only the id to retrieve it later
+	savefile->WriteInt( gameLocal.trailsManager->GetSafeUniqueId( trailGen ) ); 
+	savefile->WriteInt( trailSize );
+
+	/*
+	//not saved:
+	oldLowPoint
+	oldHighPoint
+	newLowPoint
+	newHighPoint
+	*/
+}
+
+/*
+===============
+idTrailWrapper::Restore
+===============
+*/
+void idTrailWrapper::Restore( idRestoreGame *savefile ) {
+	int trailId; //trailGen was saved elsewhere. Here we read its id to retrieve it.
+	savefile->ReadInt( trailId ); 
+	trailGen = gameLocal.trailsManager->FindTrailByUniqueId( trailId );
+	savefile->ReadInt( trailSize );
+
+	oldLowPoint = vec3_origin;
+	oldHighPoint = vec3_origin;
+	newLowPoint = vec3_origin;
+	newHighPoint = vec3_origin;
+}
+
+/*
+===============
+idTrailWrapper::Spawn
+===============
+*/
+void idTrailWrapper::Spawn( void ) {
+	trailSize = spawnArgs.GetInt( "trailSize", "25" );
+	if( spawnArgs.GetBool( "startActive", "0" ) ){
+		StartTrail();
+	}
+
+	GetPhysics()->SetClipBox( idBounds( vec3_origin ).Expand( 4 ), 1.0f );
+	GetPhysics()->SetContents( 0 );
+}
+
+
+/*
+================
+idTrailWrapper::UpdateTrail
+================
+*/
+void idTrailWrapper::UpdateTrail( void ) { //it assumes trailGen is valid and enabled
+	//if( trailGen && trailGen->IsEnabled() ){	
+		newLowPoint = GetPhysics()->GetOrigin();
+		newHighPoint = newLowPoint + GetPhysics()->GetAxis()[2] * trailSize;
+		
+		if( oldLowPoint.Compare( newLowPoint, 1.0f ) && oldHighPoint.Compare( newHighPoint, 1.0f ) ){
+			trailGen->RemoveOldestPoints();
+		}else{
+			trailGen->AddNewPoints( newLowPoint , newHighPoint ); 
+		}
+
+		//remember
+		oldLowPoint = newLowPoint;
+		oldHighPoint = newHighPoint;
+	//}
+}
+
+/*
+================
+idTrailWrapper::Think
+================
+*/
+void idTrailWrapper::Think( void ) {
+	idEntity::Think();
+
+	//think only until we need to upd the trail
+	if ( thinkFlags & TH_THINK ) {
+		if( trailGen ){
+			if( trailGen->IsEnabled() ){
+				UpdateTrail();
+			}else{
+				BecomeInactive( TH_THINK );
+			}
+		}else{
+			BecomeInactive( TH_THINK );
+		}
+	}
+	
+}
+
+/*
+=================
+idTrailWrapper::InitTrail
+=================
+*/
+void idTrailWrapper::InitTrail( void ) {	
+	if( !trailGen ){
+		const idKeyValue* kv = spawnArgs.FindKey( "def_trail" );
+		if( kv ){
+			trailGen = gameLocal.trailsManager->NewTrailGen();
+			if( trailGen ){ //if there is no free space for a new trail...just don't use it 
+				trailGen->StartTrail( kv->GetValue() );
+				BecomeActive( TH_THINK );
+			}
+		}else{
+			gameLocal.Warning("idTrailWrapper '%s' has not trail defined! ", GetName() );
+		}
+	}
+}
+
+
+/*
+=================
+idTrailWrapper::StartTrail
+=================
+*/
+void idTrailWrapper::StartTrail( void ) {	
+	if( !trailGen ){
+		InitTrail();
+	}
+	if( trailGen ){
+		trailGen->RestartTrail();
+		BecomeActive( TH_THINK );
+	}
+}
+
+/*
+================
+idTrailWrapper::Fade
+================
+*/
+void idTrailWrapper::FadeTrail( void ) {
+	if( !trailGen ){
+		InitTrail();
+	}
+	if( trailGen ){
+		trailGen->FadeTrail();
+		BecomeActive( TH_THINK );
+	}
+}
+
+/*
+================
+idTrailWrapper::StopTrail
+================
+*/
+void idTrailWrapper::StopTrail( void ) {
+	if( trailGen ){
+		trailGen->StopTrail();
+		BecomeInactive( TH_THINK );
+	}
+}
+
+/*
+================
+idTrailWrapper::Hide
+================
+*/
+void idTrailWrapper::Hide( void ) {
+	idEntity::Hide();
+	StopTrail();
+}
+
+
+/*
+================
+idTrailWrapper::Show
+================
+*/
+void idTrailWrapper::Show( void ) {
+	idEntity::Show();
+	StartTrail();
+}
+
+
+/*
+================
+idTrailWrapper::Event_Activate
+================
+*/
+void idTrailWrapper::Event_Activate( idEntity *activator ) {
+	
+	//toggle state
+	if( trailGen && trailGen->IsEnabled() && !trailGen->IsFading() ){
+		FadeTrail();
+	}else{
+		StartTrail();
+	}
+}
+
+//ivan end
+
+ //rev 2019 end
 /*
 ===============================================================================
 
@@ -2633,9 +2933,11 @@ const char *idLocationEntity::GetLocation( void ) const {
 ===============================================================================
 */
 
+const idEventDef EV_FadeBeamColor ( "<fadeOutBeam>" ); //ivan  //rev 2019
 CLASS_DECLARATION( idEntity, idBeam )
 	EVENT( EV_PostSpawn,			idBeam::Event_MatchTarget )
 	EVENT( EV_Activate,				idBeam::Event_Activate )
+	EVENT( EV_FadeBeamColor,		idBeam::Event_FadeColor ) //ivan  //rev 2019
 END_CLASS
 
 /*
@@ -2646,7 +2948,87 @@ idBeam::idBeam
 idBeam::idBeam() {
 	target = NULL;
 	master = NULL;
+
+	//ivan start
+	fadeTime = 0;
+	fadeOutIntervals.Zero();
+	//ivan end
 }
+
+//ivan start
+
+/*
+==============
+idBeam::Event_FadeColor
+==============
+*/
+void idBeam::Event_FadeColor( void ){ 
+	FadeColor();
+}
+
+/*
+==============
+idBeam::FadeColor
+==============
+*/
+void idBeam::FadeColor( void ){
+	idVec4 beamColor;
+	idVec4 fadeColor;
+	int time;
+
+	//fade time
+	spawnArgs.GetInt( "fadeTime", "0", time );
+
+	//dest color
+	spawnArgs.GetVec4( "end_color", "0 0 0 0", fadeColor );  //default black
+	//fadeColor.Zero();
+
+	if( time <= 0 ) {
+		renderEntity.shaderParms[ SHADERPARM_RED ]		= fadeColor[ 0 ];
+		renderEntity.shaderParms[ SHADERPARM_GREEN ]	= fadeColor[ 1 ];
+		renderEntity.shaderParms[ SHADERPARM_BLUE ]		= fadeColor[ 2 ];
+		renderEntity.shaderParms[ SHADERPARM_ALPHA ]	= fadeColor[ 3 ];
+		return;
+	}
+
+	//current color
+	beamColor[ 0 ] = renderEntity.shaderParms[ SHADERPARM_RED ];
+	beamColor[ 1 ] = renderEntity.shaderParms[ SHADERPARM_GREEN ];
+	beamColor[ 2 ] = renderEntity.shaderParms[ SHADERPARM_BLUE ];
+	beamColor[ 3 ] = renderEntity.shaderParms[ SHADERPARM_ALPHA ];
+
+	//if we are here time != 0 
+	fadeOutIntervals = ( beamColor - fadeColor) / time; //intervals for each ms
+	fadeOutIntervals *= USERCMD_MSEC; //intervals for each frame
+	fadeTime = gameLocal.time + time;
+
+	BecomeActive( TH_THINK ); //start thinking
+}
+
+/*
+==============
+idBeam::AddChainNodeAtPos
+==============
+*/
+idBeam* idBeam::AddChainNodeAtPos( const idVec3 &pos ) {
+
+	if ( master.GetEntity() ) {
+		gameLocal.Warning("This beam already has a master!");
+		return NULL;
+	}
+
+	idBeam* newNode;
+	idDict args;
+	args.Copy( spawnArgs ); //copy my settings!
+	args.SetVector( "origin", pos );
+	args.Set( "target", GetName() ); //once spawned, I'll be his target and he'll be my master
+	newNode = ( idBeam * )gameLocal.SpawnEntityType( idBeam::Type, &args );
+		
+	//gameLocal.Printf("Added new node at '%s'\n", pos.ToString() );
+
+	return newNode;
+}
+//ivan end
 
 /*
 ===============
@@ -2656,6 +3038,10 @@ idBeam::Save
 void idBeam::Save( idSaveGame *savefile ) const {
 	target.Save( savefile );
 	master.Save( savefile );
+	//ivan start
+	savefile->WriteInt( fadeTime ); 
+	savefile->WriteVec4( fadeOutIntervals ); 
+	//ivan end
 }
 
 /*
@@ -2666,6 +3052,10 @@ idBeam::Restore
 void idBeam::Restore( idRestoreGame *savefile ) {
 	target.Restore( savefile );
 	master.Restore( savefile );
+	//ivan start
+	savefile->ReadInt( fadeTime ); 
+	savefile->ReadVec4( fadeOutIntervals ); 
+	//ivan end
 }
 
 /*
@@ -2682,6 +3072,7 @@ void idBeam::Spawn( void ) {
 
 	SetModel( "_BEAM" );
 	Hide();
+
 	PostEventMS( &EV_PostSpawn, 0 );
 }
 
@@ -2705,6 +3096,26 @@ void idBeam::Think( void ) {
 		const idVec3 &origin = GetPhysics()->GetOrigin();
 		masterEnt->SetBeamTarget( origin );
 	}
+
+	//ivan start - fade
+	if( fadeTime > gameLocal.time ) {	
+		renderEntity.shaderParms[ SHADERPARM_RED ]		-= fadeOutIntervals[0];
+		renderEntity.shaderParms[ SHADERPARM_GREEN ]	-= fadeOutIntervals[1];
+		renderEntity.shaderParms[ SHADERPARM_BLUE ]		-= fadeOutIntervals[2];
+		renderEntity.shaderParms[ SHADERPARM_ALPHA ]	-= fadeOutIntervals[3];
+
+		BecomeActive( TH_UPDATEVISUALS ); //Present() will upd the renderEntity
+
+	} else if( fadeTime > 0){ 
+		fadeTime = 0;
+		BecomeInactive( TH_THINK );
+
+		if( spawnArgs.GetBool( "removeAfterFade", "0") ){
+			PostEventMS( &EV_Remove, 0 );
+		}
+	}
+	//ivan end
+
 	Present();
 }
 
@@ -4202,4 +4613,4 @@ void idPortalSky::Event_Activate( idEntity *activator ) {
 	gameLocal.SetPortalSkyEnt( this );
 }
 
-#endif /* _PORTALSKY */
+#endif /* _PORTALSKY */f

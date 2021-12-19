@@ -69,7 +69,6 @@ CLASS_DECLARATION( idTarget, idTarget_PlayerUtils )
 	EVENT( EV_Activate, idTarget_PlayerUtils::Event_Activate )
 END_CLASS
 
-
 /*
 ================
 idTarget_PlayerUtils::Event_Activate
@@ -82,18 +81,6 @@ void idTarget_PlayerUtils::Event_Activate( idEntity *activator ) {
 		if( spawnArgs.GetInt( "actionId", "0", actionId ) ){
 			switch( actionId ) {
 				default :				
-				case PU_ACTION_FREE_CAM: {
-					player->SetYCameraFree();
-					break;
-				}
-				case PU_ACTION_FORCE_CAM: {
-					player->SetYCameraForced( GetPhysics()->GetOrigin().y );
-					break;
-				}
-				case PU_ACTION_DISTANCE: {
-					player->UpdateCameraDistance( spawnArgs.GetFloat( "cameraDist", "350" ), !spawnArgs.GetBool("noBlend") ); 
-					break;
-				}
 				case PU_ACTION_UNLOCK_PL: {
 					player->SetLock2D( false );
 					break;
@@ -106,10 +93,6 @@ void idTarget_PlayerUtils::Event_Activate( idEntity *activator ) {
 					player->AddScore( spawnArgs.GetInt("score", "0") );
 					break;
 				}	
-				case PU_ACTION_CAM_HEIGHT: {
-					player->UpdateCameraHeight( spawnArgs.GetFloat( "cameraHeight", "50" ), !spawnArgs.GetBool("noBlend") ); 
-					break;
-				}
 				case PU_ACTION_INFOTXT: {
 					const char *infoText = spawnArgs.GetString( "infoText" );
 					if ( *infoText != '\0' ) {
@@ -122,33 +105,31 @@ void idTarget_PlayerUtils::Event_Activate( idEntity *activator ) {
 	}
 }
 
-#if 0
 /*
 ===============================================================================
 
-idTarget_CheckPoint
+idTarget_Camera
 
 ===============================================================================
 */
 
-CLASS_DECLARATION( idTarget, idTarget_CheckPoint )
-	EVENT( EV_Activate, idTarget_CheckPoint::Event_Activate )
+CLASS_DECLARATION( idTarget, idTarget_Camera )
+	EVENT( EV_Activate, idTarget_Camera::Event_Activate )
 END_CLASS
 
+
 /*
 ================
-idTarget_CheckPoint::Event_Activate
+idTarget_Camera::Event_Activate
 ================
 */
-void idTarget_CheckPoint::Event_Activate( idEntity *activator ) {
-	
-	//is it a player?
-	if ( activator->IsType( idPlayer::Type ) ){
-		static_cast< idPlayer* >( activator )->SaveCheckPointPos();
+void idTarget_Camera::Event_Activate( idEntity *activator ) {
+	int actionId;
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player ) {
+		player->UpdateCameraSettingsFromEntity( this );
 	}
 }
-#endif
-
 
 /*
 ===============================================================================
@@ -426,6 +407,69 @@ void idTarget_Show::Event_Activate( idEntity *activator ) {
 	PostEventMS( &EV_Remove, 0 );
 }
 
+/*
+===============================================================================
+
+idTarget_Show_Repeat //rev 2020 new entity this one does not disappear after one use
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_Show_Repeat )
+	EVENT( EV_Activate, idTarget_Show_Repeat::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_Show_Repeat::Event_Activate //rev 2020 added new type of target entity
+================
+*/
+void idTarget_Show_Repeat::Event_Activate( idEntity *activator ) {
+	int			i;
+	idEntity	*ent;
+
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( ent ) {
+			ent->Show();
+		}
+	}
+
+	// delete our self when done
+	//PostEventMS( &EV_Remove, 0 );  //This version of show is allowed to repeat
+}
+
+/*
+===============================================================================
+
+idTarget_Hide_Repeat // rev 2020 added new entity
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_Hide_Repeat )
+	EVENT( EV_Activate, idTarget_Hide_Repeat::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_Hide_Repeat::Event_Activate // rev 2020 added new entity
+================
+*/
+void idTarget_Hide_Repeat::Event_Activate( idEntity *activator ) {
+	int			i;
+	idEntity	*ent;
+
+	for( i = 0; i < targets.Num(); i++ ) {
+		ent = targets[ i ].GetEntity();
+		if ( ent ) {
+			ent->Hide();
+		}
+	}
+
+	// delete our self when done
+	//PostEventMS( &EV_Remove, 0 ); //we don't want it to go away
+}
 
 /*
 ===============================================================================
@@ -2076,3 +2120,26 @@ void idTarget_FadeSoundClass::Event_RestoreVolume() {
 	// restore volume
 	gameSoundWorld->FadeSoundClasses( 0, fadeDB, fadeTime );
 }
+
+//ivan start
+/*
+===============================================================================
+
+idTarget_StopMusic
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_StopMusic )
+EVENT( EV_Activate,	idTarget_StopMusic::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_EnableStamina::idTarget_StopMusic
+================
+*/
+void idTarget_StopMusic::Event_Activate( idEntity *activator ) {
+	gameLocal.StopMusic();
+}
+//ivan end

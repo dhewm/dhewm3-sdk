@@ -56,6 +56,9 @@ class idAI;
 ===============================================================================
 */
 
+extern const idEventDef EV_Player_SetGravityInAnimMove; 
+extern const idEventDef EV_Player_StartKick; 
+extern const idEventDef EV_Player_StopKick; 
 extern const idEventDef EV_Player_GetButtons;
 extern const idEventDef EV_Player_GetMove;
 extern const idEventDef EV_Player_GetViewAngles;
@@ -147,7 +150,34 @@ enum {
 	INFLUENCE_LEVEL3,			// slow player movement
 };
 
-typedef struct { //un noted change from original sdk
+//ivan start
+//values must match scripts!
+enum {
+	ANIMMOVE_NONE = 0,
+	ANIMMOVE_ALWAYS,
+	ANIMMOVE_GROUND,
+	ANIMMOVE_FREEZE,
+	ANIMMOVE_PHYSICS,
+	ANIMMOVE_NUMTYPES //always the last one, not valid value
+};
+
+typedef struct {
+	bool	lockYaxis;	// Lock camera on the Y axis. Camera will not move left/right
+	bool	lockZaxis;	// Lock camera on the Z axis. Camera will not move up/down
+	float	lockedYpos;	// Y position of the camera. Used when lockYaxis is true
+	float	lockedZpos;	// Y position of the camera. Used when lockYaxis is true
+	float	distance;	// this usually equals pm_thirdPersonRange.
+	float	height;		// this usually equals pm_thirdPersonHeight.
+} CameraSettings_t;
+
+typedef struct {
+	int					entityNumber;
+	idVec3				spawnPos;
+	CameraSettings_t	cameraSettings;
+} CheckPointInfo_t;
+//ivan end
+
+typedef struct {
 	char		name[64];
 	idList<int>	toggleList;
 } WeaponToggle_t;
@@ -323,11 +353,22 @@ public:
 	int						weapon_pda;
 	int						weapon_fists;
 
+	int						waitForDamage;	//rev 2018	
+	bool					noDamage;	//rev 2020	
+
+//rev 2018 start
+	int						touchofdeathx;		//player def key.  used in player script to change animations.
+	int						touchofdeathy;		//player def key.  used in player script to change animations.
+//rev 2018 end
+	
 	int						heartRate;
 	idInterpolate<float>	heartInfo;
 	int						lastHeartAdjust;
 	int						lastHeartBeat;
 	int						lastDmgTime;
+	int						lastChargeTime;	//rev 2020 charge
+	int						chargeAmount;	//rev 2020 charge
+	int						chargeDir;		//rev 2020 charge
 	int						deathClearContentsTime;
 	bool					doingDeathSkin;
 	int						lastArmorPulse;		// lastDmgTime if we had armor at time of hit
@@ -397,7 +438,7 @@ public:
 	virtual void			Hide( void );
 	virtual void			Show( void );
 
-	void					Init( void );
+	void					Init( bool quickRespawn ); //ivan - quickRespawn added
 	void					PrepareForRestart( void );
 	virtual void			Restart( void );
 	void					LinkScriptVariables( void );
@@ -492,7 +533,7 @@ public:
 	//ivan start
 	//was: void					DropWeapon( bool died );
 	bool					DropWeapon( bool died, bool selectNext=true );
-	bool					StartForcedMov( idEntity *destinationEntity, int inhibitInputDelay = 0, bool canAbort = true, bool totalForce = false, bool forceStart = false );
+	bool					StartForcedMov( idEntity *destinationEntity, int inhibitInputDelay = 0, bool canAbort = true, bool totalForce = false, bool forceStart = false ); //rev 2019 note rivensin can abort fyi
 	void					BlockForcedMov( void );
 	void					UpdForcedMov( void );
 	void					StopForcedMov( void );
@@ -500,16 +541,19 @@ public:
 	void					AddWeaponInteract( int flags, int weaponNum ); //, const char * weaponName
 	bool					WeaponItemCanGiveAmmo( int weaponNum ); //idItem *item
 	int						GetWeaponNumByItem( idItem *item );
-	void					SetYCameraForced( float ypos );
-	void					SetYCameraFree( void );
-	void					UpdateCameraDistance( float distance, bool blend = true );
-	void					UpdateCameraHeight( float height, bool blend = true );
+	void					LockYCamera( float ypos );
+	void					LockZCamera( float zpos );
+	void					UnlockYCamera( void );
+	void					UnlockZCamera( void );
+	void					SetCameraDistance( float distance, bool blend );
+	void					SetCameraHeight( float height, bool blend );
+	void					UpdateCameraSettingsFromEntity( idEntity *eny );
 	void					DropNotSelectedWeapon( int weapNum );
 	void					AddLifes( int num ); 
 	void					AddScore( int num ); 
 	void					AddSecretFound( void ); 
 	void					SaveCheckPointPos( idEntity* checkEnt, bool useEntOrigin );
-	float					GetIdealCameraDistance( void );
+	//float					GetIdealCameraDistance( void );
 	void					SetLock2D( bool on );
 	void					SpawnAllWeapons( void ); //cheat fix
 	bool					SpawnInsteadOfGiving( const char *classname, int offsetYmult = 1, int offsetZmult = 0); //cheat fix
@@ -621,17 +665,18 @@ public:
 
 private:
 	//ivan start
+	bool					IsComboActive( void ); 
 	//const char *			interactShownWeaponName;
 	int						interactShownWeaponNum;
 	int						interactFlag;
-	int						lastCheckPoint;
 	bool					skipMouseUpd;
 	int						health_lost;	//stat
 	//bool					allowPickupWeapons;	//can interact this frame
 	int						currentSlot;
 	int						numLives;
 	int						score;
-	bool					hq2QuickRespawning;
+	//bool					hq2QuickRespawning;
+	CheckPointInfo_t		lastCheckPoint;
 	idVec3					safeRespawnPos;
 	float					safeRespawnCameraDist;
 	float					safeRespawnCameraHeight;
@@ -654,7 +699,6 @@ private:
 	bool					keep_walk_dir;	//don't change the walking direction 
 	bool					fw_toggled;		
 	bool					fw_inverted;
-	bool					blendModelYaw;
 	float					old_viewAngles_yaw;
     float					viewPos; // This determines which what the player will face. <= 0 faces right. > 0 faces left //TODO: float really needed?	
 	int						inhibitInputTime;
@@ -664,10 +708,13 @@ private:
 	bool					skipCameraZblend;	//skip blending next frame
 	bool					enableCameraYblend;	//start blending to the new pos
 	bool					enableCameraXblend;	//start blending to the new distance
+	CameraSettings_t		cameraSettings;
+	/*
 	bool					forceCameraY;
 	float					forcedCameraYpos;
 	float					idealCameraDistance; //this usually equals pm_thirdPersonRange. 
-	float					idealCameraHeight; //this usually equals pm_thirdPersonHeight. 
+	float					idealCameraHeight; //this usually equals pm_thirdPersonHeight.
+	*/
 	idVec3					oldCameraPos;
 
 	//forced movement
@@ -690,6 +737,28 @@ private:
 
 	idPhysics_Player		physicsObj;			// player physics
 
+	//ivan start
+	//bool					isAnimMove;			// true when the movement is based on animation delta
+	int						animMoveType;		 
+	bool					animMoveNoGravity;	 
+	bool					allowTurn;			
+	bool					comboOn;			// comboOn
+	bool					blendModelYaw;		// true when isAnimMove ends, to blend the model angles
+	//ivan ewnd
+
+	//ivan - kick stuff start //rev 2019
+	idStr					kickDefName;
+	const idDeclEntityDef *	kickDef;
+	idEntity *				lastKickedEnt;
+	int						nextKickFx;
+	int						nextKickSnd;
+	bool					kickEnabled;
+	float					kickDmgMultiplier;
+	float					kickDistance;
+	idBounds				kickBox;
+	jointHandle_t			fromJointKick;
+	jointHandle_t			toJointKick;
+	//ivan - kick stuff end //rev 2019
 	idList<aasLocation_t>	aasLocation;		// for AI tracking the player
 
 	/*
@@ -859,6 +928,14 @@ private:
 	bool					WeaponAvailable( const char* name ); //new //un noted change from original sdk
 	
 	void					UseVehicle( void );
+	
+	//ivan start
+	void					UpdateCameraCvarsFromSettings( void );
+
+	bool					EvaluateKick( void );
+	void					Event_StartKick( const char *meleeDefName, float dmgMult );
+	void					Event_StopKick( void ); 
+	//ivan end
 
 	void					Event_WeaponAvailable( const char* name ); // new //un noted change from original sdk
 	void					Event_GetImpulseKey( void ); // new
@@ -883,21 +960,24 @@ private:
 	void					Event_GetIdealWeapon( void );
 
 	//ivan start
+	void					Event_StartAutoMelee( float dmgMult, int trailNum );
+	void					Event_StopAutoMelee( void );
+
 	void					Event_HudEvent( const char* name ); 
 	void					Event_SetHudParm( const char *key, const char *val ); 
 	void					Event_GetHudFloat( const char *key);
 	void					Event_ShowStats( void );
 	void					Event_DropWeapon( int weapNum );
-	void					Event_FreeCamera( void );
-	void					Event_ForceCameraY( float ypos );
 	void					Event_DoubleJumpEnabled( int on );
 	void					Event_WallJumpEnabled( int on );
 	void					Event_SetSkin( const char *skinname );
-	void					Event_SetFullBodyAnimOn( int anim_movement );
+	void					Event_SetFullBodyAnimOn( int anim_movement, int allow_turn, int iscombo );
 	void					Event_SetFullBodyAnimOff( void );
+	void					Event_SetGravityInAnimMove( float mult );
+	void					Event_ComboForceHighPain( int mode );
 
 	//smart AI start
-	void					Event_ForceUpdateNpcStatus( void ); 
+	void					Event_ForceUpdateNpcStatus( void );
 	void					Event_SetCommonEnemy( idEntity *enemy ); 
 	void					Event_GetCommonEnemy( void );
 	//smart AI end
@@ -906,9 +986,10 @@ private:
 	void					AddWeaponToSlots( idStr weaponName, bool select );
 	void					AddWeaponToSlots( int weaponNum, bool select );
 	bool					SetCurrentSlot( int newslot );
-	void					SetupSlots( void );
+	void					SetupWeaponSlots( void );
 	void					Interact( void );
 	void					SetSlideMoveState( void );
+	void					SetChargeMoveState( void );	//Rev 2020 charge
 	void					Hq2QuickRespawn( void );
 	void					ShowPossibleInteract( void );
 	//ivan end	
@@ -976,10 +1057,12 @@ ID_INLINE void idPlayer::SetSelfSmooth( bool b ) {
 	selfSmooth = b;
 }
 
+/*
 //ivan start
 ID_INLINE float idPlayer::GetIdealCameraDistance( void ) {
-	return idealCameraDistance;
+	return cameraSettings.distance;
 }
 //ivan end
+*/
 
 #endif /* !__GAME_PLAYER_H__ */

@@ -135,7 +135,7 @@ typedef enum {
 	FC_MUZZLEFLASH,
 	FC_CREATEMISSILE,
 	FC_LAUNCHMISSILE,
-	FC_FIREWEAPON, //ivan
+	//FC_FIREWEAPON, //ivan
 	FC_FIREMISSILEATTARGET,
 	FC_FOOTSTEP,
 	FC_LEFTFOOT,
@@ -153,7 +153,16 @@ typedef enum {
 	FC_ENABLE_LEG_IK,
 	FC_DISABLE_LEG_IK,
 	FC_RECORDDEMO,
-	FC_AVIGAME
+	FC_AVIGAME,
+	//ivan start
+
+	FC_FIREWEAPON, 
+	FC_START_AUTOMELEE,
+	FC_STOP_AUTOMELEE,
+	FC_START_KICK, 
+	FC_STOP_KICK,
+	FC_SCRIPTFUNCTIONWEAPON 
+	//ivan end
 } frameCommandType_t;
 
 typedef struct {
@@ -178,6 +187,7 @@ typedef struct {
 	bool					random_cycle_start			: 1;
 	bool					ai_no_turn					: 1;
 	bool					anim_turn					: 1;
+	bool					exclusive_commands			: 1; //ivan
 } animFlags_t;
 
 
@@ -569,7 +579,8 @@ public:
 
 private:
 	void						FreeData( void );
-	void						PushAnims( int channel, int currentTime, int blendTime );
+	//was: void						PushAnims( int channel, int currentTime, int blendTime );
+	void						PushAnims( int channel, int currentTime, int blendTime, bool exclusiveCommands = false );  //ivan
 
 private:
 	const idDeclModelDef *		modelDef;

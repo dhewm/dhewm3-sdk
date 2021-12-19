@@ -39,6 +39,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "gamesys/Event.h"
 #include "Game_local.h"
 
+#include "framework/DeclEntityDef.h" //rev 2020 was in Rivensin
+
 #ifdef _DENTONMOD
 #ifndef _DENTONMOD_ENTITY_CPP
 #define _DENTONMOD_ENTITY_CPP
@@ -63,6 +65,8 @@ extern const idEventDef EV_Activate;
 extern const idEventDef EV_ActivateTargets;
 extern const idEventDef EV_Hide;
 extern const idEventDef EV_Show;
+extern const idEventDef EV_PlatformUnder;	//rev 2020
+extern const idEventDef EV_PlatformOver;	//rev 2020
 extern const idEventDef EV_GetShaderParm;
 extern const idEventDef EV_SetShaderParm;
 extern const idEventDef EV_SetOwner;
@@ -74,7 +78,9 @@ extern const idEventDef EV_SetSkin;
 extern const idEventDef EV_StartSoundShader;
 extern const idEventDef EV_StopSound;
 extern const idEventDef EV_CacheSoundShader;
-extern const idEventDef EV_Interact; //ivan
+//ivan start
+extern const idEventDef EV_Interact;
+//ivan end
 
 #ifdef _WATER_PHYSICS //un noted change from original sdk
 extern const idEventDef EV_GetMass;
@@ -256,6 +262,8 @@ public:
 	virtual void			FreeLightDef( void );
 	virtual void			Hide( void );
 	virtual void			Show( void );
+	virtual void			PlatformUnder( void );	//rev 2020
+	virtual void			PlatformOver( void );	//rev 2020
 	bool					IsHidden( void ) const;
 	void					UpdateVisuals( void );
 	void					UpdateModel( void );
@@ -504,6 +512,8 @@ private:
 	void					Event_IsHidden( void );
 	void					Event_Hide( void );
 	void					Event_Show( void );
+	void					Event_PlatformUnder( void ); 	//rev 2020
+	void					Event_PlatformOver( void );		//rev 2020
 	void					Event_CacheSoundShader( const char *soundName );
 	void					Event_StartSoundShader( const char *soundName, int channel );
 	void					Event_StopSound( int channel, int netSync );

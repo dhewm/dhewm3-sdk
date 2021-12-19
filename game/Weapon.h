@@ -34,6 +34,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "Light.h"
 #include "Actor.h"
 
+//ivan - uncomment this to create other test trails that are not removed and don't fade out
+//#define TEST_TRAIL
+
+//uncomment this to enable aim fix based on camera pos 
+#define USE_AIM_DIR_FIX
 
 /*
 ===============================================================================
@@ -63,6 +68,7 @@ enum {
 
 typedef int ammo_t;
 static const int AMMO_NUMTYPES = 16;
+static const int TRAIL_NONE = -1; //ivan
 
 class idPlayer;
 
@@ -82,7 +88,7 @@ struct particleFlags_s {
 	bool		isOffset			: 1;		// Is new Offset needed
 	bool		isDir				: 1;		// Is new Direction needed
 	bool		isOnWorldModel		: 1;		// Is this effect intended for world model only
-	bool		isUpdateJoint		: 1; 
+	bool		isUpdateJoint		: 1;
 	bool		isViewDir			: 1;		//ivan - use player view dir even if it's using a joint. Thas can be still rotated by the usual "dir" key. 
 };
 
@@ -93,7 +99,7 @@ typedef struct {
 	idVec3			offset;			//Sometimes you cant find proper joint, then use offset along with muzzle bone
 	idVec3			dir;
 	jointHandle_t	joint;			//The joint on which to attach the particle
-	
+
 	particleFlags_s particleFlags;	// flags
     
 	const idDeclParticle* particle;		//Used for smoke particles
@@ -125,6 +131,18 @@ typedef struct {
 } WeaponLight_t;
 //----------------------------------------------
 #endif
+
+//
+// events
+//
+//ivan start
+extern const idEventDef EV_Weapon_StartAutoMelee; 
+extern const idEventDef EV_Weapon_StopAutoMelee; 
+extern const idEventDef EV_Weapon_StartMeleeBeam; 
+extern const idEventDef EV_Weapon_StopMeleeBeam; 
+//ivan end
+
+//#define TRAIL_FX_CHAIN
 
 class idWeapon : public idAnimatedEntity {
 public:
@@ -215,6 +233,10 @@ public:
 
 	int						AmmoCount() const; //new
 	
+	//ivan start
+	void					StartAutoMelee( float dmgMult, int trailNum );
+	void					StopAutoMelee( void );
+	//ivan end
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 
@@ -288,6 +310,32 @@ private:
 	// the muzzle bone's position, used for launching projectiles and trailing smoke
 	idVec3					muzzleOrigin;
 	idMat3					muzzleAxis;
+	//ivan start
+	// the melee bone's position, used for launching projectiles and trailing smoke
+	idVec3					meleeJointOrigin;
+	idMat3					meleeJointAxis;
+	idEntity				*lastMeleeEnt;  
+	idBounds				meleebox;
+	bool                    autoMeleeEnabled;
+	bool					useMeleeBox;
+	float					comboMultiplier;
+	int						nextMeleeSnd; // used for autoMelee sound
+#ifdef TRAIL_FX_CHAIN
+	idEntityPtr<idBeam>		lastBeamInChain;
+#else
+	idTrailGenerator*		trailGen;
+#ifdef TEST_TRAIL
+	idTrailGenerator*		testGen;
+#endif
+#endif
+
+	
+
+	int						trailNumType;
+	int						trailLowOffset;
+	int						trailHighOffset;
+
+	//ivan end
 
 	idVec3					pushVelocity;
 
@@ -362,6 +410,7 @@ private:
 	jointHandle_t			flashJointWorld;
 	jointHandle_t			barrelJointWorld;
 	jointHandle_t			ejectJointWorld;
+	jointHandle_t           meleeJointWorld; //ivan
 
 	//ivan start
 	int						maxAmmo;	
@@ -434,6 +483,14 @@ private:
 #endif 
 
 	void					UpdateFlashPosition( void );
+	
+	//ivan start
+	bool					EvaluateMelee( void ); 
+#ifdef TRAIL_FX_CHAIN
+	idBeam *				SpawnMeleeBeam( const idVec3 &pos );
+#else
+	void					UpdateTrailVerts( void );
+#endif
 
 	// script events
 	void					Event_Clear( void );
@@ -481,6 +538,15 @@ private:
 
 	void					Event_StartWeaponLight( const char* name );// New
 	void					Event_StopWeaponLight( const char* name );// New
+	
+	//Ivan start
+	void					Event_StartAutoMelee( float dmgMult, int trailNum );
+	void					Event_StopAutoMelee( void );
+	//void					Event_StartMeleeBeam( int num );
+	//void					Event_StopMeleeBeam( void );
+
+
+	//Ivan end
 };
 
 ID_INLINE bool idWeapon::IsLinked( void ) {

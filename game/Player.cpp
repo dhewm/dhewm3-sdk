@@ -40,6 +40,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "Camera.h"
 #include "Fx.h"
 #include "Misc.h"
+//#include "Weapon.h"
+
+#include "Moveable.h" //rev 2019
+#include "BrittleFracture.h" //rev 2019
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
 const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range [-1, 60]
@@ -107,17 +111,20 @@ const idEventDef EV_Player_SetHudParm( "setHudParm", "ss" );
 const idEventDef EV_Player_GetHudFloat( "getHudFloat", "s", 'f');
 const idEventDef EV_Player_ShowStats( "showStats" );
 const idEventDef EV_Player_DropWeapon( "<dropWeapon>", "d" );
-const idEventDef EV_Player_FreeCamera( "freeCamera" );
-const idEventDef EV_Player_ForceCameraY( "forceCameraY", "f" );
 const idEventDef EV_Player_DoubleJumpEnabled( "doubleJumpEnabled", "d" );
 const idEventDef EV_Player_WallJumpEnabled( "wallJumpEnabled", "d" );
-const idEventDef EV_Player_SetFullBodyAnimOn( "setFullBodyAnimOn", "d" ); 
+const idEventDef EV_Player_SetFullBodyAnimOn( "setFullBodyAnimOn", "ddd" ); //rev 2019 rivensin is ddd. HQ was d
 const idEventDef EV_Player_SetFullBodyAnimOff( "setFullBodyAnimOff" );
+const idEventDef EV_Player_SetGravityInAnimMove( "setGravityInAnimMove", "f" );
+
 const idEventDef EV_Player_HideInfo( "hideInfo" );
 const idEventDef EV_Player_GetWaterLevel( "getWaterLevel", NULL, 'd' );
 
 //smart AI start
 const idEventDef EV_Player_ForceUpdateNpcStatus( "forceUpdateNpcStatus" );
+const idEventDef EV_Player_StartKick( "startKick", "sf" );
+const idEventDef EV_Player_StopKick( "stopKick" );
+
 const idEventDef EV_Player_SetCommonEnemy( "setCommonEnemy", "E" );
 const idEventDef EV_Player_GetCommonEnemy( "getCommonEnemy", NULL, 'e' );
 //smart AI end
@@ -147,18 +154,21 @@ EVENT( EV_Player_GetImpulseKey,			idPlayer::Event_GetImpulseKey )	// Added By Cl
 EVENT( EV_Player_GetIdealWeapon,		idPlayer::Event_GetIdealWeapon )
 
 //ivan start
+EVENT( EV_Player_SetFullBodyAnimOn,     idPlayer::Event_SetFullBodyAnimOn) 
+EVENT( EV_Player_SetFullBodyAnimOff,    idPlayer::Event_SetFullBodyAnimOff)
+EVENT( EV_Player_SetGravityInAnimMove,  idPlayer::Event_SetGravityInAnimMove)
+EVENT( EV_Player_StartKick,				idPlayer::Event_StartKick )
+EVENT( EV_Player_StopKick,			    idPlayer::Event_StopKick )
+EVENT( EV_Weapon_StartAutoMelee,		idPlayer::Event_StartAutoMelee )		//proxy for weapon
+EVENT( EV_Weapon_StopAutoMelee,			idPlayer::Event_StopAutoMelee )			//proxy for weapon
 EVENT( EV_Player_HudEvent,				idPlayer::Event_HudEvent) 
 EVENT( EV_Player_SetHudParm,			idPlayer::Event_SetHudParm) 
 EVENT( EV_Player_GetHudFloat,			idPlayer::Event_GetHudFloat) 
 EVENT( EV_Player_ShowStats,				idPlayer::Event_ShowStats) 
 EVENT( EV_Player_DropWeapon,			idPlayer::Event_DropWeapon) 
-EVENT( EV_Player_FreeCamera,			idPlayer::Event_FreeCamera) 
-EVENT( EV_Player_ForceCameraY,			idPlayer::Event_ForceCameraY) 
 EVENT( EV_Player_DoubleJumpEnabled,		idPlayer::Event_DoubleJumpEnabled) 
 EVENT( EV_Player_WallJumpEnabled,		idPlayer::Event_WallJumpEnabled) 
 EVENT( EV_SetSkin,						idPlayer::Event_SetSkin ) //override idEntity::Event_SetSkin
-EVENT( EV_Player_SetFullBodyAnimOn,     idPlayer::Event_SetFullBodyAnimOn) 
-EVENT( EV_Player_SetFullBodyAnimOff,    idPlayer::Event_SetFullBodyAnimOff)
 EVENT( EV_Player_HideInfo,				idPlayer::Event_HideInfo )
 EVENT( EV_Player_GetWaterLevel,			idPlayer::Event_GetWaterLevel)
 
@@ -957,7 +967,7 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 			}
 
 			if ( !gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) || ( weaponName == "weapon_fists" ) || ( weaponName == "weapon_soulcube" ) ) {
-				if ( ( weapons & ( 1 << i ) ) == 0 || gameLocal.isMultiplayer ) { 
+				if ( ( weapons & ( 1 << i ) ) == 0 || gameLocal.isMultiplayer ) {
 					/*
 					//commented out by ivan: picked up weapon is now selected in idPlayer::AddWeaponToSlots
 					if ( owner->GetUserInfo()->GetBool( "ui_autoSwitch" ) && idealWeapon ) {
@@ -990,6 +1000,11 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 }
 
 //ivan start
+/*
+===============
+idInventory::GetSlotByWeap
+===============
+*/
 int idInventory::GetSlotByWeap( int i ){
 	int	w;
 	for( w = 0; w < NUM_SLOTS; w++ ) { //if already in
@@ -1000,6 +1015,11 @@ int idInventory::GetSlotByWeap( int i ){
 	return -1;
 }
 
+/*
+===============
+idInventory::FindFreeSlot
+===============
+*/
 int idInventory::FindFreeSlot( void ){
 	int	w;
 	for( w = 0; w < NUM_SLOTS; w++ ) { //if a free slot
@@ -1010,6 +1030,11 @@ int idInventory::FindFreeSlot( void ){
 	return -1;
 }
 
+/*
+===============
+idInventory::AssignWeapToSlot
+===============
+*/
 void idInventory::AssignWeapToSlot( int w, int slot ){
 	weaponSlot[slot] = w;
 	weaponPulse = false; //will trigger UpdateHudWeapon();
@@ -1217,7 +1242,22 @@ idPlayer::idPlayer() {
 
 	noclip					= false;
 	godmode					= false;
+	
+	waitForDamage			= 1;	//rev 2018
+	noDamage				= 0;	//rev 2020
+	//ivan start
+	animMoveNoGravity		= false; 
+	animMoveType			= ANIMMOVE_NONE;
+	comboOn					= false;
+	allowTurn				= true;
+	blendModelYaw			= false; 
+	//ivan end
 
+//rev 2018 start
+	touchofdeathx			= 1;
+	touchofdeathy			= 1;
+//rev 2018 end
+	
 	spawnAnglesSet			= false;
 	spawnAngles				= ang_zero;
 	viewAngles				= ang_zero;
@@ -1242,6 +1282,9 @@ idPlayer::idPlayer() {
 	lastHeartAdjust			= 0;
 	lastHeartBeat			= 0;
 	lastDmgTime				= 0;
+	lastChargeTime			= 0;	//rev 2020 charge checks the time difference since we last charge attacked or added to the charge attack gauge
+	chargeAmount			= 0;	//rev 2020 charge maximum amount of times we can charge
+	chargeDir				= 0;	//rev 2020 direction to charge, 1 up, 2 upward, 3 forward, 4 downward, 5 down
 	deathClearContentsTime	= 0;
 	lastArmorPulse			= -10000;
 	stamina					= 0.0f;
@@ -1299,7 +1342,7 @@ idPlayer::idPlayer() {
 	idealWeapon				= -1;
 	previousWeapon			= -1;
 	quickWeapon				= -1; //new //un noted change from original sdk
-	weaponSwitchTime		=  0; 
+	weaponSwitchTime		=  0;
 	weaponEnabled			= true;
 	weapon_soulcube			= -1;
 	weapon_pda				= -1;
@@ -1402,6 +1445,20 @@ idPlayer::idPlayer() {
 
 	selfSmooth				= false;
 
+	//ivan start - kick vars
+	kickDefName				= "";
+	kickDef					= NULL;
+	lastKickedEnt			= NULL;
+	nextKickFx				= 0;
+	nextKickSnd				= 0;
+	kickEnabled				= false;
+	kickDmgMultiplier		= 0.0f;
+	kickDistance			= 0.0f;
+	fromJointKick			= INVALID_JOINT;
+	toJointKick				= INVALID_JOINT;
+	kickBox.Zero();
+	//ivan end
+
 #ifdef _DENTONMOD_PLAYER_CPP
 	memset( &weaponZoom, 0, sizeof( weaponZoom ) ); // New
 	memset(	projectileType, 0, sizeof(projectileType) );
@@ -1409,7 +1466,7 @@ idPlayer::idPlayer() {
 
 	//ivan start
 	health_lost				= 0;
-    oldCameraPos			= vec3_zero;
+	oldCameraPos			= vec3_zero;
 	fastXpos				= 0.0f;
 	isXlocked				= true;
 	blendModelYaw			= false;
@@ -1424,13 +1481,18 @@ idPlayer::idPlayer() {
 	skipCameraZblend		= true; //force instant update first frame
 	enableCameraYblend		= false;
 	enableCameraXblend		= false;
-	forceCameraY			= false;
+	cameraSettings.lockYaxis	= false;
+	cameraSettings.lockZaxis	= false;
+	cameraSettings.lockedYpos	= 0.0f;
+	cameraSettings.lockedZpos	= 0.0f;
+	cameraSettings.distance		= CAMERA_DEFAULT_DISTANCE;
+	cameraSettings.height		= CAMERA_DEFAULT_HEIGHT;
+	lastCheckPoint.entityNumber		= -1; //an non existing entityId
+	lastCheckPoint.spawnPos			= vec3_zero;
+	lastCheckPoint.cameraSettings	= cameraSettings;
 	inhibitInputTime		= 0;
 	inhibitAimCrouchTime	= 0;
 	updXlock				= true;
-	forcedCameraYpos		= 0.0f;
-	idealCameraDistance		= CAMERA_DEFAULT_DISTANCE;
-	idealCameraHeight		= CAMERA_DEFAULT_HEIGHT;
 	animBasedMovement		= false;
 #ifdef SHOW_MOVING_CROSSHAIR
 	reqDefaultCrossPos		= true;
@@ -1438,18 +1500,13 @@ idPlayer::idPlayer() {
 	cposy					= 0;
 	coffx					= 0.0f;
 #endif
-	hq2QuickRespawning		= false;
 	numLives				= 0; //will be initialized later
 	score					= 0;
-	safeRespawnPos			= vec3_zero;
-	safeRespawnCameraDist	= CAMERA_DEFAULT_DISTANCE;
-	safeRespawnCameraHeight	= CAMERA_DEFAULT_HEIGHT;
 #ifdef AUTOUPD_RESPAWN_POS
 	tempRespawnPos			= vec3_zero;
 	nextRespPosTime			= 0;
 #endif
 	skipMouseUpd			= false;
-	lastCheckPoint			= -1; //an non existing entityId
 	interactFlag			= 0;
 	interactShownWeaponNum	= 0;
 	//interactShownWeaponName	= "";
@@ -1513,7 +1570,7 @@ void idPlayer::SetupWeaponEntity( void ) {
 }
 
 //ivan start
-void idPlayer::SetupSlots( void ){
+void idPlayer::SetupWeaponSlots( void ){
 	int i;
 	//add the weapons we already have to slots
 	for ( i = 0; i < MAX_WEAPONS; i++ ) {
@@ -1541,7 +1598,7 @@ void idPlayer::SetupSlots( void ){
 idPlayer::Init
 ==============
 */
-void idPlayer::Init( void ) {
+void idPlayer::Init( bool quickRespawn ) { //ivan - quickRespawn added
 	const char			*value;
 	const idKeyValue	*kv;
 
@@ -1555,7 +1612,7 @@ void idPlayer::Init( void ) {
 	memset( &weaponZoom, 0, sizeof( weaponZoom ) ); // New
 #endif //_DENTONMOD_PLAYER_CPP
 
-	if( !hq2QuickRespawning ){ //ivan - don't reset this if it's a quick respawn: it's the valid weapon to select!
+	if( !quickRespawn ){ //ivan - don't reset this if it's a quick respawn: it's the valid weapon to select!
 		idealWeapon			= -1; 
 	}
 	currentWeapon			= -1;
@@ -1570,11 +1627,15 @@ void idPlayer::Init( void ) {
 
 
 	lastDmgTime				= 0;
+	lastChargeTime			= 0;	//rev 2020 charge
+	lastChargeTime			= 0;	//rev 2020 charge
 	lastArmorPulse			= -10000;
 	lastHeartAdjust			= 0;
 	lastHeartBeat			= 0;
 	heartInfo.Init( 0, 0, 0, 0 );
 
+	chargeAmount			= spawnArgs.GetInt( "charge_amount", "2" );	//rev 2020 charge
+	chargeDir				= 0;	//rev 2020 charge
 	/* //un noted change from original sdk
 	bobCycle				= 0;
 	bobFrac					= 0.0f;
@@ -1615,7 +1676,7 @@ void idPlayer::Init( void ) {
 	//ivan start
 	//was: RestorePersistantInfo();
 
-	if( hq2QuickRespawning ){ //don't restore persistant info if it's a quick respawn
+	if( quickRespawn ){ //don't restore persistant info if it's a quick respawn
 		health = spawnArgs.GetInt( "health", "100" );
 	}else{
 		RestorePersistantInfo();
@@ -1632,17 +1693,13 @@ void idPlayer::Init( void ) {
 
 	SetupWeaponEntity();
 
-	//ivan start
-	if( hq2QuickRespawning ){
-		//gameLocal.Printf("hq2QuickRespawning - idealWeapon: %d\n",idealWeapon);
-	}else{
-	//ivan end -  don't setup slots again if it's a quick respawn
+	if( !quickRespawn ){ //ivan - don't setup weapon slots again if it's a quick respawn
 		currentWeapon = -1;
 		previousWeapon = -1;
 		quickWeapon	= -1; //new
 
 		//ivan start - setup slots - this has to be done after RestorePersistantInfo() so that weapons could be already assigned to slots
-		SetupSlots();
+		SetupWeaponSlots();
 		//ivan end
 	}
 
@@ -1792,12 +1849,9 @@ void idPlayer::Init( void ) {
 	//ivan start
 
 	//fix: upd distance and height Cvars on start or respawn
-	cvarSystem->SetCVarFloat( "pm_thirdPersonRange", idealCameraDistance );
-	pm_thirdPersonRange.ClearModified(); 
-	cvarSystem->SetCVarFloat( "pm_thirdPersonHeight", idealCameraHeight );
-	pm_thirdPersonHeight.ClearModified();
+	UpdateCameraCvarsFromSettings();
 
-	if( !hq2QuickRespawning ){ //don't reset this if it's a quick respawn
+	if( !quickRespawn ){ //don't reset this if it's a quick respawn
 		health_lost	= 0;
 	}
 	save_walk_dir			= false;
@@ -1820,11 +1874,12 @@ void idPlayer::Init( void ) {
 	skipCameraZblend		= true; //force instant update first frame
 	enableCameraYblend		= false;
 	enableCameraXblend		= false;
-	forceCameraY			= false;
 	inhibitInputTime		= 0;
 	inhibitAimCrouchTime	= 0;
-	forcedCameraYpos		= 0.0f;
-	//idealCameraDistance		= CAMERA_DEFAULT_DISTANCE; //don't reset this.
+
+	//cameraSettings.lockYaxis	= false;
+	//cameraSettings.lockedYpos		= 0.0f;
+	//cameraSettings.distance		= CAMERA_DEFAULT_DISTANCE; //don't reset this.
 
 #ifdef SHOW_MOVING_CROSSHAIR
 	reqDefaultCrossPos		= true;
@@ -1832,7 +1887,6 @@ void idPlayer::Init( void ) {
 	cposy					= 0; 
 	coffx					= 0.0f;
 #endif
-	//hq2QuickRespawning		= false; //turn it off if it was active
 	//ivan end
 }
 
@@ -1932,7 +1986,7 @@ void idPlayer::Spawn( void ) { //ivan note: this is only done the first time pla
 	}
 
 	if ( gameLocal.isMultiplayer ) {
-		Init();
+		Init( false );
 		Hide();	// properly hidden if starting as a spectator
 		if ( !gameLocal.isClient ) {
 			// set yourself ready to spawn. idMultiplayerGame will decide when/if appropriate and call SpawnFromSpawnSpot
@@ -2091,6 +2145,15 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteBool( noclip );
 	savefile->WriteBool( godmode );
+	//ivan start
+	savefile->WriteBool( animMoveNoGravity ); 
+	savefile->WriteInt( animMoveType ); 
+	savefile->WriteBool( comboOn ); 
+	savefile->WriteBool( allowTurn ); 
+	savefile->WriteBool( blendModelYaw );
+ 
+	//not saved: lastSpread
+	//ivan end
 
 	// don't save spawnAnglesSet, since we'll have to reset them after loading the savegame
 	savefile->WriteAngles( spawnAngles );
@@ -2110,6 +2173,12 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	inventory.Save( savefile );
 	weapon.Save( savefile );
 
+/*	
+//Rev 2020 Note... the restore part was not added in... thus the game would crash.  Thanks DG!
+//Rev 2020 Note:  Currently not using multiple huds.  Maybe in the future.
+	//savefile->WriteUserInterface( hud, false ); // DG: don't save HUD, just create it like in Spawn()
+	savefile->WriteString( "" ); // DG: write empty string which is handled as "HUD is NULL" by Restore() for backwards-compat
+*/
 	savefile->WriteUserInterface( hud, false );
 	savefile->WriteUserInterface( objectiveSystem, false );
 	savefile->WriteBool( objectiveSystemOpen );
@@ -2337,21 +2406,40 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( enableCameraXblend ); 
 	savefile->WriteInt( inhibitInputTime ); 
 	savefile->WriteInt( inhibitAimCrouchTime ); 
-	savefile->WriteBool( forceCameraY ); 
-	savefile->WriteFloat( forcedCameraYpos );
-	savefile->WriteFloat( idealCameraDistance ); 
-	savefile->WriteFloat( idealCameraHeight ); 
+	savefile->WriteBool( cameraSettings.lockYaxis ); 
+	savefile->WriteBool( cameraSettings.lockZaxis ); 
+	savefile->WriteFloat( cameraSettings.lockedYpos );
+	savefile->WriteFloat( cameraSettings.lockedZpos );
+	savefile->WriteFloat( cameraSettings.distance ); 
+	savefile->WriteFloat( cameraSettings.height ); 
+	savefile->WriteInt( lastCheckPoint.entityNumber ); 
+	savefile->WriteVec3( lastCheckPoint.spawnPos );
+	savefile->WriteBool( lastCheckPoint.cameraSettings.lockYaxis );
+	savefile->WriteBool( lastCheckPoint.cameraSettings.lockZaxis ); 
+	savefile->WriteFloat( lastCheckPoint.cameraSettings.lockedYpos );
+	savefile->WriteFloat( lastCheckPoint.cameraSettings.lockedZpos );
+	savefile->WriteFloat( lastCheckPoint.cameraSettings.distance ); 
+	savefile->WriteFloat( lastCheckPoint.cameraSettings.height ); 
 	savefile->WriteBool( animBasedMovement ); 
 	savefile->WriteInt( numLives ); 
 	savefile->WriteInt( score ); 
-	savefile->WriteVec3( safeRespawnPos );
-	savefile->WriteFloat( safeRespawnCameraDist );
-	savefile->WriteFloat( safeRespawnCameraHeight );
-	savefile->WriteInt( lastCheckPoint ); 
 	savefile->WriteInt( interactFlag );
 	savefile->WriteInt( interactShownWeaponNum );
-	//interactShownWeaponName not saved
+//interactShownWeaponName not saved
 	savefile->WriteBool( skipMouseUpd ); 
+
+//ivan start - kick
+	savefile->WriteString( kickDefName );
+//kickDef is not saved! -> it'll be reastored thanks to kickDefName 
+	savefile->WriteObject( lastKickedEnt ); 
+	savefile->WriteInt( nextKickFx );
+	savefile->WriteInt( nextKickSnd );
+	savefile->WriteBool( kickEnabled );
+	savefile->WriteFloat( kickDmgMultiplier );
+	savefile->WriteFloat( kickDistance );
+	savefile->WriteBounds( kickBox ); 
+	savefile->WriteJoint( fromJointKick );
+	savefile->WriteJoint( toJointKick );
 
 #ifdef AUTOUPD_RESPAWN_POS
 	savefile->WriteInt( nextRespPosTime ); 
@@ -2365,7 +2453,6 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	float					old_viewAngles_yaw;
 	bool					fw_toggled;
 	bool					fw_inverted;
-	bool					hq2QuickRespawning;
 	//bool					skipMouseUpd;
 	*/
 
@@ -2397,6 +2484,14 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( noclip );
 	savefile->ReadBool( godmode );
 
+	//ivan start
+	savefile->ReadBool( animMoveNoGravity );
+	savefile->ReadInt( animMoveType );
+	savefile->ReadBool( comboOn ); 
+	savefile->ReadBool( allowTurn );
+	savefile->ReadBool( blendModelYaw );
+	//ivan end
+	
 	savefile->ReadAngles( spawnAngles );
 	savefile->ReadAngles( viewAngles );
 	savefile->ReadAngles( cmdAngles );
@@ -2686,26 +2781,46 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( enableCameraXblend );
 	savefile->ReadInt( inhibitInputTime );
 	savefile->ReadInt( inhibitAimCrouchTime );
-	savefile->ReadBool( forceCameraY ); 
-	savefile->ReadFloat( forcedCameraYpos );
-	savefile->ReadFloat( idealCameraDistance );
-	savefile->ReadFloat( idealCameraHeight );
+	savefile->ReadBool( cameraSettings.lockYaxis );
+	savefile->ReadBool( cameraSettings.lockZaxis ); 
+	savefile->ReadFloat( cameraSettings.lockedYpos );
+	savefile->ReadFloat( cameraSettings.lockedZpos );
+	savefile->ReadFloat( cameraSettings.distance );
+	savefile->ReadFloat( cameraSettings.height );
+	savefile->ReadInt( lastCheckPoint.entityNumber );
+	savefile->ReadVec3( lastCheckPoint.spawnPos );
+	savefile->ReadBool( lastCheckPoint.cameraSettings.lockYaxis );
+	savefile->ReadBool( lastCheckPoint.cameraSettings.lockZaxis );
+	savefile->ReadFloat( lastCheckPoint.cameraSettings.lockedYpos );
+	savefile->ReadFloat( lastCheckPoint.cameraSettings.lockedZpos );
+	savefile->ReadFloat( lastCheckPoint.cameraSettings.distance ); 
+	savefile->ReadFloat( lastCheckPoint.cameraSettings.height ); 
 	savefile->ReadBool( animBasedMovement ); 
 	savefile->ReadInt( numLives );
 	savefile->ReadInt( score );
-	savefile->ReadVec3( safeRespawnPos );
-	savefile->ReadFloat( safeRespawnCameraDist );
-	savefile->ReadFloat( safeRespawnCameraHeight );
-	savefile->ReadInt( lastCheckPoint );
 	savefile->ReadInt( interactFlag );
 	savefile->ReadInt( interactShownWeaponNum );
-	//interactShownWeaponName not saved
+//interactShownWeaponName not saved
 	//interactShownWeaponName = "";
-	savefile->ReadBool( skipMouseUpd ); 
+	savefile->ReadBool( skipMouseUpd );
+
+//Rev 2020 moved below to match save game file order. prevents crash.  Thanks DG
+	//ivan start - kick
+	savefile->ReadString( kickDefName );
+	kickDef = gameLocal.FindEntityDef( kickDefName, false );
+	savefile->ReadObject( reinterpret_cast<idClass *&>( lastKickedEnt ) ); //ivan
+	savefile->ReadInt( nextKickFx );
+	savefile->ReadInt( nextKickSnd );
+	savefile->ReadBool( kickEnabled );
+	savefile->ReadFloat( kickDmgMultiplier );
+	savefile->ReadFloat( kickDistance );
+	savefile->ReadBounds( kickBox ); 
+	savefile->ReadJoint( fromJointKick );
+	savefile->ReadJoint( toJointKick );	
 
 #ifdef AUTOUPD_RESPAWN_POS
 	savefile->ReadInt( nextRespPosTime ); 
-	tempRespawnPos		= safeRespawnPos; //was not saved
+	tempRespawnPos		= lastCheckPoint.spawnPos; //was not saved
 #endif
 	
 	//the following are not saved:
@@ -2714,7 +2829,6 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	old_viewAngles_yaw	= 0.0f;
 	fw_toggled			= false;
 	fw_inverted			= false;
-	hq2QuickRespawning	= false;
 	//skipMouseUpd		= false;
 
 #ifdef SHOW_MOVING_CROSSHAIR
@@ -2726,13 +2840,11 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	friendsCommonEnemy.Restore( savefile ); //smart AI
 
-	//fix: upd distance and height Cvars on reload
-	cvarSystem->SetCVarFloat( "pm_thirdPersonRange", idealCameraDistance );
-	pm_thirdPersonRange.ClearModified(); 
-	cvarSystem->SetCVarFloat( "pm_thirdPersonHeight", idealCameraHeight );
-	pm_thirdPersonHeight.ClearModified();
+	//fix: upd camera Cvars on reload
+	UpdateCameraCvarsFromSettings();
 	//ivan end
-
+	
+////rev 2021 Dhewm 1.5.1 updates:
 	// DG: workaround for lingering messages that are shown forever after loading a savegame
 	//     (one way to get them is saving again, while the message from first save is still
 	//      shown, and then load)
@@ -2768,7 +2880,7 @@ void idPlayer::Restart( void ) {
 
 	// client needs to setup the animation script object again
 	if ( gameLocal.isClient ) {
-		Init();
+		Init( false );
 	} else {
 		// choose a random spot and prepare the point of view in case player is left spectating
 		assert( spectating );
@@ -2823,15 +2935,7 @@ void idPlayer::SelectInitialSpawnPoint( idVec3 &origin, idAngles &angles ) {
 		spawnArgs.Set( "spawn_skin", skin );
 	}
 
-	//ivan start
-	if( spot->spawnArgs.FindKey( "cameraDist" ) ){ 
-		idealCameraDistance = spot->spawnArgs.GetFloat( "cameraDist" );
-	}
-
-	if( spot->spawnArgs.FindKey( "cameraHeight" ) ){ 
-		idealCameraHeight = spot->spawnArgs.GetFloat( "cameraHeight" );
-	}
-	//ivan end
+	UpdateCameraSettingsFromEntity( spot ); //ivan
 
 	// activate the spawn locations targets
 	spot->PostEventMS( &EV_ActivateTargets, 0, this );
@@ -2856,6 +2960,18 @@ void idPlayer::SpawnFromSpawnSpot( void ) {
 	SpawnToPoint( spawn_origin, spawn_angles );
 }
 
+//ivan start
+/*
+==============
+idPlayer::Hq2QuickRespawn
+==============
+*/
+void idPlayer::Hq2QuickRespawn( void ) {
+	cameraSettings = lastCheckPoint.cameraSettings;
+	SpawnToPoint( lastCheckPoint.spawnPos, ang_zero, true ); 
+}
+//ivan end
+
 /*
 ===========
 idPlayer::SpawnToPoint
@@ -2873,10 +2989,9 @@ void idPlayer::SpawnToPoint( const idVec3 &spawn_origin, const idAngles &spawn_a
 	assert( !gameLocal.isClient );
 
 	respawning = true;
-	hq2QuickRespawning = quickRespawn; //ivan
 
-	Init();
-	
+	Init( quickRespawn );
+
 	fl.noknockback = false;
 
 	// stop any ragdolls being used
@@ -2898,12 +3013,11 @@ void idPlayer::SpawnToPoint( const idVec3 &spawn_origin, const idAngles &spawn_a
 	if ( !spectating ) {
 		SetOrigin( spawn_origin );
 		//ivan start - make sure they are ok at map start
-		safeRespawnPos = spawn_origin;
+		lastCheckPoint.spawnPos = spawn_origin;
 #ifdef AUTOUPD_RESPAWN_POS
 		tempRespawnPos = spawn_origin;
 #endif
-		safeRespawnCameraDist = idealCameraDistance;
-		safeRespawnCameraHeight = idealCameraHeight;
+		lastCheckPoint.cameraSettings = cameraSettings;
 		//ivan end
 	} else {
 		spec_origin = spawn_origin;
@@ -2951,7 +3065,7 @@ void idPlayer::SpawnToPoint( const idVec3 &spawn_origin, const idAngles &spawn_a
 		AI_TELEPORT = true;
 	} else {
 		//ivan start
-		if( hq2QuickRespawning ){
+		if( quickRespawn ){
 			idEntityFx::StartFx( spawnArgs.GetString( "fx_spawn" ), &spawn_origin, NULL, this, false );
 		}
 		//ivan end
@@ -2981,8 +3095,8 @@ void idPlayer::SpawnToPoint( const idVec3 &spawn_origin, const idAngles &spawn_a
 	//start locked at the same X pos.
 	fastXpos = spawn_origin.x; 
 
-	//update AI distances. Note: idealCameraDistance has been set by the initial Spawn point or by Hq2QuickRespawn()
-	gameLocal.UpdateSeeDistances( idealCameraDistance ); 
+	//update AI distances. Note: cameraSettings.distance has been set by the initial Spawn point or by Hq2QuickRespawn()
+	gameLocal.UpdateSeeDistances( cameraSettings.distance ); 
 	
 	//ivan end
 
@@ -2993,7 +3107,6 @@ void idPlayer::SpawnToPoint( const idVec3 &spawn_origin, const idAngles &spawn_a
 	
 	Think();
 
-	hq2QuickRespawning	= false; //ivan - turn it off in case it was active
 	respawning			= false;
 	lastManOver			= false;
 	lastManPlayAgain	= false;
@@ -3228,13 +3341,33 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	ammoamount	= weapon.GetEntity()->AmmoAvailable();
 	maxAmmo		= weapon.GetEntity()->GetMaxAmmo(); //ivan
 
+	
+//rev 2020 display all ammo types in hud start
+	int ammo_exp;
+	int ammo_souls;
+	int ammo_cells;
+	int ammo_bullets;
+	int ammo_shells;
+	ammo_exp = inventory.HasAmmo( 1, 1 );	//first number must match ammo.def value
+	ammo_souls = inventory.HasAmmo( 2, 1 );
+	ammo_cells = inventory.HasAmmo( 3, 1 );
+	ammo_bullets = inventory.HasAmmo( 4, 1 );
+	ammo_shells	= inventory.HasAmmo( 5, 1 );
+	
+	_hud->SetStateString( "player_ammo_bullets", va( "%i", ammo_bullets ) );
+	_hud->SetStateString( "player_ammo_shells", va( "%i", ammo_shells ) ); 
+	_hud->SetStateString( "player_ammo_cells", va( "%i", ammo_cells ) ); 
+	_hud->SetStateString( "player_ammo_souls", va( "%i", ammo_souls ) ); 
+	_hud->SetStateString( "player_ammo_exp", va( "%i", ammo_exp ) ); 		
+//rev 2020 display all ammo types in hud end
+	
 	if ( ammoamount < 0 || !weapon.GetEntity()->IsReady() ) {
 		// show infinite ammo
 		_hud->SetStateString( "player_ammo", "" );
 		_hud->SetStateString( "player_totalammo", "--" ); //ivan - "--" added
 		_hud->SetStateString( "player_ammo_pct", "100" ); //ivan
 	} else {
-		// show remaining ammo
+		// show remaining ammo				
 		_hud->SetStateString( "player_totalammo", va( "%i", ammoamount ) ); //new
 		//_hud->SetStateString( "player_totalammo", va( "%i", ammoamount - inclip ) ); 
 		_hud->SetStateString( "player_ammo", weapon.GetEntity()->ClipSize() ? va( "%i", inclip ) : "--" );		// how much in the current clip
@@ -3249,7 +3382,7 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 			_hud->SetStateString( "player_ammo_pct", va( "%i", 100*ammoamount/maxAmmo ) );
 		}
 		//ivan end
-	} 
+	}
 	_hud->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
 	_hud->SetStateBool( "player_clip_empty", ( weapon.GetEntity()->ClipSize() ? inclip == 0 : false ) );
 	_hud->SetStateBool( "player_clip_low", ( weapon.GetEntity()->ClipSize() ? inclip <= weapon.GetEntity()->LowAmmo() : false ) );
@@ -3269,8 +3402,9 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	float max_stamina;
 
 	assert( _hud );
-
-	max_stamina = pm_stamina.GetFloat();
+	
+	chargeAmount = spawnArgs.GetInt( "charge_amount" );	//rev 2020 charge  needed to check again to get the CURRENT amount
+	max_stamina = pm_stamina.GetFloat();	
 	if ( !max_stamina ) {
 		// stamina disabled, so show full stamina bar
 		staminapercentage = 100.0f;
@@ -3280,6 +3414,7 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 
 	_hud->SetStateInt( "player_health", health );
 	_hud->SetStateInt( "player_stamina", staminapercentage );
+	_hud->SetStateInt( "player_charges", chargeAmount );	//rev 2020 charge
 	_hud->SetStateInt( "player_armor", inventory.armor );
 	_hud->SetStateInt( "player_hr", heartRate );
 	_hud->SetStateInt( "player_nostamina", ( max_stamina == 0 ) ? 1 : 0 );
@@ -3363,10 +3498,10 @@ void idPlayer::UpdateHudWeapon( bool flashWeapon ) {
 
 		//ivan - upd short ammo name
 		hud->SetStateString( "player_slotammotxt", spawnArgs.GetString( va( "weapon%d_slotammotxt", idealWeapon ), "Ammo:" ) );
-
 	}
 
 	//ivan start - see also idWeapon::UpdateGUI
+
 	bool slotChanged = SetCurrentSlot( inventory.GetSlotByWeap( idealWeapon ) );
 
 	for ( int i = 0; i < NUM_SLOTS; i++ ) {
@@ -4073,7 +4208,13 @@ bool idPlayer::GivePowerUp( int powerup, int time ) {
 				break;
 							   }
 			case ADRENALINE: {
-				stamina = 100.0f;
+//rev 2020 give the player full charge attack amount when picking up adrenaline instead of stamina
+				//stamina = 100.0f;	
+				def = gameLocal.FindEntityDef( "powerup_adrenaline", false );
+				if ( def ) {
+					spawnArgs.Set( "charge_amount", "2" );
+				}
+//rev 2020 end
 				break;
 							 }
 			case MEGAHEALTH: {
@@ -4490,6 +4631,7 @@ void idPlayer::Reload( void ) {
 		weapon.GetEntity()->Reload();
 	}
 }
+
 /*
 ===============
 idPlayer::WeaponSpecialFunction 
@@ -4519,6 +4661,7 @@ idPlayer::NextBestWeapon
 */
 void idPlayer::NextBestWeapon( void ) {
 	const char *weap;
+
 	//ivan start
 	int w; //was: int w = MAX_WEAPONS;
 	int s;	
@@ -4595,6 +4738,7 @@ void idPlayer::NextBestWeapon( void ) {
 	}
 	*/
 	//ivan end
+
 #ifdef _DENTONMOD
 	if( w != idealWeapon ) {
 		quickWeapon = idealWeapon;
@@ -4937,14 +5081,13 @@ void idPlayer::SetLock2D( bool on ){
 
 
 void idPlayer::SaveCheckPointPos( idEntity* checkEnt, bool useEntOrigin ){
-	if( checkEnt != NULL && lastCheckPoint != checkEnt->entityNumber ){ 
-		lastCheckPoint = checkEnt->entityNumber;
-		safeRespawnPos = useEntOrigin ? checkEnt->GetPhysics()->GetOrigin() : GetPhysics()->GetOrigin(); //save current pos
-		safeRespawnCameraDist = idealCameraDistance;
-		safeRespawnCameraHeight = idealCameraHeight;
+	if( checkEnt != NULL && lastCheckPoint.entityNumber != checkEnt->entityNumber ){ 
+		lastCheckPoint.entityNumber = checkEnt->entityNumber;
+		lastCheckPoint.spawnPos = useEntOrigin ? checkEnt->GetPhysics()->GetOrigin() : GetPhysics()->GetOrigin(); //save current pos
+		lastCheckPoint.cameraSettings = cameraSettings;
 		if( hud ){ 
 			ShowInfo( "Checkpoint!" );
-			//hud->HandleNamedEvent( "checkPoint" ); 
+			//hud->HandleNamedEvent( "lastCheckPoint" ); 
 		}
 		StartSound( "snd_checkPoint", SND_CHANNEL_ITEM, 0, false, NULL );
 	}
@@ -4958,6 +5101,7 @@ void idPlayer::AddLifes( int num ){
 	}
 	StartSound( "snd_extraLife", SND_CHANNEL_ITEM, 0, false, NULL );
 }
+
 
 void idPlayer::AddSecretFound( void ){
 	gameLocal.secrets_found_counter++;
@@ -5084,6 +5228,7 @@ bool idPlayer::DropWeapon( bool died, bool selectNext ) { //ivan - bool selectNe
 		common->DPrintf( "idPlayer::DropWeapon: bad ammo setup\n" );
 		return false; //un noted change from original sdk
 	}
+
 	idEntity *item = NULL;
 	if ( died ) {
 		// ain't gonna throw you no weapon if I'm dead
@@ -5097,7 +5242,7 @@ bool idPlayer::DropWeapon( bool died, bool selectNext ) { //ivan - bool selectNe
 	}
 	// set the appropriate ammo in the dropped object
 	const idKeyValue * keyval = item->spawnArgs.MatchPrefix( "inv_ammo_" );
-	if ( keyval ) {		
+	if ( keyval ) {	
 		//item->spawnArgs.SetInt( keyval->GetKey(), ammoavailable ); //ivan - commented out
 		idStr inclipKey = keyval->GetKey();
 		inclipKey.Insert( "inclip_", 4 );
@@ -5278,7 +5423,7 @@ void idPlayer::Weapon_Combat( void ) {
 #else
 				// weapons can switch automatically if they have no more ammo
 				NextBestWeapon();
-#endif 
+#endif
 			} else {
 				weapon.GetEntity()->Raise();
 				state = GetScriptFunction( "RaiseWeapon" );
@@ -5680,17 +5825,35 @@ idPlayer::Collide
 */
 bool idPlayer::Collide( const trace_t &collision, const idVec3 &velocity ) {
 	idEntity *other;
-
+	
 	if ( gameLocal.isClient ) {
 		return false;
 	}
 
 	other = gameLocal.entities[ collision.c.entityNum ];
+
+//REV 2020 UPDATED.  JUST CHECK WHAT WERE TOUCHING.  The groundent check is not needed.
+//rev 2018 start damage the player when touching enemies
+	//idEntity *groundEnt = physicsObj.GetGroundEntity();
+
+//Rev 2020 update 2: commented out.
+//the AI now checks if over lapping the player and calls the hurtbox to happen.  Thus we don't need this anymore.
+/*	
+	if ( other->IsType( idAI::Type ) ) {	
+		//if ( other && other->IsType( idAI::Type )  ) {
+		touchofdeathx = other->spawnArgs.GetInt( "touchofdeath" );
+		if ( touchofdeathx > 0 ) {
+		Damage( NULL, NULL, vec3_origin, "damage_touchofdeath", 1.0f, 0 );					
+		}
+	}
+*/	
+//REV 2020 END
 	if ( other ) {
+		
 		other->Signal( SIG_TOUCH );
 		if ( !spectating ) {
 			if ( other->RespondsTo( EV_Touch ) ) {
-				other->ProcessEvent( &EV_Touch, this, &collision );
+				other->ProcessEvent( &EV_Touch, this, &collision );					
 			}
 		} else {
 			if ( other->RespondsTo( EV_SpectatorTouch ) ) {
@@ -6044,7 +6207,7 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 		const contactInfo_t &contact = physicsObj.GetContact( i );
 		if ( contact.material->GetSurfaceFlags() & SURF_NODAMAGE ) {
 			noDamage = true;
-			StartSound( "snd_land_hard", SND_CHANNEL_ANY, 0, false, NULL );
+			//StartSound( "snd_land_hard", SND_CHANNEL_ANY, 0, false, NULL ); //rev 2018 removed.  not needed.
 			break;
 		}
 	}
@@ -6143,138 +6306,6 @@ void idPlayer::BobCycle( const idVec3 &pushVelocity ) {
 	vel = velocity - ( velocity * gravityDir ) * gravityDir;
 	xyspeed = vel.LengthFast();
 }
-//was:
-/*
-void idPlayer::BobCycle( const idVec3 &pushVelocity ) {
-	float		bobmove;
-	int			old, deltaTime;
-	idVec3		vel, gravityDir, velocity;
-	idMat3		viewaxis;
-	float		bob;
-	float		delta;
-	float		speed;
-	float		f;
-
-	//
-	// calculate speed and cycle to be used for
-	// all cyclic walking effects
-	//
-	velocity = physicsObj.GetLinearVelocity() - pushVelocity;
-
-	gravityDir = physicsObj.GetGravityNormal();
-	vel = velocity - ( velocity * gravityDir ) * gravityDir;
-	xyspeed = vel.LengthFast();
-
-	// do not evaluate the bob for other clients
-	// when doing a spectate follow, don't do any weapon bobbing
-	if ( gameLocal.isClient && entityNumber != gameLocal.localClientNum ) {
-		viewBobAngles.Zero();
-		viewBob.Zero();
-		return;
-	}
-
-	if ( !physicsObj.HasGroundContacts() || influenceActive == INFLUENCE_LEVEL2 || ( gameLocal.isMultiplayer && spectating ) ) {
-		// airborne
-		bobCycle = 0;
-		bobFoot = 0;
-		bobfracsin = 0;
-	} else if ( ( !usercmd.forwardmove && !usercmd.rightmove ) || ( xyspeed <= MIN_BOB_SPEED ) ) {
-		// start at beginning of cycle again
-		bobCycle = 0;
-		bobFoot = 0;
-		bobfracsin = 0;
-	} else {
-		if ( physicsObj.IsCrouching() ) {
-			bobmove = pm_crouchbob.GetFloat();
-			// ducked characters never play footsteps
-		} else {
-			// vary the bobbing based on the speed of the player
-			bobmove = pm_walkbob.GetFloat() * ( 1.0f - bobFrac ) + pm_runbob.GetFloat() * bobFrac;
-		}
-
-		// check for footstep / splash sounds
-		old = bobCycle;
-		bobCycle = (int)( old + bobmove * gameLocal.msec ) & 255;
-		bobFoot = ( bobCycle & 128 ) >> 7;
-		bobfracsin = idMath::Fabs( sin( ( bobCycle & 127 ) / 127.0 * idMath::PI ) );
-	}
-
-	// calculate angles for view bobbing
-	viewBobAngles.Zero();
-
-	viewaxis = viewAngles.ToMat3() * physicsObj.GetGravityAxis();
-
-	// add angles based on velocity
-	delta = velocity * viewaxis[0];
-	viewBobAngles.pitch += delta * pm_runpitch.GetFloat();
-
-	delta = velocity * viewaxis[1];
-	viewBobAngles.roll -= delta * pm_runroll.GetFloat();
-
-	// add angles based on bob
-	// make sure the bob is visible even at low speeds
-	speed = xyspeed > 200 ? xyspeed : 200;
-
-	delta = bobfracsin * pm_bobpitch.GetFloat() * speed;
-	if ( physicsObj.IsCrouching() ) {
-		delta *= 3;		// crouching
-	}
-	viewBobAngles.pitch += delta;
-	delta = bobfracsin * pm_bobroll.GetFloat() * speed;
-	if ( physicsObj.IsCrouching() ) {
-		delta *= 3;		// crouching accentuates roll
-	}
-	if ( bobFoot & 1 ) {
-		delta = -delta;
-	}
-	viewBobAngles.roll += delta;
-
-	// calculate position for view bobbing
-	viewBob.Zero();
-
-	if ( physicsObj.HasSteppedUp() ) {
-
-		// check for stepping up before a previous step is completed
-		deltaTime = gameLocal.time - stepUpTime;
-		if ( deltaTime < STEPUP_TIME ) {
-			stepUpDelta = stepUpDelta * ( STEPUP_TIME - deltaTime ) / STEPUP_TIME + physicsObj.GetStepUp();
-		} else {
-			stepUpDelta = physicsObj.GetStepUp();
-		}
-		if ( stepUpDelta > 2.0f * pm_stepsize.GetFloat() ) {
-			stepUpDelta = 2.0f * pm_stepsize.GetFloat();
-		}
-		stepUpTime = gameLocal.time;
-	}
-
-	idVec3 gravity = physicsObj.GetGravityNormal();
-
-	// if the player stepped up recently
-	deltaTime = gameLocal.time - stepUpTime;
-	if ( deltaTime < STEPUP_TIME ) {
-		viewBob += gravity * ( stepUpDelta * ( STEPUP_TIME - deltaTime ) / STEPUP_TIME );
-	}
-
-	// add bob height after any movement smoothing
-	bob = bobfracsin * xyspeed * pm_bobup.GetFloat();
-	if ( bob > 6 ) {
-		bob = 6;
-	}
-	viewBob[2] += bob;
-
-	// add fall height
-	delta = gameLocal.time - landTime;
-	if ( delta < LAND_DEFLECT_TIME ) {
-		f = delta / LAND_DEFLECT_TIME;
-		viewBob -= gravity * ( landChange * f );
-	} else if ( delta < LAND_DEFLECT_TIME + LAND_RETURN_TIME ) {
-		delta -= LAND_DEFLECT_TIME;
-		f = 1.0 - ( delta / LAND_RETURN_TIME );
-		viewBob -= gravity * ( landChange * f );
-	}
-}
-*/
-//ivan end
 
 /*
 ================
@@ -6362,7 +6393,7 @@ void idPlayer::UpdateAimFromCrosshair( void ) {
 	}
 	
 	//-- X offset (float, idPlayer::coffx ) -- (horizontal)
-	if( forceCameraY ){ //X offset is != 0 only when Y camera is fixed at a certain pos
+	if( cameraSettings.lockYaxis ){ //X offset is != 0 only when Y camera is fixed at a certain pos
 		coffx = (0.93f * (renderView->vieworg.y - firstPersonViewOrigin.y)); 
 	}else{
 		coffx = 0.0f;
@@ -6382,8 +6413,8 @@ void idPlayer::UpdateAimFromCrosshair( void ) {
 
 	//fix for distance != 350
 	/*
-	if( idealCameraDistance != 350.0f ){
-		temp = 350.0f/idealCameraDistance; 
+	if( cameraSettings.distance != 350.0f ){
+		temp = 350.0f/cameraSettings.distance; 
 		offsetY *= temp; 
 		coffx *= temp;
 	}*/
@@ -6429,12 +6460,10 @@ idPlayer::UpdateViewAngles
 ================
 */
 void idPlayer::UpdateViewAngles( void ) {
-	//int i; //un noted change from original sdk
+	//int i; rev 2019 commented out in rivensin
 	idAngles delta;
-	//ivan start
-	idAngles modelang; 
-	float deltaModelYaw;
-	//ivan end
+	idAngles modelang; //ivan
+	float deltaModelYaw; //ivan
 
 	if ( !noclip && ( gameLocal.inCinematic || privateCameraView || gameLocal.GetCamera() || influenceActive == INFLUENCE_LEVEL2 || objectiveSystemOpen ) ) {
 		// no view changes at all, but we still want to update the deltas or else when
@@ -6588,18 +6617,23 @@ void idPlayer::UpdateViewAngles( void ) {
 			if ( ( ( oldButtons ^ usercmd.buttons ) & BUTTON_6 ) || ( ( oldButtons ^ usercmd.buttons ) & BUTTON_7 ) || fw_toggled ){ //something has changed: start transition
 				if ( usercmd.buttons & BUTTON_6 ){ //up					
 					if( usercmd.forwardmove ){
-						centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, -35.0f );
+						//centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, -35.0f );
+						viewAngles.pitch =  -35.0f;	//rev 2020 instant aim changing					
 					}else{
-						centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, -89.0f );
+						//centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, -89.0f );
+						viewAngles.pitch =  -89.0f; //rev 2020 instant aim changing
 					}
 				} else if ( usercmd.buttons & BUTTON_7 ){ //down		
 					if( usercmd.forwardmove ){
-						centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 35.0f );
+						//centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 35.0f );
+						viewAngles.pitch =  35.0f;	//rev 2020 instant aim changing							
 					}else{
-						centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 89.0f  );
+						//centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 89.0f  );
+						viewAngles.pitch =  89.0f;	//rev 2020 instant aim changing	
 					}
 				} else if( viewAngles.pitch != 0.0f ){ //none of them pressed
-					centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 0 );
+					//centerView.Init( gameLocal.time, LOOK_BLEND_TIME, viewAngles.pitch, 0 );
+					viewAngles.pitch =  0;	//rev 2020 instant aim changing	
 				}
 			}else if ( !centerView.IsDone( gameLocal.time ) ) { //upd transition, if any
 				viewAngles.pitch = centerView.GetCurrentValue(gameLocal.time);
@@ -6705,7 +6739,7 @@ void idPlayer::UpdateViewAngles( void ) {
 			deltaModelYaw = idMath::AngleNormalize180(deltaModelYaw);
 			//gameLocal.Printf( "deltaModelYaw blend %f (normalized)\n", deltaModelYaw );
 			if(deltaModelYaw > 1.0f || deltaModelYaw < -1.0f){ //blend again
-				SetAngles( idAngles( 0, idMath::AngleNormalize180( modelang.yaw + deltaModelYaw*0.4f ), 0 ) ); //was 0.3
+				SetAngles( idAngles( 0, idMath::AngleNormalize180( modelang.yaw + deltaModelYaw*0.4f ), 0 ) ); //was 0.3 //rev 2019 note rivensin is 0.5f fyi
 			}else{ //stop blending 
 				SetAngles( idAngles( 0, viewAngles.yaw, 0 ) );
 				blendModelYaw = false;
@@ -6820,7 +6854,7 @@ void idPlayer::SetCurrentHeartRate( void ) {
 		pct += (float)zeroVol;
 
 		if ( pct != zeroVol ) {
-			StartSound( "snd_heartbeat", SND_CHANNEL_HEART, SSF_PRIVATE_SOUND, false, NULL );
+			//StartSound( "snd_heartbeat", SND_CHANNEL_HEART, SSF_PRIVATE_SOUND, false, NULL );		//rev 2021 get rid of this
 			// modify just this channel to a custom volume
 			soundShaderParms_t	parms;
 			memset( &parms, 0, sizeof( parms ) );
@@ -7347,7 +7381,7 @@ void idPlayer::Spectate( bool spectate ) {
 		// join the spectators
 		ClearPowerUps();
 		spectator = this->entityNumber;
-		Init();
+		Init( false );
 		StopRagdoll();
 		SetPhysics( &physicsObj );
 		physicsObj.DisableClip();
@@ -7462,9 +7496,8 @@ void idPlayer::PerformImpulse( int impulse ) {
 
 	if ( impulse >= IMPULSE_0 && impulse <= IMPULSE_12 ) {
 		WeaponToggle_t* weaponToggle; //un noted change from original sdk
-
-		// This loop works as a small bug fix for toggle weapons -By Clone JC Denton
-		// It simply increments the impulse value if there are multiple weapons under one weapon slot.
+// This loop works as a small bug fix for toggle weapons -By Clone JC Denton
+// It simply increments the impulse value if there are multiple weapons under one weapon slot.
 
 		for (int i=0; i<impulse; i++) {
 			if (weaponToggles.Get(va("weapontoggle%d", i), &weaponToggle))
@@ -7478,6 +7511,8 @@ void idPlayer::PerformImpulse( int impulse ) {
 		}
 		return;
 	}
+
+
 	switch( impulse ) {
 		case IMPULSE_13: {
 			//ivan start
@@ -7503,10 +7538,11 @@ void idPlayer::PerformImpulse( int impulse ) {
 			break;
 						 }
 		case IMPULSE_16: {  //un noted change from original sdk
+//rev 2020 never drop weapons
 			//ivan start - drop the weapon only if it is in a slot.
-			if( currentSlot >= 0 ){ 
-				DropWeapon( false );
-			}
+			//if( currentSlot >= 0 ){ 
+			//	DropWeapon( false );
+			//}
 			break;
 			
 			/*
@@ -7599,19 +7635,6 @@ bool idPlayer::SkipCinematic( void ) {
 	StartSound( "snd_skipcinematic", SND_CHANNEL_ANY, 0, false, NULL );
 	return gameLocal.SkipCinematic();
 }
-
-//ivan start
-/*
-==============
-idPlayer::Hq2QuickRespawn
-==============
-*/
-void idPlayer::Hq2QuickRespawn( void ) {	
-	idealCameraDistance = safeRespawnCameraDist;
-	idealCameraHeight = safeRespawnCameraHeight;
-	SpawnToPoint( safeRespawnPos, ang_zero, true ); 
-}
-//ivan end
 
 /*
 ==============
@@ -7723,7 +7746,7 @@ idPlayer::AdjustBodyAngles
 ==============
 */
 void idPlayer::AdjustBodyAngles( void ) {
-	idMat3	lookAxis;
+	idMat3	lookAxis; //rev 2019 note this commented out in rivensin fyi
 	idMat3	legsAxis;
 	bool	blend;
 	float	diff;
@@ -7816,7 +7839,7 @@ void idPlayer::AdjustBodyAngles( void ) {
 			forwardBlend	= 1.0f + frac;
 			upBlend			= -frac;
 		}
-	}//ivan
+    }
 
 	if(force_torso_override){ //ivan 
 		//no looking up/down
@@ -7957,6 +7980,30 @@ void idPlayer::Move( void ) {
 
 	//ivan start
 	physicsObj.SetFwInverted( fw_inverted );
+
+	waitForDamage  = spawnArgs.GetInt( "waitfordamage" ); //rev 2020 used for pass through enemies during invulnerability
+	noDamage  = spawnArgs.GetBool( "nodamage" ); //rev 2020 used for pass through enemies
+			
+	//ivan start
+	if ( animMoveNoGravity ){
+		physicsObj.SetContents( CONTENTS_BODY );
+		physicsObj.SetMovementType( PM_FREEZE );
+	}else if ( animMoveType ){
+	    physicsObj.SetContents( CONTENTS_BODY );
+		if( animMoveType == ANIMMOVE_ALWAYS){
+			physicsObj.SetMovementType( PM_ANIM_ALWAYS );
+			GetMoveDelta( viewAxis, viewAxis, delta ); //to: check what happens to viewAxis 
+			physicsObj.SetDelta( delta );
+		}else if( animMoveType == ANIMMOVE_GROUND){
+			physicsObj.SetMovementType( PM_ANIM_GROUND );
+			GetMoveDelta( viewAxis, viewAxis, delta ); //to: check what happens to viewAxis  
+			physicsObj.SetDelta( delta );
+		}else if( animMoveType == ANIMMOVE_PHYSICS){
+			physicsObj.SetMovementType( PM_PHYSICS_ONLY );
+		}else { //that is, ANIMMOVE_FREEZE
+			physicsObj.SetMovementType( PM_FREEZE );
+		}
+	} else 
 	//ivan end
 
 	if ( noclip ) {
@@ -7978,8 +8025,19 @@ void idPlayer::Move( void ) {
 		physicsObj.SetMovementType( PM_ANIM_CROUCH );
 		GetMoveDelta( viewAxis, viewAxis, delta ); //no changes to Axis since no turning is allowed
 		physicsObj.SetDelta( delta );
-	}
-	//ivan end
+	}	
+	//ivan en
+
+//rev 2020		allow the player to pass through enemies when invulnerability is active.  also prevents standing on heads.	
+	else if ( waitForDamage == 1 ) {
+	physicsObj.SetContents( CONTENTS_CORPSE );
+	physicsObj.SetMovementType( PM_NORMAL );
+		}
+	else if ( noDamage ) {
+	physicsObj.SetContents( CONTENTS_CORPSE );
+	physicsObj.SetMovementType( PM_NORMAL );
+		}
+//rev 2020 end
 	else {
 		physicsObj.SetContents( CONTENTS_BODY );
 		physicsObj.SetMovementType( PM_NORMAL );
@@ -7987,13 +8045,14 @@ void idPlayer::Move( void ) {
 
 	if ( spectating ) {
 		physicsObj.SetClipMask( MASK_DEADSOLID );
-	} else if ( health <= 0 ) {
+	//} else if ( health <= 0 ) {
+	} else if ( health <= 0 || noDamage  || waitForDamage == 1 ) {
 		physicsObj.SetClipMask( MASK_DEADSOLID );
 	} else {
 		physicsObj.SetClipMask( MASK_PLAYERSOLID );
 	}
 
-	physicsObj.SetDebugLevel( g_debugMove.GetBool() );	
+	physicsObj.SetDebugLevel( g_debugMove.GetBool() );
 	physicsObj.SetPlayerInput( usercmd, viewAngles );
 
 	// FIXME: physics gets disabled somehow
@@ -8053,6 +8112,9 @@ void idPlayer::Move( void ) {
 		AI_ONLADDER	= physicsObj.OnLadder();
 		AI_JUMP		= physicsObj.HasJumped();
 
+//REV 2020 START.  THIS ISN'T NEEDED.  CHECKED IN PLAYER::COLLIDE
+/*
+//rev 2018 start. damage the player when touching enemies from above
 		// check if we're standing on top of a monster and give a push if we are
 		idEntity *groundEnt = physicsObj.GetGroundEntity();
 		if ( groundEnt && groundEnt->IsType( idAI::Type ) ) {
@@ -8064,10 +8126,17 @@ void idPlayer::Move( void ) {
 			} else {
 				// give em a push in the direction they're going
 				vel *= 1.1f;
+				touchofdeathy = groundEnt->spawnArgs.GetInt( "touchofdeath" );
+				if ( touchofdeathy > 0 ) {					
+				Damage( NULL, NULL, vec3_origin, "damage_touchofdeath", 1.0f, 0 );				
+					}
+//rev 2018 end
 			}
 			physicsObj.SetLinearVelocity( vel );
-				
-		}	
+		
+		}
+*/
+//REV 2020 END		
 	}
 
 	if ( AI_JUMP ) {
@@ -8107,7 +8176,7 @@ void idPlayer::UpdateHud( void ) {
 	if ( entityNumber != gameLocal.localClientNum ) {
 		return;
 	}
-
+	
 	int c = inventory.pickupItemNames.Num();
 	if ( c > 0 ) {
 		if ( gameLocal.time > inventory.nextItemPickup ) {
@@ -8244,6 +8313,39 @@ void idPlayer::SetSlideMoveState( void ) {
 }
 //ivan end
 
+//REV 2020 START DASH MOVE
+/*
+==============
+idPlayer::SetChargeMoveState
+==============
+*/
+void idPlayer::SetChargeMoveState( void ) {
+	//const function_t *newstate = GetScriptFunction( "ChargeMoveF" );	
+	const function_t *newstate;	
+	if (chargeDir == 1){
+		newstate = GetScriptFunction( "ChargeMoveU" );		
+	}
+	else if (chargeDir == 2){
+		newstate = GetScriptFunction( "ChargeMoveUf" );		
+	}
+	else if (chargeDir == 3){
+		newstate = GetScriptFunction( "ChargeMoveF" );		
+	}
+	else if (chargeDir == 4){
+		newstate = GetScriptFunction( "ChargeMoveDf" );		
+	}
+	else if (chargeDir == 5){
+		newstate = GetScriptFunction( "ChargeMoveD" );		
+	}
+	
+	if ( newstate ) {
+		lastChargeTime = gameLocal.time;	// start the clock to possibly give charges if not at maximum
+		SetState( newstate );
+		UpdateScript();
+	}
+}
+//REV 2020 charge
+
 /*
 ==============
 idPlayer::Think
@@ -8255,7 +8357,7 @@ void idPlayer::Think( void ) {
 	renderEntity_t *headRenderEnt;
 
 	UpdatePlayerIcons();
-
+	
 	// latch button actions
 	oldButtons = usercmd.buttons;
 
@@ -8272,7 +8374,14 @@ void idPlayer::Think( void ) {
 		return;
 	}
 	*/
-
+	
+// rev 2020 check the last time we were damaged, if too long, run a script to enable damage again.
+		waitForDamage  = spawnArgs.GetInt( "waitfordamage" );
+		if (( gameLocal.time > lastDmgTime + 1500 ) && ( waitForDamage > 0 ) ) {	//check wait for damage or the slide move will not work
+			SetState( "BlinkOff" ); 
+			UpdateScript();
+		}
+		
 	// grab out usercmd
 	usercmd_t oldCmd = usercmd;
 	usercmd = gameLocal.usercmds[ entityNumber ];
@@ -8287,19 +8396,32 @@ void idPlayer::Think( void ) {
 		UpdForcedMov();  //upd dir and destination 
 	}
 
-	//upd camera distance in case someone changed the Cvar
+	//upd camera distance in case someone or something changed the Cvar
 	if ( pm_thirdPersonRange.IsModified() ){ //this allows the user or scripts to update the distance thanks to the Cvar. 
 		//gameLocal.Printf("pm_thirdPersonRange.IsModified()\n");
-		UpdateCameraDistance( pm_thirdPersonRange.GetFloat() ); 
+		SetCameraDistance( pm_thirdPersonRange.GetFloat(), true );
 		pm_thirdPersonRange.ClearModified(); //remove the modified flag
 	}
 
-	//upd camera height in case someone changed the Cvar
+	//upd camera height in case someone or somethingchanged the Cvar
 	if ( pm_thirdPersonHeight.IsModified() ){ //this allows the user or scripts to update the distance thanks to the Cvar. 
 		//gameLocal.Printf("pm_thirdPersonHeight.IsModified()\n");
-		UpdateCameraHeight( pm_thirdPersonHeight.GetFloat() ); 	
+		SetCameraHeight( pm_thirdPersonHeight.GetFloat(), true );
 		pm_thirdPersonHeight.ClearModified(); //remove the modified flag
 	}
+
+	/*
+	if ( pm_thirdPersonZ.IsModified() ){ //this allows the user or scripts to update the distance thanks to the Cvar. 
+		gameLocal.Printf("pm_thirdPersonZ.IsModified()\n");
+		if ( pm_thirdPersonZ.GetBool() ) {
+			UnlockZCamera();
+		} else {
+			LockZCamera( renderView->vieworg.z );
+		}
+		pm_thirdPersonZ.ClearModified(); //remove the modified flag
+	}
+	*/
+	
 
 	//force/allow/disable inputs
 	if( inhibitInputTime > gameLocal.time ){ //used by teleport
@@ -8342,6 +8464,55 @@ void idPlayer::Think( void ) {
 		fw_toggled = ( usercmd.forwardmove != oldCmd.forwardmove );
 	}
 
+//REV 2020 CHARGE ATTACK START
+	if ( chargeAmount < 2 ) {	// 2 is the maximum amount we can do in a row
+		//if ( gameLocal.time > lastChargeTime + spawnArgs.GetInt( "charge_time" ) ) {	//was 1500
+		if ( gameLocal.time > lastChargeTime + 4000 ) {	//was 1500
+			if ( chargeAmount == 1 ) {				
+				spawnArgs.Set( "charge_amount", "2" );	//this method proved be the most reliable in setting the amount.
+				//gameLocal.Printf(" c1 + 1 ");
+				lastChargeTime = gameLocal.time;	//added here to reset the time of when to check if we need another or else it will spam it.
+			} else {
+				spawnArgs.Set( "charge_amount", "1" );
+				//gameLocal.Printf(" c0 + 1 ");
+				lastChargeTime = gameLocal.time;
+			}
+		}
+	}	
+
+	if ( chargeAmount > 0 && !force_torso_override && ( forcedMovState == FORCEDMOVE_STATE_DISABLED ) ) {
+//Set the direction to charge in. 1 up, 2 upward, 3 forward, 4 downward, 5 down
+//charge attacking forward MUST come after the others or it might over ride upward/downward charge attacks
+		if( ( usercmd.buttons & BUTTON_5 ) && ( usercmd.buttons & BUTTON_6 ) && ( !usercmd.forwardmove ) ){ 
+			chargeDir = 1;
+			SetChargeMoveState();
+		}
+		else if( ( usercmd.forwardmove ) && ( usercmd.buttons & BUTTON_5 ) && ( usercmd.buttons & BUTTON_6 ) ){ 
+			chargeDir = 2;
+			SetChargeMoveState();
+		}
+
+		if( !AI_ONGROUND	) {		//only do downward, and down when in the air	
+			if( ( usercmd.forwardmove ) && ( usercmd.buttons & BUTTON_5 ) && ( usercmd.buttons & BUTTON_7 ) ){ 
+				chargeDir = 4;
+				SetChargeMoveState();
+			}
+			
+			else if( ( usercmd.buttons & BUTTON_5 ) && ( usercmd.buttons & BUTTON_7 ) && ( !usercmd.forwardmove ) ){ 
+				chargeDir = 5;
+				SetChargeMoveState();
+			}
+		}
+		if( ( usercmd.forwardmove ) && ( usercmd.buttons & BUTTON_5 ) ){ 
+			chargeDir = 3;
+			SetChargeMoveState();
+		}		
+		else { 
+			chargeDir = 0; //reset it just incase
+		}
+	}
+//REV 2020 CHARGE ATTACK END	
+	
 	//onground and ready --> do stuff
 	if( AI_ONGROUND && !force_torso_override && ( forcedMovState == FORCEDMOVE_STATE_DISABLED ) ){ //note: we check "forcedMovState" instead of "isXlocked" so player can still be unlocked and do stuff 
 
@@ -8352,18 +8523,18 @@ void idPlayer::Think( void ) {
 
 			//respawn pos is the last known safe position which is at least 200 units far from player.
 			if( (GetPhysics()->GetOrigin() - tempRespawnPos ).LengthFast() > 200 ){
-				safeRespawnPos = tempRespawnPos;
+				lastCheckPoint.spawnPos = tempRespawnPos;
 				tempRespawnPos = GetPhysics()->GetOrigin();
-				//gameRenderWorld->DebugBounds( colorBlue, idBounds( vec3_origin ).Expand( 15.0f ) , safeRespawnPos, 5000 );
-				//gameLocal.Printf("safeRespawnPos upd: %s\n", safeRespawnPos.ToString() );
+				//gameRenderWorld->DebugBounds( colorBlue, idBounds( vec3_origin ).Expand( 15.0f ) , lastCheckPoint.spawnPos, 5000 );
+				//gameLocal.Printf("lastCheckPoint.spawnPos upd: %s\n", lastCheckPoint.spawnPos.ToString() );
 			}
 		}
 #endif
+
 		// -- slide start --
 		if( ( oldCmd.upmove < 0 ) && ( usercmd.upmove > 0 ) && ( landTime + 200 < gameLocal.time ) ){ //AI_CROUCH
 				SetSlideMoveState();
 		}
-		// -- slide up/down end  -- 
 
 		else{ //don't interact or crouch if slided
 
@@ -8388,11 +8559,17 @@ void idPlayer::Think( void ) {
 			// -- crouch with "aim down" start -- 
 			if( (( usercmd.buttons & BUTTON_7 ) != 0 )			//aim down
 				&& ( inhibitAimCrouchTime < gameLocal.time )	//crouch allowed
-				&& ( usercmd.upmove == 0 ) )					//not jumping  
-			{ 
+				&& ( usercmd.upmove == 0 )){					
+//rev 2019 start allow aiming downwards contra style when not using mouse aim.						
+				if ( g_mouselook.GetBool() ){
+					usercmd.upmove = -127; //force crouch
+					usercmd.buttons &= ~BUTTON_7; //remove aim down button - don't aim down					
+				} else if (!usercmd.forwardmove){
 					usercmd.upmove = -127; //force crouch
 					usercmd.buttons &= ~BUTTON_7; //remove aim down button - don't aim down
-			}
+					}
+//rev 2019 end					
+				}
 			// -- crouch with "aim down" end -- 
 
 		} //end else slide
@@ -8626,6 +8803,14 @@ void idPlayer::Think( void ) {
 	// determine if portal sky is in pvs
 	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( gameLocal.GetPlayerPVS(), GetPhysics()->GetOrigin() );
 #endif
+
+	//ivan start
+	//kick
+	if ( kickEnabled && !noclip && !spectating && ( health > 0 ) && !IsHidden() ) {
+		EvaluateKick();
+	}
+	//ivan end
+	
 }
 
 /*
@@ -8747,12 +8932,12 @@ void idPlayer::Killed( idEntity *inflictor, idEntity *attacker, int damage, cons
 	// get rid of weapon
 	weapon.GetEntity()->OwnerDied();
 
+//rev 2020 don't drop the weapon! Doom Slayer don't drop weapons... they are the weapon! lol
 	// drop the weapon as an item
 	//ivan start -drop the weapon only if it is in a slot
-	//was: DropWeapon( true );
-	if( currentSlot >= 0 ){
-		DropWeapon( true );
-	}
+	//if( currentSlot >= 0 ){
+	//	DropWeapon( true );
+	//}
 	//ivan end
 
 	if ( !g_testDeath.GetBool() ) {
@@ -8878,10 +9063,20 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 									}
 
 									//ivan start - no damage during full body anim
-									if ( force_torso_override ) { 
+									//if ( force_torso_override ) { 
+										//damage = 0;
+									//}
+									//ivan end
+									//Rev 2018 no damage for a brief amount of time after being hit
+									waitForDamage  = spawnArgs.GetInt( "waitfordamage" );
+									if ( waitForDamage > 0 ) {
 										damage = 0;
 									}
-									//ivan end
+									//rev 2020
+									noDamage  = spawnArgs.GetInt( "nodamage" );
+									if ( noDamage ) {
+										damage = 0;
+									}									
 
 									// inform the attacker that they hit someone
 									attacker->DamageFeedback( this, inflictor, damage );
@@ -9054,7 +9249,11 @@ void idPlayer::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
   // add to the damage inflicted on a player this frame
   // the total will be turned into screen blends and view angle kicks
   // at the end of the frame
-  if ( health > 0 ) {
+  //if ( health > 0 ) {
+	waitForDamage  = spawnArgs.GetInt( "waitfordamage" );	//rev 2020 no dmg effect on screen when invulnerability is on
+	noDamage  = spawnArgs.GetBool( "nodamage" );	//rev 2020 no dmg effect on screen when invulnerability is on
+	if (( health > 0 ) && ( waitForDamage < 1 || noDamage )) {	//rev 2020 updated
+  //if ( health > 0 ) {
 	  playerView.DamageImpulse( localDamageVector, &damageDef->dict );
   }
 
@@ -9109,6 +9308,11 @@ void idPlayer::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 			  lastDmgTime = gameLocal.time;
 		  }
 	  }
+	  
+	  
+		SetState( "BlinkOn" );	// rev 2018 triggers the player's script to start no damage for a bit.
+		UpdateScript();	
+		
   } else {
 	  // don't accumulate impulses
 	  if ( af.IsLoaded() ) {
@@ -9176,13 +9380,7 @@ void idPlayer::Teleport( const idVec3 &origin, const idAngles &angles, idEntity 
 			reqDefaultCrossPos = true; //reset crosshair pos to default
 		}
 
-		if( destination->spawnArgs.FindKey( "cameraDist" ) ){ 
-			UpdateCameraDistance( destination->spawnArgs.GetFloat("cameraDist"), false ); 
-		}
-
-		if( destination->spawnArgs.FindKey( "cameraHeight" ) ){ 
-			UpdateCameraHeight( destination->spawnArgs.GetFloat("cameraHeight"), false ); 
-		}
+		UpdateCameraSettingsFromEntity( destination );
 	} //ivan
 
 	//ivan start - face the right direction
@@ -9537,8 +9735,8 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 
 	if( enableCameraYblend ){
 		//delta
-		if( forceCameraY ){
-			delta = forcedCameraYpos - oldCameraPos.y; //(ideal camera position) - (where camera is)
+		if( cameraSettings.lockYaxis ){
+			delta = cameraSettings.lockedYpos - oldCameraPos.y; //(ideal camera position) - (where camera is)
 		}else{
 			delta = view.y - oldCameraPos.y; //(ideal camera position) - (where camera is)
 		}
@@ -9568,17 +9766,23 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 			//gameLocal.Printf("stop Y blending\n");
 			enableCameraYblend = false;
 		}
-	}else if( forceCameraY ){ //forced pos, but no blend
-		view.y = forcedCameraYpos; 
+	}else if( cameraSettings.lockYaxis ){ //forced pos, but no blend
+		view.y = cameraSettings.lockedYpos; 
 	}
 
 	// --- Z pos --- (vertical)
 
-	delta = view.z - oldCameraPos.z; //(ideal camera position) - (where camera is)
-
-	if( skipCameraZblend ){ //no blend this frame: instant update
+	if ( skipCameraZblend ) { //no blend this frame: instant update
 		skipCameraZblend = false;
-	}else if( delta != 0.0f ){ //&& (gameLocal.time > 500)
+		if( cameraSettings.lockZaxis ){ //forced pos, but no blend
+			view.z = cameraSettings.lockedZpos; 
+		}
+	} else { //&& (gameLocal.time > 500)
+		if ( cameraSettings.lockZaxis ){ //Rev 2020 lock the z position of the camera so that it does not move. 
+			delta = cameraSettings.lockedZpos - oldCameraPos.z; //(ideal camera position) - (where camera is)
+		} else {
+			delta = view.z - oldCameraPos.z; //(ideal camera position) - (where camera is)
+		}
 		/*
 		if(delta > CAMERA_MAX_Z_DELTA_POS){ //don't let it run away UP
 			view.z = view.z - CAMERA_MAX_Z_DELTA_POS;
@@ -9589,23 +9793,25 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 			view.z = view.z - CAMERA_MAX_Z_DELTA_NEG;
 			gameLocal.Printf("don't run away down. delta: %f\n", delta);
 		}
-		else{ 
+		else 
 		*/
+
+		if ( delta != 0.0f ) {
 			//interpolate toward the ideal position
-			if( delta > 0 ){
+			if ( delta > 0 ) {
 				speed = delta / CAMERA_MAX_Z_DELTA_POS;
-			}else{ // < 0
+			} else { // < 0
 				speed = delta / CAMERA_MAX_Z_DELTA_NEG;	
 
 				//min negative speed
 				if( speed < CAMERA_MIN_Z_SPEED_NEG ){
 					speed = CAMERA_MIN_Z_SPEED_NEG;
 				}
-			}	
+			}
 
 			//new z pos
 			view.z = oldCameraPos.z + ( delta * speed * CAMERA_SENSIBILITY );
-		//}
+		}
 	}
 
 	// --- X pos --- (distance)
@@ -9627,7 +9833,7 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 
 		//stop blending if near enough
 		if( delta < 1.0f && delta > -1.0f ){ 
-			gameLocal.Printf("stop X blending\n");
+			//gameLocal.Printf("stop X blending\n");
 			enableCameraXblend = false;
 		}
 	}
@@ -9780,7 +9986,7 @@ create the renderView for the current tic
 */
 void idPlayer::CalculateRenderView( void ) {
 	int i;
-	//float range; //un noted change from original sdk
+	//float range; //rev 2019 commented out in rivensin fyi
 
 	if ( !renderView ) {
 		renderView = new renderView_t;
@@ -9825,7 +10031,7 @@ void idPlayer::CalculateRenderView( void ) {
 		} else {
 			
 			//ivan start
-			OffsetThirdPersonView( pm_thirdPersonAngle.GetFloat(), idealCameraDistance, idealCameraHeight, false ); //never clip
+			OffsetThirdPersonView( pm_thirdPersonAngle.GetFloat(), cameraSettings.distance, cameraSettings.height, false ); //never clip
 
 			/*
 			//was:
@@ -10137,7 +10343,7 @@ void idPlayer::Event_GetPreviousWeapon( void ) {
 		int pw = ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) ? 0 : previousWeapon;
 		weapon = spawnArgs.GetString( va( "def_weapon%d", pw) );
 		idThread::ReturnString( weapon );
-	} else {
+	} else {	
 		idThread::ReturnString( spawnArgs.GetString( "def_weapon0" ) );
 	}
 }
@@ -10610,7 +10816,7 @@ void idPlayer::ReadFromSnapshot( const idBitMsgDelta &msg ) {
 		}
 	} else if ( oldHealth <= 0 && health > 0 ) {
 		// respawn
-		Init();
+		Init( false );
 		StopRagdoll();
 		SetPhysics( &physicsObj );
 		physicsObj.EnableClip();
@@ -10761,7 +10967,7 @@ bool idPlayer::ClientReceiveEvent( int event, int time, const idBitMsg &msg ) {
 			}
 			return true;
 							}
-		case EVENT_PICKUPNAME: { //New, Not so sure what it does //un noted change from original sdk
+		case EVENT_PICKUPNAME: { //New, Not so sure what it does
 			char buf[MAX_EVENT_PARAM_SIZE];
 			msg.ReadString(buf, MAX_EVENT_PARAM_SIZE);
 			inventory.AddPickupName(buf, "", this); //New from_D3XP
@@ -11139,6 +11345,16 @@ return "";
 
 /*
 ===============
+idPlayer::IsComboActive
+==============
+*/
+bool idPlayer::IsComboActive( void ) {
+	return comboOn;
+}
+
+
+/*
+===============
 idPlayer::Event_HudEvent
 ==============
 */
@@ -11146,6 +11362,32 @@ void idPlayer::Event_HudEvent( const char* name ) {
 	if ( hud ) {
 		hud->HandleNamedEvent( name );
 	}
+}
+
+/*
+===============
+idPlayer::Event_SetGravityInAnimMove
+==============
+*/
+
+void idPlayer::Event_SetGravityInAnimMove( float mult ) {
+	//physicsObj.SetGravityInAnimMove( 1 ); //mult
+
+	//never accept negative values. They means frozen movement. 
+	if( mult < 0.0f  ){
+		mult = 1.0f;
+		animMoveNoGravity = true;
+	}else{
+		animMoveNoGravity = false;
+
+		//FIX!
+		//we cannot really set 0 or everything will be fucked up. Sets a value little enough.
+		if( mult == 0.0f ){ 
+			mult = 1e-4f;
+		}
+	}
+
+	physicsObj.SetGravity( mult * gameLocal.GetGravity() );
 }
 	
 /*
@@ -11256,88 +11498,144 @@ void idPlayer::Event_DropWeapon( int weapNum ) {
 
 /*
 ==============
-idPlayer::SetYCameraForced
+idPlayer::UpdateCameraCvarsFromSettings
 ==============
 */
-void idPlayer::SetYCameraForced( float ypos ){
-	if( !forceCameraY || ( forcedCameraYpos != ypos ) ){ //do this only if camera is free || new position
-		forceCameraY = true;
-		forcedCameraYpos = ypos; 
+void idPlayer::UpdateCameraCvarsFromSettings( void ) {
+	pm_thirdPersonRange.SetFloat( cameraSettings.distance );
+	pm_thirdPersonRange.ClearModified();
+	pm_thirdPersonHeight.SetFloat( cameraSettings.height );
+	pm_thirdPersonHeight.ClearModified();
+	//pm_thirdPersonZ.SetBool( !cameraSettings.lockZaxis );
+	//pm_thirdPersonZ.ClearModified();
+}
+
+
+/*
+==============
+idPlayer::UpdateCameraSettingsFromEntity
+Entity could be: spawnPoint, target, teleport, ...
+==============
+*/
+void idPlayer::UpdateCameraSettingsFromEntity( idEntity *ent ) {
+	float cameraDist, cameraHeight;
+	float cameraLockedYpos, cameraLockedZpos;
+	bool cameraLockedY, cameraLockedZ;
+
+	const idDict &dict = ent->spawnArgs;
+
+	if ( dict.GetFloat( "cameraDist", "0", cameraDist ) ) {
+		if ( cameraDist <= 0 ) {
+			cameraDist = CAMERA_DEFAULT_DISTANCE;
+		}
+		SetCameraDistance( cameraDist, dict.GetBool( "cameraDistBlend" ) );
+	}
+	if ( dict.GetFloat( "cameraHeight", "0", cameraHeight ) ) {
+		if ( cameraHeight <= 0 ) {
+			cameraHeight = CAMERA_DEFAULT_HEIGHT;
+		}
+		SetCameraHeight( cameraHeight, dict.GetBool( "cameraHeightBlend" ) );
+	}
+	if ( dict.GetBool( "cameraLockedY", "0", cameraLockedY ) ) { //horizontal
+		if ( cameraLockedY ) {
+			if ( !dict.GetFloat( "cameraLockedYpos", "0", cameraLockedYpos ) ) {
+				cameraLockedYpos = ent -> GetPhysics()->GetOrigin().y;
+			}
+			LockYCamera( cameraLockedYpos );
+		} else {
+			UnlockYCamera();
+		}
+	}
+	if ( dict.GetBool( "cameraLockedZ", "0", cameraLockedZ ) ) { //vertical
+		if ( cameraLockedZ ) {
+			if ( !dict.GetFloat( "cameraLockedZpos", "0", cameraLockedZpos ) ) {
+				cameraLockedZpos = ent -> GetPhysics()->GetOrigin().z;
+			}
+			LockZCamera( cameraLockedZpos );
+		} else {
+			UnlockZCamera();
+		}
+	}
+}
+
+/*
+==============
+idPlayer::LockYCamera
+==============
+*/
+void idPlayer::LockYCamera( float ypos ) {
+	if ( !cameraSettings.lockYaxis || ( cameraSettings.lockedYpos != ypos ) ) { //do this only if camera is free || new position
+		cameraSettings.lockYaxis = true;
+		cameraSettings.lockedYpos = ypos;
 		enableCameraYblend = true; //blend forced pos
 	}
 }
 
 /*
 ==============
-idPlayer::SetYCameraForced
+idPlayer::LockZCamera
 ==============
 */
-void idPlayer::SetYCameraFree( void ){
-	if( forceCameraY ){ //set it free only if it's currently not free
-		forceCameraY = false;
+void idPlayer::LockZCamera( float zpos ) {
+	if ( !cameraSettings.lockZaxis || ( cameraSettings.lockedZpos != zpos ) ) { //do this only if camera is free || new position
+		cameraSettings.lockZaxis = true;
+		cameraSettings.lockedZpos = zpos;
+		//blending is enabled by default for Z axis
+	}
+}
+
+/*
+==============
+idPlayer::UnlockYCamera
+==============
+*/
+void idPlayer::UnlockYCamera( void ) {
+	if ( cameraSettings.lockYaxis ) { //set it free only if it's currently not free
+		cameraSettings.lockYaxis = false;
 		enableCameraYblend = true; //blend to free pos
 	}
 }
 
+/*
+==============
+idPlayer::UnlockZCamera
+==============
+*/
+void idPlayer::UnlockZCamera( void ) {
+	if ( cameraSettings.lockZaxis ) { //set it free only if it's currently not free
+		cameraSettings.lockZaxis = false;
+		//blending is enabled by default for Z axis
+	}
+}
+
 
 /*
 ==============
-idPlayer::UpdateCameraDistance
+idPlayer::SetCameraDistance
 ==============
 */
-void idPlayer::UpdateCameraDistance( float distance, bool blend ){
-	//gameLocal.Printf("UpdateCameraDistance: distance %f\n", distance );
-	if( distance > 0.0f && idealCameraDistance != distance ){ 
-		idealCameraDistance = distance; 
+void idPlayer::SetCameraDistance( float distance, bool blend ){
+	//gameLocal.Printf("SetCameraDistance: distance %f\n", distance );
+	if( distance > 0.0f && cameraSettings.distance != distance ){ 
+		cameraSettings.distance = distance; 
 		enableCameraXblend = blend; //blend to new distance
 		gameLocal.UpdateSeeDistances( distance );
 	}
-	//else{ gameLocal.Printf("UpdateCameraDistance: upd ignored\n" ); }
+	//else{ gameLocal.Printf("SetCameraDistance: upd ignored\n" ); }
 }
 
 /*
 ==============
-idPlayer::UpdateCameraHeight
+idPlayer::SetCameraHeight
 ==============
 */
-void idPlayer::UpdateCameraHeight( float height, bool blend ){
-	//gameLocal.Printf("UpdateCameraHeight: height %f\n", height );
-	if( idealCameraHeight != height ){ 
-		idealCameraHeight = height; 
+void idPlayer::SetCameraHeight( float height, bool blend ){
+	//gameLocal.Printf("SetCameraHeight: height %f\n", height );
+	if( cameraSettings.height != height ){ 
+		cameraSettings.height = height; 
 		skipCameraZblend = !blend; //skip blending if blend is false
 	}
-	//else{ gameLocal.Printf("UpdateCameraHeight: upd ignored\n" ); }
-}
-
-//idealCameraHeight
-
-
-/*
-==============
-idPlayer::Event_FreeCamera
-==============
-*/
-void idPlayer::Event_FreeCamera( void ){
-	SetYCameraFree();
-	/*
-	forceCameraY = false;
-	forcedCameraYpos = 0.0f;
-	enableCameraYblend = true; //blend to free pos
-	*/
-}
-
-/*
-==============
-idPlayer::Event_ForceCameraY
-==============
-*/
-void idPlayer::Event_ForceCameraY( float ypos ){
-	SetYCameraForced( ypos );
-	/*
-	forceCameraY = true;
-	forcedCameraYpos = ypos;
-	enableCameraYblend = true; //blend to forced pos
-	*/
+	//else{ gameLocal.Printf("SetCameraHeight: upd ignored\n" ); }
 }
 
 /*
@@ -11688,10 +11986,25 @@ void idPlayer::Event_GetCommonEnemy( void ) {
 idPlayer::Event_SetFullBodyAnimOn
 ==============
 */
-void idPlayer::Event_SetFullBodyAnimOn( int anim_movement ) {
+void idPlayer::Event_SetFullBodyAnimOn( int anim_movement, int allow_turn, int iscombo ) {
+/* replaced with rivensin version rev 2019
 	blendModelYaw = false;
 	force_torso_override = true;
 	animBasedMovement = ( anim_movement != 0 );
+*/
+
+	blendModelYaw = false;
+	force_torso_override = true;
+
+	if ( anim_movement >= 0 && anim_movement < ANIMMOVE_NUMTYPES ) {
+		animMoveType = anim_movement;
+	}else{
+		gameLocal.Error("Unknown animMoveType!");
+	}
+
+	allowTurn = ( allow_turn != 0 );
+	comboOn = ( iscombo != 0 );
+
 }
 
 
@@ -11701,9 +12014,22 @@ idPlayer::Event_SetFullBodyAnimOff
 ==============
 */
 void idPlayer::Event_SetFullBodyAnimOff( void ) {
+/* replaced with rivensin version rev 2019:
 	blendModelYaw = false; //directly go to the dir
 	force_torso_override = false;
 	animBasedMovement = false;
+*/
+	blendModelYaw = true;
+	force_torso_override = false;
+
+	animMoveNoGravity = false;
+	animMoveType = ANIMMOVE_NONE;
+	allowTurn = true;
+	comboOn = false;
+
+	//reset gravity
+	animMoveNoGravity = false;
+	physicsObj.SetGravity( gameLocal.GetGravity() );
 }
 
 /*
@@ -11787,6 +12113,210 @@ bool idPlayer::SpawnInsteadOfGiving( const char *classname, int offsetYmult, int
 
 	return gameLocal.SpawnEntityDef( dict );
 }
-//ivan end - cheat fix
-
 //ivan end
+//rev 2019 from rivensin start
+/*
+=====================
+idPlayer::Event_StartAutoMelee
+=====================
+*/
+void idPlayer::Event_StartAutoMelee( float dmgMult, int trailNum ) {  
+	if ( weapon.GetEntity() ) {
+		weapon.GetEntity()->StartAutoMelee( dmgMult, trailNum );
+	}
+}
+
+/*
+=====================
+idPlayer::Event_StopAutoMelee
+=====================
+*/
+void idPlayer::Event_StopAutoMelee(void) {
+	if (weapon.GetEntity()) {
+		weapon.GetEntity()->StopAutoMelee();
+	}
+}
+/*
+=====================
+idPlayer::Event_StartKick
+=====================
+*/
+void idPlayer::Event_StartKick( const char *meleeDefName, float dmgMult ) {  
+	kickDmgMultiplier = dmgMult;
+	
+	//get the def
+	kickDef = gameLocal.FindEntityDef( meleeDefName, false );
+	if ( !kickDef ) {
+		gameLocal.Error( "No kickDef" );
+	}
+
+	//setup vars
+	kickDefName = idStr( kickDef->GetName() ); //TODO: new???
+
+	fromJointKick = GetAnimator()->GetJointHandle( kickDef->dict.GetString("from_joint") ); //"Rloleg"
+	toJointKick = GetAnimator()->GetJointHandle( kickDef->dict.GetString("to_joint") ); //"Rankle_r"
+
+	kickBox.Zero();
+	kickBox.ExpandSelf( kickDef->dict.GetFloat( "kick_tracerWidth", "1" ) );
+
+	kickDistance = kickDef->dict.GetFloat( "kick_distance" );
+
+	lastKickedEnt = NULL; //reset it so that can be hit again
+    kickEnabled = true;
+	
+	nextKickFx = gameLocal.time + 100; //delay snd+prt for LOW priority entities after the beginning of the attack
+	nextKickSnd = gameLocal.time + 100; //don't play snd on world too early - this could not be used
+}
+
+/*
+=====================
+idPlayer::Event_StopKick
+=====================
+*/
+void idPlayer::Event_StopKick( void ) {
+    kickDmgMultiplier = 1.0f;
+	lastKickedEnt = NULL; //don't remember it in the future  	
+	kickEnabled = false;
+}
+
+/*
+=====================
+idPlayer::EvaluateKick
+=====================
+*/
+bool idPlayer::EvaluateKick( void ) {  
+	idEntity *ent;
+	trace_t tr;
+
+	//temp vars
+	idVec3 start;
+	idVec3 end;
+	idVec3 dir;
+	idMat3 useless;
+	bool damaged;
+	//end temp
+
+	if ( !kickDef ) {
+		gameLocal.Error( "No kickDef" );
+	}
+
+	if ( gameLocal.isClient ) {
+		return false;
+	}
+
+	//init vars
+	damaged = false;
+	GetJointWorldTransform( fromJointKick, gameLocal.time, start, useless );
+	GetJointWorldTransform( toJointKick, gameLocal.time, end, useless ); 
+	dir = end - start; //get dir
+	dir.Normalize(); //normalize
+	end = start + dir * kickDistance * PowerUpModifier( MELEE_DISTANCE );
+
+	gameLocal.clip.TraceBounds( tr, start, end, kickBox, MASK_SHOT_RENDERMODEL, this ); //ignore player
+
+	if ( tr.fraction < 1.0f ) {	
+		ent = gameLocal.entities[ tr.c.entityNum ]; //fix the headshot bug with melee attacks
+		if(( ent ) && !(ent->IsType( idAFAttachment::Type))){ //only if it's not an idAFAttachment
+			ent = gameLocal.GetTraceEntity( tr );
+		}
+	} else {
+		ent = NULL;
+	}
+
+	if ( g_debugWeapon.GetBool() ) {
+		gameRenderWorld->DebugLine( colorYellow, start, end, 100 );
+		gameRenderWorld->DebugBounds( colorBlue, kickBox, start, 100 );
+		gameRenderWorld->DebugBounds( colorBlue, kickBox, end, 100 );
+
+		if ( ent ) {
+			gameRenderWorld->DebugBounds( colorRed, ent->GetPhysics()->GetBounds(), ent->GetPhysics()->GetOrigin(), 100 );
+		}
+	}
+
+	if ( ent ) {  //something hit
+
+		//is it the last one?
+		if(ent == lastKickedEnt){ //ignore the last entity hit
+			//gameLocal.Printf( "idPlayer::EvaluateKick - entity ignored\n" );
+			return true; //we hit the same thing again... do nothing now.
+		}
+		//gameLocal.Printf( "idPlayer::EvaluateKick - ent = %s \n",ent->GetName());
+
+//rev 2021 make sure to not trigger any damage to jump through platforms.  Could cause charge attack damage to end early.
+		if ( ( ent->fl.takedamage ) && !ent->spawnArgs.GetBool( "platform" ) ) {
+			idVec3 kickDir, globalKickDir;
+			kickDef->dict.GetVector( "kickDir", "0 0 0", kickDir );
+			globalKickDir = renderEntity.axis * kickDir; //TODO: check if this is always the dir we want...
+
+			//Ivan fix - transform clipmodel to joint handle to correctly get the damage zone in idActor::Damage
+			//was: ent->Damage( owner, owner, globalKickDir, kickDefName, owner->PowerUpModifier( MELEE_DAMAGE ), tr.c.id );
+			ent->Damage( this, this, globalKickDir, kickDefName, (kickDmgMultiplier * PowerUpModifier( MELEE_DAMAGE )) , CLIPMODEL_ID_TO_JOINT_HANDLE( tr.c.id ) );
+			lastKickedEnt = ent; //remember this to avoid hitting it consecutively
+			damaged = true; //hit and damaged!
+		}
+
+		//push it
+		float push = kickDef->dict.GetFloat( "push" );
+		//idVec3 impulse = -push * PowerUpModifier( SPEED ) * tr.c.normal;
+		idVec3 impulse = push * PowerUpModifier( SPEED ) * dir;
+
+		//extra push for AFs
+		if( (ent->health <= 0) && (ent->IsType(idAFEntity_Base::Type)) ){
+			idAFEntity_Base *p = static_cast< idAFEntity_Base * >( ent );
+
+			if ( p->IsActiveAF() ){
+				//gameLocal.Printf( "p->IsActiveAF()\n" );
+				impulse *= kickDef->dict.GetInt( "pushAFMult", "1" );
+			}
+		}
+
+		ent->ApplyImpulse( this, tr.c.id, tr.c.point, impulse );
+
+		//case 1/3: (HIGH priority entities) AND (can bleed) -> ALWAYS play the snd and the prt on them, unless 'bleed' key is set to '0'. 
+		if ( (ent->IsType(idBrittleFracture::Type) || ent->IsType(idAnimatedEntity::Type) || ent->IsType(idMoveable::Type) || ent->IsType(idMoveableItem::Type)) && ent->spawnArgs.GetBool( "bleed", "1" ) ) {	 
+			nextKickFx = gameLocal.time + 500; ///delay snd+prt for LOW priority entities after an hit on HIGH priority entity
+			//hitSound = kickDef->dict.GetString( PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
+			ent->AddDamageEffect( tr, impulse, kickDef->dict.GetString( "classname" ) ); //play the sound from the entity hit!
+			//addDamageEffect already plays its own sound
+		}
+		//case 2/3: (LOW priority entities) AND (can bleed) -> play the snd and the prt less frequently - (example: sword on LOW priority entities)
+		else if ( ent->spawnArgs.GetBool( "bleed", "1" )){ // Again, this is not done if 'bleed' key is set to '0'.
+			if (( gameLocal.time > nextKickFx )  ){ //this is usually the worldspawn... don't play too much snd and prt on it!
+				nextKickFx = gameLocal.time + 300; //delay snd+prt  for LOW priority entities after an hit on LOW priority entity
+				//hitSound = kickDef->dict.GetString( PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
+				ent->AddDamageEffect( tr, impulse, kickDef->dict.GetString( "classname" ), this ); //play the sound from the player itself!
+				//AddDamageEffect already plays its own sound from the player
+			}				
+		} 
+		//case 3/3: (LOW or HIGH priority entities) AND (cannot bleed) -> do nothing... only sound?
+		else { 
+			int type = tr.c.material->GetSurfaceType();
+			if ( type == SURFTYPE_NONE ) {
+				type = GetDefaultSurfaceType();
+			}
+			const char *materialType = gameLocal.sufaceTypeNames[ type ];
+
+			// start impact sound based on material type
+			const char *hitSound = kickDef->dict.GetString( va( "snd_%s", materialType ) );
+			if ( *hitSound == '\0' ) {
+				hitSound = kickDef->dict.GetString( "snd_metal" );
+			}
+
+			if ( gameLocal.time > nextKickFx ) { //don't play it too frequently
+				nextKickFx = gameLocal.time + 200;
+
+				//play sound if (we damaged something ) or (hit something even not damaged, as world, and we are beyond the min time)
+				if( (damaged) || ( gameLocal.time > nextKickSnd )) {
+					if ( *hitSound != '\0' ) {
+						const idSoundShader *snd = declManager->FindSound( hitSound );
+						StartSoundShader( snd, SND_CHANNEL_BODY2, 0, true, NULL );
+						nextKickSnd = gameLocal.time + 1000;
+					}
+				}
+			} 
+		}
+	} //end something hit
+
+	return damaged;
+}
+//rev 2019 from rivensin end

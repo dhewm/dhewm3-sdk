@@ -50,7 +50,10 @@ typedef enum {
 	PM_SPECTATOR,			// flying without gravity but with collision detection
 	PM_FREEZE,				// stuck in place without control
 	PM_NOCLIP,				// flying without collision detection nor gravity
-	PM_ANIM_CROUCH					//ivan - animation and gravity 
+	PM_ANIM_CROUCH,					//ivan - animation and gravity 
+	PM_PHYSICS_ONLY,		//ivan - physics without inputs
+	PM_ANIM_ALWAYS,			//ivan - animation and custom gravity 
+	PM_ANIM_GROUND			//ivan - animation on ground and normal movement in air 
 } pmtype_t;
 
 #ifdef _WATER_PHYSICS //un credited changes from original sdk

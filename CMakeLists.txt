@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
-set(BASE_NAME	"hardqore2" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
+set(BASE_NAME	"hardcorps" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
 # FIXME: maybe try to get it to work with assertions enabled (i.e. in Debug builds or in Release builds without NDEBUG)
 set(BASE_DEFS	"GAME_DLL;_WATER_PHYSICS;_PORTALSKY;_DENTONMOD;NDEBUG" CACHE STRING "Compiler definitions for the mod built from game/")
 
@@ -20,6 +20,7 @@ set(src_game_mod
 	game/ai/AI_bot.cpp
 	game/physics/Physics_Liquid.cpp
 	game/tracer.cpp
+	game/TrailGenerator.cpp
 )
 
 set(src_d3xp_mod

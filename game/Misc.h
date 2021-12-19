@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Physics_Parametric.h"
 #include "physics/Force_Field.h"
 #include "physics/Force_Spring.h"
+#include "TrailGenerator.h" //rev 2019
 
 /*
 ===============================================================================
@@ -363,6 +364,51 @@ private:
 	bool				runGui;
 };
 
+//ivan start
+/*
+===============================================================================
+
+  idTrailWrapper
+
+===============================================================================
+*/
+
+class idTrailWrapper : public idEntity {
+public:
+	CLASS_PROTOTYPE( idTrailWrapper );
+
+						idTrailWrapper( void );
+						~idTrailWrapper( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+	void				Spawn( void );
+	virtual void		Hide( void );
+	virtual void		Show( void );
+
+	void				StartTrail( void );
+	void				FadeTrail( void );
+	void				StopTrail( void );
+	virtual void		Think( void );
+
+private:
+	idTrailGenerator*		trailGen;
+	int						trailSize;
+	//int						nextUpdTime;
+
+	idVec3					oldLowPoint;
+	idVec3					oldHighPoint;
+
+	idVec3					newLowPoint;
+	idVec3					newHighPoint;
+
+	void				InitTrail( void );
+	void				UpdateTrail( void );
+
+	void				Event_Activate( idEntity *activator );
+};
+//iva end
 
 /*
 ===============================================================================
@@ -532,6 +578,8 @@ private:
 ===============================================================================
 */
 
+extern const idEventDef EV_FadeBeamColor; //ivan //rev 2019
+
 class idBeam : public idEntity {
 public:
 	CLASS_PROTOTYPE( idBeam );
@@ -547,11 +595,49 @@ public:
 
 	void				SetMaster( idBeam *masterbeam );
 	void				SetBeamTarget( const idVec3 &origin );
+	idBeam*				AddChainNodeAtPos( const idVec3 &pos ); //ivan //rev 2019
 
 	virtual void		Show( void );
+	void				FadeColor( void ); //ivan //rev 2019
 
 	virtual void		WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsgDelta &msg );
+
+private:
+	void				Event_MatchTarget( void );
+	void				Event_Activate( idEntity *activator );
+	void				Event_FadeColor( void ); //ivan //rev 2019
+
+	idEntityPtr<idBeam>	target;
+	idEntityPtr<idBeam>	master;
+
+	//ivan start //rev 2019
+	idVec4				fadeOutIntervals;
+	int					fadeTime;
+	//ivan end //rev 2019
+};
+
+//ivan start  //rev 2019
+/*
+===============================================================================
+
+  idBeam
+
+===============================================================================
+*/
+
+class idBeamChain : public idBeam {
+public:
+	CLASS_PROTOTYPE( idBeamChain );
+
+						idBeamChain();
+
+	void				Spawn( void );
+
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+	virtual void		Show( void );
 
 private:
 	void				Event_MatchTarget( void );
@@ -560,6 +646,8 @@ private:
 	idEntityPtr<idBeam>	target;
 	idEntityPtr<idBeam>	master;
 };
+//ivan end //rev 2019
+
 
 #ifdef _WATER_PHYSICS //un noted change from original sdk
 //idLiquid has been removed

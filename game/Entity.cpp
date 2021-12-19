@@ -91,6 +91,8 @@ const idEventDef EV_GetMaxs( "getMaxs", NULL, 'v' );
 const idEventDef EV_IsHidden( "isHidden", NULL, 'd' );
 const idEventDef EV_Hide( "hide", NULL );
 const idEventDef EV_Show( "show", NULL );
+const idEventDef EV_PlatformOver( "platformover", NULL );
+const idEventDef EV_PlatformUnder( "platformunder", NULL );
 const idEventDef EV_Touches( "touches", "E", 'd' );
 const idEventDef EV_ClearSignal( "clearSignal", "d" );
 const idEventDef EV_GetShaderParm( "getShaderParm", "d", 'f' );
@@ -163,6 +165,8 @@ ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_IsHidden,				idEntity::Event_IsHidden )
 	EVENT( EV_Hide,					idEntity::Event_Hide )
 	EVENT( EV_Show,					idEntity::Event_Show )
+	EVENT( EV_PlatformUnder,		idEntity::Event_PlatformUnder ) 	//rev 2020
+	EVENT( EV_PlatformOver,			idEntity::Event_PlatformOver )		//rev 2020
 	EVENT( EV_CacheSoundShader,		idEntity::Event_CacheSoundShader )
 	EVENT( EV_StartSoundShader,		idEntity::Event_StartSoundShader )
 	EVENT( EV_StartSound,			idEntity::Event_StartSound )
@@ -1300,6 +1304,36 @@ void idEntity::Show( void ) {
 	}
 }
 
+//rev 2020 start. new stuff for jumpthrough platforms
+/*
+================
+idEntity::PlatformUnder
+================
+*/
+void idEntity::PlatformUnder( void ) {
+	if ( spawnArgs.GetBool( "jpt_monster_pass" ) ) {
+		GetPhysics()->SetContents( CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+	} else {
+		GetPhysics()->SetContents( CONTENTS_MONSTERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+	}		
+	FreeModelDef();
+	UpdateVisuals();
+}
+
+/*
+================
+idEntity::PlatformOver
+================
+*/
+void idEntity::PlatformOver( void ) {
+	if ( spawnArgs.GetBool( "jpt_monster_pass" ) ) {
+		GetPhysics()->SetContents( CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+	} else {
+		GetPhysics()->SetContents( CONTENTS_MONSTERCLIP|CONTENTS_PLAYERCLIP|CONTENTS_MOVEABLECLIP|CONTENTS_IKCLIP );
+	}	
+	UpdateVisuals();
+}
+//rev 2020 end. new stuff
 /*
 ================
 idEntity::UpdateModelTransform
@@ -3819,11 +3853,21 @@ void idEntity::ActivateTargets( idEntity *activator ) const {
 	int			i, j;
 
 	for( i = 0; i < targets.Num(); i++ ) {
-		ent = targets[ i ].GetEntity();
+		ent = targets[ i ].GetEntity();	
 		if ( !ent ) {
 			continue;
 		}
-		if ( ent->RespondsTo( EV_Activate ) || ent->HasSignal( SIG_TRIGGER ) ) {
+//rev 2020 start	
+//this is what allows the player to move through static entities with the platform key
+		if ( ent->spawnArgs.GetBool( "platform" ) ) { //get the platform bool from our targeted entity	
+			if ( spawnArgs.GetBool( "jumpthrough" ) ){ //used to get the jumpthrough key from the trigger
+				ent->PlatformOver();
+			} else {
+				ent->PlatformUnder();
+			}
+		}
+//rev 2020 end		
+		if ( ent->RespondsTo( EV_Activate ) || ent->HasSignal( SIG_TRIGGER ) ) {			
 			ent->Signal( SIG_TRIGGER );
 			ent->ProcessEvent( &EV_Activate, activator );
 		}
@@ -4447,6 +4491,25 @@ void idEntity::Event_Show( void ) {
 	Show();
 }
 
+//rev 2020 start New stuff
+/*
+================
+idEntity::Event_PlatformOver
+================
+*/
+void idEntity::Event_PlatformOver( void ) {
+	PlatformOver();
+}
+
+/*
+================
+idEntity::Event_PlatformUnder
+================
+*/
+void idEntity::Event_PlatformUnder( void ) {
+	PlatformUnder();
+}
+//rev 2020 end
 /*
 ================
 idEntity::Event_CacheSoundShader

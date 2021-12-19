@@ -310,6 +310,8 @@ protected:
 
 	int						fireMode;
 	bool					noPush;
+	
+	bool					disableMoving;		//rev 2020 disable the enemy from moving
 
 	//TODO: use an idVec3 instead
 	float					deltaXfromEnemy;

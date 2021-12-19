@@ -74,11 +74,13 @@ class idCamera;
 class idWorldspawn;
 class idTestModel;
 class idSmokeParticles;
+class idTrailManager; //ivan //rev 2019
 class idEntityFx;
 class idTypeInfo;
 class idThread;
 class idEditEntities;
 class idLocationEntity;
+class idMusic; //ff1.3
 
 //============================================================================
 extern const int NUM_RENDER_PORTAL_BITS;
@@ -261,6 +263,7 @@ public:
 
 	idSmokeParticles *		smokeParticles;			// global smoke trails
 	idEditEntities *		editEntities;			// in game editing
+	idTrailManager *		trailsManager;			// global trails //rev 2019
 
 	int						cinematicSkipTime;		// don't allow skipping cinemetics until this time has passed so player doesn't skip out accidently from a firefight
 	int						cinematicStopTime;		// cinematics have several camera changes, so keep track of when we stop them so that we don't reset cinematicSkipTime unnecessarily
@@ -294,7 +297,7 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
-#ifdef _PORTALSKY//un noted change from original sdk
+#ifdef _PORTALSKY
 	idEntityPtr<idEntity>	portalSkyEnt;
 	bool					portalSkyActive;
 
@@ -412,7 +415,7 @@ public:
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
 
-#ifdef _PORTALSKY //un noted change from original sdk
+#ifdef _PORTALSKY
 	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
 #endif
 
@@ -434,6 +437,7 @@ public:
 	idEntity *				FindEntityUsingDef( idEntity *from, const char *match ) const;
 	int						EntitiesWithinRadius( const idVec3 org, float radius, idEntity **entityList, int maxCount ) const;
 
+	void					HurtBox( idEntity *ent );	//rev 2020 hurt the player when on top of enemies
 	void					KillBox( idEntity *ent, bool catch_teleport = false );
 	void					RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEntity *attacker, idEntity *ignoreDamage, idEntity *ignorePush, const char *damageDefName, float dmgPower = 1.0f );
 	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake );
@@ -478,12 +482,18 @@ public:
 	bool					NeedRestart();
 	
 	//ivan start
-	void					UpdateSeeDistances( float distance ); 
+	void					UpdateSeeDistances( float distance );
+
+	void					SetMusicEntity( idMusic *newMusicEnt );
+	void					StopMusic( void );
 	//ivan end
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
+	
+//rev 2021 dhewm 3 1.5.1 updates
 	const static int		INTERNAL_SAVEGAME_VERSION = 1; // DG: added this for >= 1305 savegames
+//rev 2021 dhewm 3 1.5.1 updates end	
 
 	idStr					mapFileName;			// name of the map, empty string if no map loaded
 	idMapFile *				mapFile;				// will be NULL during the game unless in-game editing is used
@@ -533,6 +543,10 @@ private:
 	idStrList				shakeSounds;
 
 	byte					lagometer[ LAGO_IMG_HEIGHT ][ LAGO_IMG_WIDTH ][ 4 ];
+
+	//ivan start
+	idEntityPtr<idMusic>	musicEntity;
+	//ivan end
 
 	void					Clear( void );
 							// returns true if the entity shouldn't be spawned at all in this game type or difficulty level
@@ -586,6 +600,10 @@ private:
 	void					UpdateLagometer( int aheadOfServer, int dupeUsercmds );
 
 	virtual void			GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] );
+
+	//ivan start
+	void					UpdateMusicVolume( void );
+	//ivan end
 };
 
 //============================================================================

@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "SmokeParticles.h"
 #include "WorldSpawn.h"
 
+#include "Moveable.h"  //rev 2019
+#include "BrittleFracture.h" //rev 2019
 #include "renderer/ModelManager.h"
 
 #include "Weapon.h"
@@ -91,6 +93,17 @@ const idEventDef EV_Weapon_StartWeaponLight( "startWeaponLight", "s" );
 const idEventDef EV_Weapon_StopWeaponLight( "stopWeaponLight", "s" );
 
 #endif //_DENTONMOD
+
+//
+const idEventDef EV_Weapon_StartAutoMelee( "startAutoMelee", "fd" );
+const idEventDef EV_Weapon_StopAutoMelee( "stopAutoMelee" );
+const idEventDef EV_Weapon_StartMeleeBeam( "startMeleeBeam", "d" );
+const idEventDef EV_Weapon_StopMeleeBeam( "stopMeleeBeam" );
+//const idEventDef EV_Weapon_SetWeaponMode( "setWeaponMode", "d" );
+//const idEventDef EV_Weapon_GetWeaponMode( "getWeaponMode", NULL, 'd' );
+//ivan end
+
+
 
 //
 // class def
@@ -149,6 +162,15 @@ EVENT( EV_Weapon_StopWeaponLight,			idWeapon::Event_StopWeaponLight )
 
 #endif // _DENTONMOD
 
+//ivan start
+EVENT( EV_Weapon_StartAutoMelee,			idWeapon::Event_StartAutoMelee )
+EVENT( EV_Weapon_StopAutoMelee,			    idWeapon::Event_StopAutoMelee )
+//EVENT( EV_Weapon_StartMeleeBeam,			idWeapon::Event_StartMeleeBeam )
+//EVENT( EV_Weapon_StopMeleeBeam,			    idWeapon::Event_StopMeleeBeam )
+//EVENT( EV_Weapon_SetWeaponMode,				idWeapon::Event_SetWeaponMode )
+//EVENT( EV_Weapon_GetWeaponMode,				idWeapon::Event_GetWeaponMode )
+//ivan end
+
 END_CLASS
 
 /***********************************************************************
@@ -181,6 +203,14 @@ idWeapon::idWeapon() {
 
 	allowDrop				= true;
 
+	//ivan start
+#ifdef TRAIL_FX_CHAIN
+	//done in Clear()
+#else
+	trailGen				= NULL; //rev 2019
+#endif
+	//ivan end
+
 	Clear();
 
 	fl.networkSync = true;
@@ -194,6 +224,15 @@ idWeapon::~idWeapon()
 idWeapon::~idWeapon() {
 	Clear(); 
   //un noted code change from original sdk
+
+	//ivan start
+#ifdef TRAIL_FX_CHAIN
+	//no need to delete lastBeamInChain
+#else
+	//this is not strictly necessary because weapon is only deallocated at map end... and that's when trailsManager would do this for me.
+	gameLocal.trailsManager->RemoveTrailGen( trailGen );  //rev 2019
+#endif
+	//ivan start
 }
 
 
@@ -207,6 +246,19 @@ void idWeapon::Spawn( void ) {
 	thread = new idThread();
 	thread->ManualDelete();
 	thread->ManualControl();
+
+	//ivan start  //rev 2019
+#ifdef TRAIL_FX_CHAIN
+	//nothing to spawn for beams. lastBeamInChain is already null.
+#else
+	//this is spawned once at player spawn and then it is always there.
+	if(!trailGen){
+		trailGen = gameLocal.trailsManager->NewTrailGen();
+	}
+#endif
+	//ivan end
+
+
 }
 
 /*
@@ -344,6 +396,27 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	savefile->WriteJoint( flashJointWorld );
 	savefile->WriteJoint( barrelJointWorld );
 	savefile->WriteJoint( ejectJointWorld );
+	savefile->WriteJoint( meleeJointWorld ); //ivan
+	
+	//ivan start
+    savefile->WriteBool( autoMeleeEnabled ); 
+	savefile->WriteBool( useMeleeBox );
+	savefile->WriteFloat( comboMultiplier ); 
+
+	savefile->WriteBounds( meleebox ); 
+	savefile->WriteInt( trailNumType ); 
+
+#ifdef TRAIL_FX_CHAIN
+	lastBeamInChain.Save( savefile );
+#else	
+	//trailGen is saved elsewhere. Here we save only the id to retrieve it later
+	savefile->WriteInt( gameLocal.trailsManager->GetSafeUniqueId( trailGen ) );
+#endif
+
+	savefile->WriteInt( trailLowOffset ); 
+	savefile->WriteInt( trailHighOffset ); 
+	//ivan end
+	
 
 	savefile->WriteBool( hasBloodSplat );
 
@@ -357,6 +430,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	savefile->WriteVec3( strikePos );
 	savefile->WriteMat3( strikeAxis );
 	savefile->WriteInt( nextStrikeFx );
+	savefile->WriteInt( nextMeleeSnd );  //ivan
 
 	savefile->WriteBool( nozzleFx );
 	savefile->WriteInt( nozzleFxFade );
@@ -378,6 +452,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteBool( allowDrop );
 	savefile->WriteObject( projectileEnt );
+	savefile->WriteObject( lastMeleeEnt ); //ivan //rev 2020 code fixes
 
 	// New----------------------------------------------
 #ifdef _DENTONMOD
@@ -544,6 +619,32 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 	savefile->ReadJoint( flashJointWorld );
 	savefile->ReadJoint( barrelJointWorld );
 	savefile->ReadJoint( ejectJointWorld );
+	savefile->ReadJoint( meleeJointWorld ); //ivan
+	
+	//ivan start
+    savefile->ReadBool( autoMeleeEnabled ); 
+	savefile->ReadBool( useMeleeBox );
+	savefile->ReadFloat( comboMultiplier ); 
+	savefile->ReadBounds( meleebox ); 
+	savefile->ReadInt( trailNumType );
+
+#ifdef TRAIL_FX_CHAIN
+	lastBeamInChain.Restore( savefile );
+#else
+	int trailId; //trailGen was saved elsewhere. Here we read its id to retrieve it.
+	savefile->ReadInt( trailId ); 
+	trailGen = gameLocal.trailsManager->FindTrailByUniqueId( trailId );
+
+	#ifdef TEST_TRAIL 
+	//the test trail was not saved. Create a new one. 
+	//NOTE: the trail object has been correctly restored by the manager, so it's sill there. We just don't know the id.
+	testGen = NULL;
+	#endif
+
+#endif
+
+	savefile->ReadInt( trailLowOffset ); 
+	savefile->ReadInt( trailHighOffset ); 
 
 	savefile->ReadBool( hasBloodSplat );
 
@@ -557,6 +658,7 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 	savefile->ReadVec3( strikePos );
 	savefile->ReadMat3( strikeAxis );
 	savefile->ReadInt( nextStrikeFx );
+	savefile->ReadInt( nextMeleeSnd ); //ivan
 
 	savefile->ReadBool( nozzleFx );
 	savefile->ReadInt( nozzleFxFade );
@@ -578,6 +680,7 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadBool( allowDrop );
 	savefile->ReadObject( reinterpret_cast<idClass *&>( projectileEnt ) );
+	savefile->ReadObject( reinterpret_cast<idClass *&>( lastMeleeEnt ) ); //ivan //rev 2020 code fixes
 
 #ifdef _DENTONMOD
 
@@ -704,8 +807,9 @@ void idWeapon::Clear( void ) {
 	memset( &renderEntity, 0, sizeof( renderEntity ) );
 	renderEntity.entityNum	= entityNumber;
 
-	renderEntity.noShadow		= true;
-	renderEntity.noSelfShadow	= true;
+//rev 2020 allow weapons to cast shadows
+	renderEntity.noShadow		= false;	//true;
+	renderEntity.noSelfShadow	= false;	//true;
 	renderEntity.customSkin		= NULL;
 
 	// set default shader parms
@@ -755,6 +859,7 @@ void idWeapon::Clear( void ) {
 	strikePos.Zero();
 	strikeAxis = mat3_identity;
 	nextStrikeFx = 0;
+	nextMeleeSnd = 0; //ivan
 
 	icon			= "";
 
@@ -794,6 +899,7 @@ void idWeapon::Clear( void ) {
 	barrelJointWorld	= INVALID_JOINT;
 	flashJointWorld		= INVALID_JOINT;
 	ejectJointWorld		= INVALID_JOINT;
+	meleeJointWorld     = INVALID_JOINT; //ivan
 
 	// ------------------- New Start
 #ifdef _DENTONMOD
@@ -845,7 +951,27 @@ void idWeapon::Clear( void ) {
 	isLinked			= false;
 	projectileEnt		= NULL;
 
+	//ivan start
+	lastMeleeEnt		= NULL; 
 	isFiring			= false;
+	//isSecFiring			= false; 
+	autoMeleeEnabled	= false;  
+	useMeleeBox			= false;  
+	comboMultiplier		= 1.0f;	  
+	meleebox.Zero();
+	
+	trailNumType		= TRAIL_NONE;
+
+#ifdef TRAIL_FX_CHAIN
+	lastBeamInChain		= NULL;
+#else
+	//check if trailGen is != null because this is also called by the constructor!
+	if( trailGen && trailGen->IsEnabled() ){ //this also happens when weapon change. Make sure no trail is going.
+		trailGen->StopTrail();
+	}
+	trailLowOffset		= 0;
+	trailHighOffset		= 0;
+#endif
 
 	//ivan start
 	mouseAimOffsetY		= 0.0f;
@@ -886,7 +1012,16 @@ void idWeapon::InitWorldModel( const idDeclEntityDef *def ) {
 	barrelJointWorld = animator.GetJointHandle( def->dict.GetString( "world_barrel_joint", "barrel" ) );
 	flashJointWorld = animator.GetJointHandle( "flash" );
 	ejectJointWorld = animator.GetJointHandle( "eject" );
+	meleeJointWorld = animator.GetJointHandle( "melee" ); //ivan
 	//ivan end
+	
+	//ivan - initialize the tracer bbox
+	meleebox.Zero();
+	float expansion = def->dict.GetFloat("melee_tracerWidth","0"); 
+	if(expansion > 0){
+		useMeleeBox = true;
+		meleebox.ExpandSelf( expansion );
+	}
 }
 
 /*
@@ -952,7 +1087,15 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 	strikePos.Zero();
 	strikeAxis = mat3_identity;
 	nextStrikeFx = 0;
-  //un noted code change from original sdk
+	//ivan start
+	nextMeleeSnd = 0; 
+	trailLowOffset = weaponDef->dict.GetInt( "trailLowOffset", "0" );
+	trailHighOffset = weaponDef->dict.GetInt( "trailHighOffset", "0" );
+
+	//spread
+	//UpdSpreadSettings();
+
+	//ivan end
 
 	// setup the world model
 	InitWorldModel( weaponDef );
@@ -1004,17 +1147,17 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 	flashUp			= weaponDef->dict.GetVector( "flashUp" );
 	flashRight		= weaponDef->dict.GetVector( "flashRight" );
 
-	memset( &worldMuzzleFlash, 0, sizeof( worldMuzzleFlash ) ); //un noted code change from original sdk
+	//ivan start
+	memset( &worldMuzzleFlash, 0, sizeof( worldMuzzleFlash ) );
 	
 	//nozzleGlow will only be in first person //TODO: use nozzle stuff in 3th person?
 	nozzleGlow.allowLightInViewID = owner->entityNumber+1;
-
 
 	worldMuzzleFlash.suppressLightInViewID = owner->entityNumber+1; 
 	worldMuzzleFlash.allowLightInViewID = 0;
 	worldMuzzleFlash.lightId = LIGHTID_WORLD_MUZZLE_FLASH + owner->entityNumber;
 
-	worldMuzzleFlash.pointLight								= flashPointLight; //un noted code change from original sdk
+	worldMuzzleFlash.pointLight								= flashPointLight;
 	worldMuzzleFlash.shader									= flashShader;
 	worldMuzzleFlash.shaderParms[ SHADERPARM_RED ]			= flashColor[0];
 	worldMuzzleFlash.shaderParms[ SHADERPARM_GREEN ]			= flashColor[1];
@@ -1031,6 +1174,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 		worldMuzzleFlash.right								= flashRight;
 		worldMuzzleFlash.end									= flashTarget;
 	}
+	//ivan end
 
 	//-----------------------------------
 
@@ -1144,6 +1288,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 #ifdef _DENTONMOD
 	InitWeaponFx();
 #endif
+
 }
 /*********************
 idWeapon::initWeaponFx
@@ -1520,8 +1665,8 @@ void idWeapon::UpdateWeaponFx( void )
 						muzzleAxis[2] =  muzzleAxis[0];
 						muzzleAxis[0] = -tmp;
 					}
-					//ivan end
 
+					//ivan end
 				} else {
 					// default to going straight out the view
 					muzzleOrigin = playerViewOrigin;
@@ -1833,6 +1978,7 @@ bool idWeapon::GetGlobalJointTransform( const jointHandle_t jointHandle, idVec3 
 	offset = GetPhysics()->GetOrigin(); //viewWeaponOrigin; //un noted code change from original sdk
 	axis = GetPhysics()->GetAxis(); //viewWeaponAxis;
 	return false;
+	//ivan end 
 }
 
 /*
@@ -2454,7 +2600,7 @@ void idWeapon::UpdateScript( void ) {
 	}
 
 	WEAPON_RELOAD  = false;
-	WEAPON_SPECIAL = false; //un noted code change from original sdk
+	WEAPON_SPECIAL = false;
 }
 
 /*
@@ -2625,7 +2771,395 @@ void idWeapon::PresentWeapon( bool showViewModel ) { //showViewModel is "ui_show
 	}
 
 	UpdateSound();
+
+    //ivan start
+	if ( autoMeleeEnabled && !disabled ) { //no in cinematic
+        EvaluateMelee();
+	}
+
+#ifdef TRAIL_FX_CHAIN
+	//the beams'chain is updated inside EvaluateMelee();
+#else
+	if( trailGen->IsEnabled() ){		
+		UpdateTrailVerts();
+	}
+#endif
+	//ivan end
 }
+
+//Ivan start
+
+/*
+=====================
+idWeapon::StartAutoMelee
+=====================
+*/
+void idWeapon::StartAutoMelee( float dmgMult, int trailNum ) {  
+	if ( g_debugWeapon.GetBool() ) {
+		gameLocal.Printf("idWeapon::StartAutoMelee - dmgMult: %f,trailNum: %d - time:%d\n", dmgMult, trailNum, gameLocal.time);
+	}
+	comboMultiplier = dmgMult;
+	lastMeleeEnt = NULL; //reset it so that can be hit again
+    autoMeleeEnabled = true;
+	nextStrikeFx = gameLocal.time + 100; //delay snd+prt for LOW priority entities after the beginning of the attack
+	nextMeleeSnd = gameLocal.time + 100; //don't play snd on world too early - this could not be used
+	
+	//-- trail --
+	
+	//make sure no trail is started if there is ever started if there is no melee joint
+	if ( meleeJointWorld == INVALID_JOINT ) {
+		return;
+	}
+
+#ifdef TRAIL_FX_CHAIN
+	lastBeamInChain = NULL; //next node will be the first of the chain. This also allows the beam type to change.
+	trailNumType = ( trailNum >= 0 ) ? trailNum : TRAIL_NONE;	
+#else
+	if ( trailNum < 0 ){ //no trail. stop the current one, if any.
+		if( trailGen->IsEnabled() ){
+			trailGen->FadeTrail();
+		}
+		trailNumType = TRAIL_NONE;
+	}else{
+		if( trailNumType == trailNum ){ //last trail type used was exactly this one
+			trailGen->RestartTrail(); //this is faster
+		}else{
+			trailGen->StartTrail( weaponDef->dict.GetString( va( "def_trail%d", trailNum ) ) );
+		}
+		trailNumType = trailNum;
+
+		#ifdef TEST_TRAIL 
+		
+		if( trailNumType != 0){
+			//random remove test
+			int randPos = 1 + gameLocal.random.RandomInt( 8 ); //never remove the first one... weapon is using it
+			idTrailGenerator* toRemove = gameLocal.trailsManager->FindTrailByLocalPos( randPos );
+			gameLocal.trailsManager->RemoveTrailGen( toRemove );
+			toRemove = NULL;
+		}else{
+			//create new test
+			testGen = gameLocal.trailsManager->NewTrailGen();
+			testGen->StartTrail( weaponDef->dict.GetString( va( "def_trail%d", trailNum ) ) );
+		}
+		#endif
+	}
+#endif
+
+}
+
+/*
+=====================
+idWeapon::StopAutoMelee
+=====================
+*/
+void idWeapon::StopAutoMelee( void ) {
+    comboMultiplier = 1.0f;
+	lastMeleeEnt = NULL; //don't remember it in the future  	
+	autoMeleeEnabled = false;
+	
+	//beam
+#ifdef TRAIL_FX_CHAIN
+	trailNumType = TRAIL_NONE; //turn off the trail
+	lastBeamInChain = NULL; //next node will be the first of the chain. This also allows the beam type to change.
+#else
+	//note: don't set trailNumType = TRAIL_NONE in this case. 
+	//The trail will start fading and could be restored wihout changing the type.
+	if( trailGen->IsEnabled() ){
+		trailGen->FadeTrail();
+	}
+#endif
+}
+
+/*
+=====================
+idWeapon::Event_StartAutoMelee
+=====================
+*/
+void idWeapon::Event_StartAutoMelee( float dmgMult, int trailNum ) {  
+	StartAutoMelee( dmgMult, trailNum );
+}
+
+/*
+=====================
+idWeapon::Event_StopAutoMelee
+=====================
+*/
+void idWeapon::Event_StopAutoMelee( void ) {
+	StopAutoMelee();
+}
+
+
+
+#ifdef TRAIL_FX_CHAIN
+/*
+=====================
+idWeapon::SpawnMeleeBeam
+NOTE: this only spawns the first elem of the chain. The other will be just a copy of this one.
+=====================
+*/
+idBeam * idWeapon::SpawnMeleeBeam( const idVec3 &pos ) {  
+	idEntity *ent;
+
+	const char *classname = weaponDef->dict.GetString( va( "def_meleeBeam%d", trailNumType ) );
+	if ( !classname[0] ) {
+		return NULL;
+	}
+
+	const idDict *beam_args = gameLocal.FindEntityDefDict( classname, false );
+	if ( !beam_args ) {
+		gameLocal.Error( "Unknown classname '%s'", classname );
+	}
+
+	gameLocal.SpawnEntityDef( *beam_args, &ent, false );
+	if ( !ent || !ent->IsType( idBeam::Type ) ) {
+		gameLocal.Error( "Beam entity is not an idBeam" );
+	}
+
+	ent->SetOrigin(pos);
+
+	//gameLocal.Printf("Created first node at '%s'\n", pos.ToString() );
+
+	return ( static_cast< idBeam *>( ent ) );
+}
+#else
+//custom geometry trail only
+void idWeapon::UpdateTrailVerts( void ) { 
+	
+	//meleeJointWorld should be a valid joint. It is checked when we try to start a trail.
+	GetGlobalJointTransform( meleeJointWorld, meleeJointOrigin, meleeJointAxis );  //to do: upd this somewhere else?
+	trailGen->AddNewPoints( meleeJointOrigin + meleeJointAxis[0] * trailLowOffset, meleeJointOrigin + meleeJointAxis[0] * trailHighOffset );
+
+	#ifdef TEST_TRAIL 
+	if( testGen && testGen->IsEnabled() ){
+		testGen->AddNewPoints( meleeJointOrigin + meleeJointAxis[0] * 20, meleeJointOrigin + meleeJointAxis[0] * 50);
+	}
+	#endif
+}
+#endif
+
+/*
+=====================
+idWeapon::EvaluateMelee
+=====================
+*/
+bool idWeapon::EvaluateMelee( void ) {  
+	idEntity *ent;
+	trace_t tr;
+
+	if ( !meleeDef ) {
+		gameLocal.Error( "No meleeDef on '%s'", weaponDef->dict.GetString( "classname" ) );
+	}
+
+	if ( !gameLocal.isClient ) {
+		idVec3 start;
+		idVec3 end;
+
+		//get origin end axis of the joint "melee" if available
+		if ( meleeJointWorld == INVALID_JOINT ) {
+			//gameLocal.Printf( "idWeapon::EvaluateMelee - Invalid joint 'melee' \n" );
+			start = playerViewOrigin;
+			end = start + playerViewAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
+		}else{ 
+			GetGlobalJointTransform( meleeJointWorld, meleeJointOrigin, meleeJointAxis );  //to do: upd this somewhere else?
+			start = meleeJointOrigin;
+			end = start + meleeJointAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
+			//gameLocal.Printf( "idWeapon::EvaluateMelee - start %f %f %f \n",start[0],start[1],start[2] );
+		}
+
+
+#ifdef TRAIL_FX_CHAIN
+		//fx test start
+		if( trailNumType != TRAIL_NONE ){ 
+			idVec3 beamPos;
+
+			if ( meleeJointWorld == INVALID_JOINT ) { //this should not happen...
+				beamPos = end;
+			}else{ 
+				beamPos = start + meleeJointAxis[0] * ( meleeDistance/2 );
+			}
+
+			if( lastBeamInChain.GetEntity() ){
+				lastBeamInChain = lastBeamInChain.GetEntity()->AddChainNodeAtPos( beamPos );
+			}else{ //first one!
+				lastBeamInChain = SpawnMeleeBeam( beamPos );
+			}
+
+			if( lastBeamInChain.GetEntity() ){
+				//NOTE: make sure they auto-remove themself!
+				lastBeamInChain.GetEntity()->PostEventMS( &EV_FadeBeamColor, 1 ); //wait 1 frame so it has time to check its targets!
+			}
+		}
+
+		//fx test end
+#endif
+
+		if(useMeleeBox){
+			gameLocal.clip.TraceBounds( tr, start, end, meleebox, MASK_SHOT_RENDERMODEL, owner ); //ignore player
+		}else{
+			gameLocal.clip.TracePoint( tr, start, end, MASK_SHOT_RENDERMODEL, owner );  //ignore player
+		}
+
+		if ( tr.fraction < 1.0f ) {	
+			ent = gameLocal.entities[ tr.c.entityNum ]; //fix the headshot bug with melee attacks
+			if(( ent ) && !(ent->IsType( idAFAttachment::Type))){ //only if it's not an idAFAttachment
+				ent = gameLocal.GetTraceEntity( tr );
+			}
+		} else {
+			ent = NULL;
+		}
+
+		if ( g_debugWeapon.GetBool() ) {
+			gameRenderWorld->DebugLine( colorYellow, start, end, 100 );
+			if(useMeleeBox){
+				gameRenderWorld->DebugBounds( colorBlue,meleebox, start, 100 );
+				gameRenderWorld->DebugBounds( colorBlue,meleebox, end, 100 );
+			}
+			if ( ent ) {
+				gameRenderWorld->DebugBounds( colorRed, ent->GetPhysics()->GetBounds(), ent->GetPhysics()->GetOrigin(), 100 );
+			}
+		}
+
+		bool hit = false;
+		const char *hitSound = meleeDef->dict.GetString( "snd_miss" );
+
+		if ( ent ) {  //something hit
+			
+			//gameLocal.Printf( "idWeapon::EvaluateMelee - ent = %s \n",ent->GetName());
+
+			if(autoMeleeEnabled &&( ent == lastMeleeEnt)){ //ignore the last entity hit
+				//gameLocal.Printf( "idWeapon::EvaluateMelee - entity ignored\n" );
+				return true; //we hit the same thing again... do nothing now.
+			}
+			//gameLocal.Printf( "idWeapon::EvaluateMelee - ent = %s \n",ent->GetName());
+
+			if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) && ( ent->IsType( idActor::Type ) || ent->IsType( idAFAttachment::Type) ) ) {  //no melee if noweapons = 1?
+				autoMeleeEnabled = false; //make sure
+				return false;
+			}
+
+			// weapon stealing - do this before damaging so weapons are not dropped twice - disabled if autoMeleeEnabled
+			if ( !autoMeleeEnabled
+				&& gameLocal.isMultiplayer
+				&& weaponDef && weaponDef->dict.GetBool( "stealing" )
+				&& ent->IsType( idPlayer::Type )
+				&& !owner->PowerUpActive( BERSERK )
+				&& ( gameLocal.gameType != GAME_TDM || gameLocal.serverInfo.GetBool( "si_teamDamage" ) || ( owner->team != static_cast< idPlayer * >( ent )->team ) )
+				) {
+					owner->StealWeapon( static_cast< idPlayer * >( ent ) );
+			}
+
+			if ( ent->fl.takedamage ) {
+				idVec3 kickDir, globalKickDir;
+				meleeDef->dict.GetVector( "kickDir", "0 0 0", kickDir );
+				globalKickDir = muzzleAxis * kickDir;
+				
+				//Ivan fix - transform clipmodel to joint handle to correctly get the damage zone in idActor::Damage
+				//was: ent->Damage( owner, owner, globalKickDir, meleeDefName, owner->PowerUpModifier( MELEE_DAMAGE ), tr.c.id );
+				ent->Damage( owner, owner, globalKickDir, meleeDefName, (comboMultiplier * owner->PowerUpModifier( MELEE_DAMAGE )) , CLIPMODEL_ID_TO_JOINT_HANDLE( tr.c.id ) );
+				
+				lastMeleeEnt = ent; //remember this to avoid hitting it consecutively
+				hit = true;
+			}
+
+			//push
+			float push = meleeDef->dict.GetFloat( "push" );
+			idVec3 impulse = -push * owner->PowerUpModifier( SPEED ) * tr.c.normal;
+
+			//extra push for AFs
+			if( (ent->health <= 0) && (ent->IsType(idAFEntity_Base::Type)) ){
+				idAFEntity_Base *p = static_cast< idAFEntity_Base * >( ent );
+
+				if ( p->IsActiveAF() ){
+					//gameLocal.Printf( "p->IsActiveAF()\n" );
+					impulse *= meleeDef->dict.GetInt( "pushAFMult","1" );
+					//quinak and dirty fix for flying ragdolls
+					/*
+					if(impulse.z > 70000 ){
+						impulse.z = 70000,
+					}else if( impulse.z < -70000 ){
+						impulse.z = -70000,
+					}
+					*/
+					//gameLocal.Printf( "idWeapon::EvaluateMelee - impulse: %s, lenght: %f\n", impulse.ToString(), impulse.Length() );
+				}
+			}
+			ent->ApplyImpulse( this, tr.c.id, tr.c.point, impulse );
+
+			if ( weaponDef->dict.GetBool( "impact_damage_effect" ) ) {
+				/* ivan - was:
+				if ( ent->spawnArgs.GetBool( "bleed" ) ) {
+					hitSound = meleeDef->dict.GetString( owner->PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
+					ent->AddDamageEffect( tr, impulse, meleeDef->dict.GetString( "classname" ) );
+				} */
+
+				//case 1/3: HIGH priority entities: ALWAYS play the snd and the prt on them, unless 'bleed' key is set to '0'. (sword or chainsaw on HIGH priority entities)
+				if ( (ent->IsType(idBrittleFracture::Type) || ent->IsType(idAnimatedEntity::Type) || ent->IsType(idMoveable::Type) || ent->IsType(idMoveableItem::Type)) && ent->spawnArgs.GetBool( "bleed", "1" ) ) {	 
+					nextStrikeFx = gameLocal.time + 500; ///delay snd+prt for LOW priority entities after an hit on HIGH priority entity
+					hitSound = meleeDef->dict.GetString( owner->PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
+					ent->AddDamageEffect( tr, impulse, meleeDef->dict.GetString( "classname" ) ); //play the sound from the entity hit!
+					hitSound = ""; //don't play hitsound because AddDamageEffect already plays its own sound
+				} 
+				//case 2/3: (LOW priority entities + we don't have our own .prt to show) AND (can bleed) -> play the snd and the prt less frequently - (example: sword on LOW priority entities)
+				else if (strikeSmoke == NULL && ent->spawnArgs.GetBool( "bleed", "1" )){ // Again, this is not done if 'bleed' key is set to '0'.
+					if (( gameLocal.time > nextStrikeFx )  ){ //this is usually the worldspawn... don't play too much snd and prt on it!
+						nextStrikeFx = gameLocal.time + 300; //delay snd+prt  for LOW priority entities after an hit on LOW priority entity
+						hitSound = meleeDef->dict.GetString( owner->PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
+						ent->AddDamageEffect( tr, impulse, meleeDef->dict.GetString( "classname" ), this ); //play the sound from the weapon itself!
+						hitSound = ""; //don't play hitsound because AddDamageEffect already plays its own sound from the weapon
+					}				
+				} 
+				//case 3/3: (LOW priority entities + we have our own .prt to show) OR (cannot bleed) -> play our snd and our prt less frequently (example: chainsaw on LOW priority entities)
+				else { 
+
+					int type = tr.c.material->GetSurfaceType();
+					if (type == SURFTYPE_NONE) {
+						type = GetDefaultSurfaceType();
+					}
+					const char *materialType = gameLocal.sufaceTypeNames[ type ];
+
+					// start impact sound based on material type
+					hitSound = meleeDef->dict.GetString( va( "snd_%s", materialType ) );
+					if ( *hitSound == '\0' ) {
+						hitSound = meleeDef->dict.GetString( "snd_metal" );
+					}
+
+					if ( gameLocal.time > nextStrikeFx ) {
+						const char *decal;
+						// project decal
+						decal = weaponDef->dict.GetString( "mtr_strike" );
+						if ( decal && *decal ) {
+							gameLocal.ProjectDecal( tr.c.point, -tr.c.normal, 8.0f, true, 6.0, decal );
+						}
+						nextStrikeFx = gameLocal.time + 200;
+					} else {
+						hitSound = "";
+					}
+
+					strikeSmokeStartTime = gameLocal.time;
+					strikePos = tr.c.point;
+					strikeAxis = -tr.endAxis;
+				}
+			}
+		}
+
+		//always play sound if autoMelee is disabled, otherwise only if (we damaged something ) or (hit something not damaged, as world, and we are beyond the min time)
+		if( (hit) || (ent && gameLocal.time > nextMeleeSnd ) || (!autoMeleeEnabled )) {
+                if ( *hitSound != '\0' ) {
+        			const idSoundShader *snd = declManager->FindSound( hitSound );
+        			StartSoundShader( snd, SND_CHANNEL_BODY2, 0, true, NULL );
+        			nextMeleeSnd = gameLocal.time + 1000;
+        		}
+        }
+
+		if(!autoMeleeEnabled){ owner->WeaponFireFeedback( &weaponDef->dict ); } //autoMeleeEnabled --> no need for feedback
+		return hit;
+	}
+
+	if(!autoMeleeEnabled){ owner->WeaponFireFeedback( &weaponDef->dict ); } //autoMeleeEnabled --> no need for feedback
+	return false;
+}
+
+//Ivan end
 
 /*
 ================
@@ -2654,6 +3188,7 @@ void idWeapon::EnterCinematic( void ) {
 	}
 
 	disabled = true;
+	autoMeleeEnabled = false; //ivan - disable in cinematic
 
 	LowerWeapon();
 }
@@ -3523,8 +4058,38 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 
 	// set the shader parm to the time of last projectile firing,
 	// which the gun material shaders can reference for single shot barrel glows, etc
+
+	/*
+	//was:
 	renderEntity.shaderParms[ SHADERPARM_DIVERSITY ]	= gameLocal.random.CRandomFloat();
 	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ]	= -MS2SEC( gameLocal.realClientTime );
+
+	if( weaponDef->dict.GetBool( "resetShaderParms", "1" ) ){ //ivan - new "resetShaderParms" key 
+		if ( worldModel.GetEntity() ) { 
+			worldModel.GetEntity()->SetShaderParm( SHADERPARM_DIVERSITY, renderEntity.shaderParms[ SHADERPARM_DIVERSITY ] ); //an offset
+			worldModel.GetEntity()->SetShaderParm( SHADERPARM_TIMEOFFSET, renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] ); //restart from zero
+		}
+	}
+	*/
+	//ivan start
+	if( weaponDef->dict.GetBool( "resetShaderParms", "1" ) ){ //ivan - new "resetShaderParms" key 
+	renderEntity.shaderParms[ SHADERPARM_DIVERSITY ]	= gameLocal.random.CRandomFloat();
+	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ]	= -MS2SEC( gameLocal.realClientTime );
+	}
+	//ivan end
+
+	/*
+	// add some to the kick time, incrementally moving repeat firing weapons back
+	if ( kick_endtime < gameLocal.realClientTime ) {
+		kick_endtime = gameLocal.realClientTime;
+	}
+	kick_endtime += muzzle_kick_time;
+	if ( kick_endtime > gameLocal.realClientTime + muzzle_kick_maxtime ) {
+		kick_endtime = gameLocal.realClientTime + muzzle_kick_maxtime;
+	}
+	*/
+
+	//ownerBounds = owner->GetPhysics()->GetAbsBounds();
 
 	// predict instant hit projectiles //un noted code change from original sdk
 	const bool isPrediction = gameLocal.isClient && projectileDict.GetBool( "net_instanthit" );
@@ -3850,141 +4415,11 @@ idWeapon::Event_Melee
 =====================
 */
 void idWeapon::Event_Melee( void ) {
-	idEntity	*ent;
-	trace_t		tr;
-
-	if ( !meleeDef ) {
-		gameLocal.Error( "No meleeDef on '%s'", weaponDef->dict.GetString( "classname" ) );
-	}
-
-	if ( !gameLocal.isClient ) {
-		//ivan start
-		idVec3 start, end;
-		
-		if( meleeDef->dict.GetBool( "useWeaponZdir" ) ){
-			start = GetPhysics()->GetOrigin();
-			end = start + GetPhysics()->GetAxis()[2] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
-		}else{
-			start = playerViewOrigin; 
-			end = start + playerViewAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
-		}
-		
-		/*
-		//was:
-		idVec3 start = viewWeaponOrigin); 
-		idVec3 end = start + playerViewAxis[0] * ( meleeDistance * owner->PowerUpModifier( MELEE_DISTANCE ) );
-		gameLocal.clip.TracePoint( tr, start, end, MASK_SHOT_RENDERMODEL, owner );
-		*/
-		
-		idBounds meleebox;
-		meleebox.Zero();
-		meleebox.ExpandSelf( 8.0f );
-		gameLocal.clip.TraceBounds( tr, start, end, meleebox, MASK_SHOT_RENDERMODEL, owner );
-		//ivan end
-		if ( tr.fraction < 1.0f ) {
-			ent = gameLocal.GetTraceEntity( tr );
-		} else {
-			ent = NULL;
-		}
-
-		if ( g_debugWeapon.GetBool() ) {
-			gameRenderWorld->DebugLine( colorYellow, start, end, 100 );
-			//ivan start
-			gameRenderWorld->DebugBounds( colorBlue,meleebox, start, 100 );
-			gameRenderWorld->DebugBounds( colorBlue,meleebox, end, 100 );
-			//ivan end
-			if ( ent ) {
-				gameRenderWorld->DebugBounds( colorRed, ent->GetPhysics()->GetBounds(), ent->GetPhysics()->GetOrigin(), 100 );
-			}
-		}
-
-		bool hit = false;
-		const char *hitSound = meleeDef->dict.GetString( "snd_miss" );
-
-		if ( ent ) {
-
-			float push = meleeDef->dict.GetFloat( "push" );
-			idVec3 impulse = -push * owner->PowerUpModifier( SPEED ) * tr.c.normal;
-
-			if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) && ( ent->IsType( idActor::Type ) || ent->IsType( idAFAttachment::Type) ) ) {
-				idThread::ReturnInt( 0 );
-				return;
-			}
-
-			ent->ApplyImpulse( this, tr.c.id, tr.c.point, impulse );
-
-			// weapon stealing - do this before damaging so weapons are not dropped twice
-			if ( gameLocal.isMultiplayer
-				&& weaponDef && weaponDef->dict.GetBool( "stealing" )
-				&& ent->IsType( idPlayer::Type )
-				&& !owner->PowerUpActive( BERSERK )
-				&& ( gameLocal.gameType != GAME_TDM || gameLocal.serverInfo.GetBool( "si_teamDamage" ) || ( owner->team != static_cast< idPlayer * >( ent )->team ) )
-				) {
-					owner->StealWeapon( static_cast< idPlayer * >( ent ) );
-				}
-
-				if ( ent->fl.takedamage ) {
-					idVec3 kickDir, globalKickDir;
-					meleeDef->dict.GetVector( "kickDir", "0 0 0", kickDir );
-					globalKickDir = muzzleAxis * kickDir;
-					ent->Damage( owner, owner, globalKickDir, meleeDefName, owner->PowerUpModifier( MELEE_DAMAGE ), tr.c.id );
-					hit = true;
-				}
-
-				if ( weaponDef->dict.GetBool( "impact_damage_effect" ) ) {
-
-					if ( ent->spawnArgs.GetBool( "bleed" ) ) {
-
-						hitSound = meleeDef->dict.GetString( owner->PowerUpActive( BERSERK ) ? "snd_hit_berserk" : "snd_hit" );
-
-						ent->AddDamageEffect( tr, impulse, meleeDef->dict.GetString( "classname" ) );
-
-					} else {
-
-						int type = tr.c.material->GetSurfaceType();
-						if ( type == SURFTYPE_NONE ) {
-							type = GetDefaultSurfaceType();
-						}
-
-						const char *materialType = gameLocal.sufaceTypeNames[ type ];
-
-						// start impact sound based on material type
-						hitSound = meleeDef->dict.GetString( va( "snd_%s", materialType ) );
-						if ( *hitSound == '\0' ) {
-							hitSound = meleeDef->dict.GetString( "snd_metal" );
-						}
-
-						if ( gameLocal.time > nextStrikeFx ) {
-							const char *decal;
-							// project decal
-							decal = weaponDef->dict.GetString( "mtr_strike" );
-							if ( decal && *decal ) {
-								gameLocal.ProjectDecal( tr.c.point, -tr.c.normal, 8.0f, true, 6.0, decal );
-							}
-							nextStrikeFx = gameLocal.time + 200;
-						} else {
-							hitSound = "";
-						}
-
-						strikeSmokeStartTime = gameLocal.time;
-						strikePos = tr.c.point;
-						strikeAxis = -tr.endAxis;
-					}
-				}
-		}
-
-		if ( *hitSound != '\0' ) {
-			const idSoundShader *snd = declManager->FindSound( hitSound );
-			StartSoundShader( snd, SND_CHANNEL_BODY2, 0, true, NULL );
-		}
-
-		idThread::ReturnInt( hit );
-		owner->WeaponFireFeedback( &weaponDef->dict );
-		return;
-	}
-
-	idThread::ReturnInt( 0 );
-	owner->WeaponFireFeedback( &weaponDef->dict );
+	if( !autoMeleeEnabled && EvaluateMelee() ){ //don't do this if it's already enabled...
+           idThread::ReturnInt( 1 );
+        }else{
+           idThread::ReturnInt( 0 );
+        }
 }
 
 /*
@@ -4017,7 +4452,8 @@ Toss a shell model out from the breach if the bone is present
 ================
 */
 void idWeapon::Event_EjectBrass( void ) {
-	if ( !g_showBrass.GetBool() || !owner->CanShowWeaponViewmodel() ) {
+	if ( !g_showBrass.GetBool() ) { //Rev 2019 viewmodels not used. all brass code now refers to world model. Was stopping brass from ejecting.
+	//if ( !g_showBrass.GetBool() || !owner->CanShowWeaponViewmodel() ) {
 		return;
 	}
 

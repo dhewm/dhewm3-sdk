@@ -1715,10 +1715,13 @@ void idPhysics_Player::MovePlayer( int msec ) {
 	}
 
 	// no control when dead or anim move //un credited changes from original sdk
-	if (( current.movementType == PM_DEAD ) || ( current.movementType == PM_ANIM_CROUCH )) { //ivan - PM_ANIM_CROUCH added
-		command.forwardmove = 0; 
-		command.rightmove = 0;
-		command.upmove = 0;
+	if (( current.movementType == PM_DEAD ) 
+		|| ( current.movementType == PM_PHYSICS_ONLY )		//ivan
+		|| ( current.movementType == PM_ANIM_ALWAYS )		//ivan
+		|| ( current.movementType == PM_ANIM_GROUND ) ) {	//ivan
+			command.forwardmove = 0;
+			command.rightmove = 0;
+			command.upmove = 0;
 	}
 
 	// set watertype and waterlevel
@@ -1743,7 +1746,7 @@ void idPhysics_Player::MovePlayer( int msec ) {
 	}
 
 	//ivan start - anim based movements
-	else if ( walking && current.movementType == PM_ANIM_CROUCH ) { //ONLY if on ground
+	else if ( current.movementType == PM_ANIM_ALWAYS || ( walking && current.movementType == PM_ANIM_GROUND ) ) { 
 		//ivan start - water fix: move less!
 		if ( waterLevel >= WATERLEVEL_HEAD ) {
 			delta *= PM_SWIMSCALE;
@@ -1751,12 +1754,76 @@ void idPhysics_Player::MovePlayer( int msec ) {
 		//ivan end
 		current.velocity = delta / frametime;
 		current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
-
+		
 		if ( delta != vec3_origin ) {
+			
+			/*
+			//if we are flying change the delta according to animMoveGravityMultiplier
+			if ( ( !walking ) && ( animMoveGravityMultiplier != 0) ){
+				delta += gravityVector * frametime * animMoveGravityMultiplier *0.12f; //FIX: delta is affected by gravity!
+			}
+			*/
+
+			//if we are flying change the delta according to gravity
+			if ( !walking ){
+				delta += gravityVector * frametime *0.12f; //FIX: delta is affected by gravity!
+			}
+
 			// try moving into the desired direction
 			idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
 			delta.Zero(); //job done, reset it
 		}
+		
+		//if we are flying fall down according to animMoveGravityMultiplier
+		if ( !walking ){
+			current.velocity += gravityVector * frametime;
+		}
+		/*
+		//if we are flying fall down according to animMoveGravityMultiplier
+		if ( ( !walking ) && ( animMoveGravityMultiplier != 0) ){
+			current.velocity += gravityVector * frametime * animMoveGravityMultiplier;
+		}
+		*/
+
+	
+		/* 
+		// -- old code -- don't delete this. it works well :)
+
+		float upspeed;
+		if ( gravityNormal != vec3_zero ) {
+			upspeed = -( current.velocity * gravityNormal );
+		} else {
+			upspeed = current.velocity.z;
+		}
+		//gameLocal.Printf("upspeed %f\n", upspeed);
+
+		//se non siamo a terra o la nostra velocità ci spara su -> casca secondo gravità
+		if ( (animMoveGravityMultiplier != 0) && ( !groundPlane || upspeed > 1.0f ) ) { //to do: use HasGroundContacts() instead of groundPlane?
+			//delta = current.velocity * frametime; //ignora il delta richiesto
+			//gameLocal.Printf("delta.z %f\n", delta.z);
+
+			current.velocity = delta / frametime;
+			current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
+			
+			if ( delta != vec3_origin ) {
+				delta += gravityVector * frametime * animMoveGravityMultiplier *0.15f; //FIX: delta is affected by gravity!
+
+				// try moving into the desired direction
+				idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
+				delta.Zero(); //job done, reset it
+			}
+			current.velocity += gravityVector * frametime * animMoveGravityMultiplier;
+		} else { //siamo a terra or gravità disabilitata -> fai l'animazione e basta
+			current.velocity = delta / frametime;
+			current.velocity -= ( current.velocity * gravityNormal ) * gravityNormal;
+
+			if ( delta != vec3_origin ) {
+				// try moving into the desired direction
+				idPhysics_Player::AnimMove( current.origin, current.velocity, delta ); //to do: controllare se posso usare SlideMove
+				delta.Zero(); //job done, reset it
+			}
+		}
+		*/
 	}
 	//ivan end 
 
@@ -1890,6 +1957,8 @@ idPhysics_Player::idPhysics_Player( void ) {
 	waterLevel = WATERLEVEL_NONE;
 	waterType = 0;
 
+	blockingEntity = NULL; //ivan //rev 2019
+	delta.Zero(); //ivan //rev 2019
 	//ivan start
 	doubleJumpDone = false;
 	doubleJumpEnabled = false;
@@ -2071,6 +2140,7 @@ void idPhysics_Player::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( waterType );
 #endif
 
+//rev 2021 Dhewm 3 1.5.1 updates start
 	/* DG: It can apparently happen that the player saves while the clipModel's axis are
 	 *     modified by idPush::TryRotatePushEntity() -> idPhysics_Player::Rotate() -> idClipModel::Link()
 	 *     Normally idPush seems to reset them to the identity matrix in the next frame,
@@ -2084,6 +2154,7 @@ void idPhysics_Player::Restore( idRestoreGame *savefile ) {
 	if ( clipModel != nullptr ) {
 		clipModel->SetPosition( clipModel->GetOrigin(), mat3_identity );
 	}
+//rev 2021 Dhewm 3 1.5.1 updates end
 }
 
 /*

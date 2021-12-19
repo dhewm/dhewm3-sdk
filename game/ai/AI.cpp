@@ -395,6 +395,7 @@ idAI::idAI() {
 	fireMode			= 0;
 	noPush				= false;
 
+	disableMoving		= false;	//rev 2020  disable the actor from moving via a key in spawn arguments
 	/*
 	modelCallBackDone	= false; 
 	renderEntity.callback = idAI::ModelCallback;
@@ -800,7 +801,7 @@ void idAI::Spawn( void ) {
 	spawnArgs.GetBool( "ignore_obstacles",		"1",		ignore_obstacles ); //ivan: set default to 1
 	spawnArgs.GetFloat( "blockedRadius",		"-1",		blockedRadius );
 	spawnArgs.GetInt( "blockedMoveTime",		"750",		blockedMoveTime );
-	spawnArgs.GetInt( "blockedAttackTime",		"750",		blockedAttackTime );
+	spawnArgs.GetInt( "blockedAttackTime",		"450",		blockedAttackTime );
 
 	spawnArgs.GetInt(	"num_cinematics",		"0",		num_cinematics );
 	current_cinematic = 0;
@@ -814,6 +815,8 @@ void idAI::Spawn( void ) {
 
 	animator.RemoveOriginOffset( true );
 
+	disableMoving  = spawnArgs.GetBool( "disable_moving" );		//rev 2020 used to disable the enemy from moving
+	
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
 
@@ -898,14 +901,23 @@ void idAI::Spawn( void ) {
 	physicsObj.SetClipModel( new idClipModel( GetPhysics()->GetClipModel() ), 1.0f );
 	physicsObj.SetMass( spawnArgs.GetFloat( "mass", "100" ) );
 
-	if ( spawnArgs.GetBool( "big_monster" ) ) {
+	if ( spawnArgs.GetBool( "big_monster" ) ) {		
 		physicsObj.SetContents( 0 );
 		physicsObj.SetClipMask( MASK_MONSTERSOLID & ~CONTENTS_BODY );
 	} else {
 		if ( use_combat_bbox ) {
 			physicsObj.SetContents( CONTENTS_BODY|CONTENTS_SOLID );
 		} else {
-			physicsObj.SetContents( CONTENTS_BODY );
+//Rev 2020 allow enemies to pass through each other if team_non_solid is true			
+			//physicsObj.SetContents( CONTENTS_BODY );
+			if( ( spawnArgs.GetInt( "team", "1") ) && spawnArgs.GetBool( "team_non_solid", "1") ){
+				physicsObj.SetContents( CONTENTS_CORPSE );	//the monster can pass through other monsters but player still detects touch of death
+				//gameLocal.Printf( "corpse" );
+			} else {
+				physicsObj.SetContents( CONTENTS_BODY );
+				//gameLocal.Printf( "body" );
+			}
+//Rev 2020 End
 		}
 		physicsObj.SetClipMask( MASK_MONSTERSOLID );
 	}
@@ -1222,6 +1234,11 @@ void idAI::Think( void ) {
 	UpdateIsOnScreen(); //NOTE: my "isOnScreen" value is useful also to other entities.
 	//ivan end
 
+//rev 2020 hurt the player when overlapping enemies. Updated: make sure the enemy isn't hidden or else the box will still spawn.
+	if( !IsHidden() && spawnArgs.GetInt( "touchofdeath", "1") ){
+		gameLocal.HurtBox( this );		
+	}
+	
 	UpdateMuzzleFlash();
 	UpdateAnimation();
 	UpdateParticles();
@@ -1716,9 +1733,21 @@ bool idAI::DirectMoveToPosition( const idVec3 &pos ) {
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.startTime		= gameLocal.time;
 	move.speed			= fly_speed;
+
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	if ( move.moveType == MOVETYPE_FLY ) {
 		idVec3 dir = pos - physicsObj.GetOrigin();
@@ -1821,9 +1850,20 @@ bool idAI::MoveToEnemy( void ) {
 	move.goalEntity		= enemyEnt;
 	move.speed			= fly_speed;
 	move.moveStatus		= MOVE_STATUS_MOVING;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -1892,9 +1932,20 @@ bool idAI::MoveToEntity( idEntity *ent ) {
 	move.goalEntityOrigin	= ent->GetPhysics()->GetOrigin();
 	move.moveStatus			= MOVE_STATUS_MOVING;
 	move.speed				= fly_speed;
-	AI_MOVE_DONE			= false;
-	AI_DEST_UNREACHABLE		= false;
-	AI_FORWARD				= true;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
+	AI_MOVE_DONE		= false;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -1949,9 +2000,20 @@ bool idAI::MoveOutOfRange( idEntity *ent, float range ) {
 	move.range			= range;
 	move.speed			= fly_speed;
 	move.startTime		= gameLocal.time;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -2001,9 +2063,20 @@ bool idAI::MoveToAttackPosition( idEntity *ent, int attack_anim ) {
 	move.speed			= fly_speed;
 	move.startTime		= gameLocal.time;
 	move.anim			= attack_anim;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -2049,9 +2122,20 @@ bool idAI::MoveToPosition( const idVec3 &pos ) {
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.startTime		= gameLocal.time;
 	move.speed			= fly_speed;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -2098,9 +2182,20 @@ bool idAI::MoveToCover( idEntity *entity, const idVec3 &hideFromPos ) {
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.startTime		= gameLocal.time;
 	move.speed			= fly_speed;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_DEST_UNREACHABLE = false;
+	//AI_FORWARD			= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_DEST_UNREACHABLE = false;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
 	AI_DEST_UNREACHABLE = false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -2160,8 +2255,17 @@ bool idAI::WanderAround( void ) {
 	move.moveStatus		= MOVE_STATUS_MOVING;
 	move.startTime		= gameLocal.time;
 	move.speed			= fly_speed;
+//rev 2020 disable moving
+	//AI_MOVE_DONE		= false;
+	//AI_FORWARD		= true;		
+	if (disableMoving){
+	AI_MOVE_DONE		= true;
+	AI_FORWARD			= false;		
+	} else {
 	AI_MOVE_DONE		= false;
-	AI_FORWARD			= true;
+	AI_FORWARD			= true;		
+	}
+//rev 2020 end
 
 	return true;
 }
@@ -3531,7 +3635,10 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	// make monster nonsolid
 	physicsObj.SetContents( 0 );
 	physicsObj.GetClipModel()->Unlink();
-
+	
+//rev 2021 bullets pass through corpses because it causes a bottleneck in 2d gameplay. dead bodies block bullets!
+	combatModel->SetContents( 0 );
+	
 	Unbind();
 
 	if ( StartRagdoll() ) {
@@ -4092,10 +4199,14 @@ void idAI::UpdateIsOnScreen( void ) {
 		return;
 	}
 	idPlayer *player = gameLocal.GetLocalPlayer();
-	if( player == NULL || player->GetRenderView() == NULL ) {
+
+//Rev 2020 save game crash fix from DG.  check needed to stop crash.
+	// WAS: if ( !player ) {
+	if( player == NULL || player->GetRenderView() == NULL ) {		
 		isOnScreen = false; //no player, no camera
 		return;
 	}
+//Rev 2020 End
 	const idVec3 &myPos = physicsObj.GetOrigin();
 	const idVec3 &cameraPos = player->GetRenderView()->vieworg;
 	idVec3 delta;
@@ -4120,7 +4231,8 @@ void idAI::UpdateIsOnScreen( void ) {
 	}
 
 	//Y axis - horizontal distance
-	if( idMath::Fabs( delta.y ) > delta.x ){ //if horizontal dist is greater than camera dist, than we are out of view (Horizontal FOV 90 --> 90 45 45 triangle)
+	if( idMath::Fabs( delta.y ) > delta.x + 120 ){ //if horizontal dist is greater than camera dist, than we are out of view (Horizontal FOV 90 --> 90 45 45 triangle)
+		//Rev 2018 increased range by 120.  this allows enemies to attack as soon as they are fully on screen.
 		isOnScreen = false;
 		return;
 	}
@@ -4524,7 +4636,8 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 	idMat3				axis;
 	idVec3				tmp;
 	idProjectile		*lastProjectile;
-
+	int 				noAim; //rev 2019
+	
 	if ( !projectileDef ) {
 		gameLocal.Warning( "%s (%s) doesn't have a projectile specified", name.c_str(), GetEntityDefName() );
 		return NULL;
@@ -4543,6 +4656,8 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 
 	lastProjectile = projectile.GetEntity();
 
+//rev 2019 start.  make the ai shoot only shoot straight ahead when the noaim key is set to 1 in their def file	
+/*
 	if ( target != NULL ) {
 		tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
 		tmp.Normalize();
@@ -4550,6 +4665,27 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 	} else {
 		axis = viewAxis;
 	}
+*/
+	noAim  = spawnArgs.GetInt( "noaim" );	
+	if ( noAim > 0 ) {
+		if ( target = NULL ) {
+			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
+			tmp.Normalize();
+			axis = tmp.ToMat3();
+		} else {
+			axis = viewAxis;
+			}
+		}	
+	if ( noAim < 1 ) {
+		if ( target != NULL ) {
+			tmp = target->GetPhysics()->GetAbsBounds().GetCenter() - muzzle;
+			tmp.Normalize();
+			axis = tmp.ToMat3();
+		} else {
+			axis = viewAxis;
+			}
+		}		
+//rev 2019 noaim end
 
 	// rotate it because the cone points up by default
 	tmp = axis[2];
@@ -5030,7 +5166,14 @@ void idAI::Show( void ) {
 		physicsObj.SetContents( 0 );
 	} else if ( use_combat_bbox ) {
 		physicsObj.SetContents( CONTENTS_BODY|CONTENTS_SOLID );
-	} else {
+	} 
+//rev 2020
+	if( ( spawnArgs.GetInt( "team", "1") ) && spawnArgs.GetBool( "team_non_solid", "1") ){
+		physicsObj.SetContents( CONTENTS_CORPSE );	//the monster can pass through other monsters but player still detects touch of death
+		//gameLocal.Printf( "corpse" );
+	}
+//rev 2020 end	
+	else {
 		physicsObj.SetContents( CONTENTS_BODY );
 	}
 	physicsObj.GetClipModel()->Link( gameLocal.clip );
@@ -5438,7 +5581,7 @@ void idCombatNode::Spawn( void ) {
 	min_dist = spawnArgs.GetFloat( "min" );
 	max_dist = spawnArgs.GetFloat( "max" );
 	height = spawnArgs.GetFloat( "height" );
-	fov = spawnArgs.GetFloat( "fov", "60" );
+	fov = spawnArgs.GetFloat( "fov", "120" );		//was 60 rev 2018
 	offset = spawnArgs.GetVector( "offset" );
 
 	const idVec3 &org = GetPhysics()->GetOrigin() + offset;

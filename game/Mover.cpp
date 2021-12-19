@@ -4091,9 +4091,13 @@ void idDoor::CalcTriggerBounds( float size, idBounds &bounds ) {
 			best = i;
 		}
 	}
+	
+	int expand_bounds; //rev 2020	
+	expand_bounds = spawnArgs.GetInt( "expand_bounds" ); //rev 2020		
+	
 	normalAxisIndex = best;
-	bounds[0][ best ] -= size;
-	bounds[1][ best ] += size;
+	bounds[0][ best ] -= size + expand_bounds;		//rev 2020 increase bounds to trigger doors to open via touch
+	bounds[1][ best ] += size + expand_bounds;		//rev 2020 increase bounds to trigger doors to open via touch
 	bounds[0] -= GetPhysics()->GetOrigin();
 	bounds[1] -= GetPhysics()->GetOrigin();
 }

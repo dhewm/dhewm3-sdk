@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "sys/Stub_SDL_endian.h"
+#include "sys/Stub_SDL_endian.h"	//rev 2021 dhewm 3 1.5.1 updates
 #include "sys/platform.h"
 #include "idlib/LangDict.h"
 #include "idlib/Timer.h"
@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "framework/BuildVersion.h"
 #include "framework/DeclEntityDef.h"
 #include "framework/FileSystem.h"
-#include "framework/Licensee.h"
+#include "framework/Licensee.h"	//rev 2021 dhewm 3 1.5.1 updates
 #include "renderer/ModelManager.h"
 
 #include "gamesys/SysCvar.h"
@@ -48,6 +48,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "WorldSpawn.h"
 #include "Misc.h"
 #include "Trigger.h"
+#include "Sound.h" //ivan
 
 #include "Game_local.h"
 
@@ -76,7 +77,14 @@ idCVar *					idCVar::staticVars = NULL;
 
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL|CVAR_SYSTEM, "force generic platform independent SIMD" );
 
-#endif
+#endif // GAME_DLL
+
+//ivan start
+const float MIN_MUSIC_VOLUME			= -10.0f; //must match the min malue in mainmenu.gui
+const float DISABLED_MUSIC_VOLUME		= -60.0f;
+const float MUSIC_FADEOUT_SECONDS		= 20.0f;
+const int MUSIC_SOUND_CLASS				= 2; //0 = default, 1 = teleport snd
+//ivan end
 
 idRenderWorld *				gameRenderWorld = NULL;		// all drawing is done to this world
 idSoundWorld *				gameSoundWorld = NULL;		// all audio goes to this world
@@ -204,6 +212,7 @@ void idGameLocal::Clear( void ) {
 	sessionCommand.Clear();
 	locationEntities = NULL;
 	smokeParticles = NULL;
+	trailsManager = NULL; //ivan rev 2019
 	editEntities = NULL;
 	entityHash.Clear( 1024, MAX_GENTITIES );
 	inCinematic = false;
@@ -252,6 +261,7 @@ void idGameLocal::Clear( void ) {
 	enemies_killed_counter	= 0;
 	enemies_spawned_counter = 0;
 	projSeeDistance = 0.0f;
+	musicEntity = NULL;
 	//ivan end
 
 	memset( clientEntityStates, 0, sizeof( clientEntityStates ) );
@@ -263,7 +273,7 @@ void idGameLocal::Clear( void ) {
 
 	memset( lagometer, 0, sizeof( lagometer ) );
 
-#ifdef _PORTALSKY //un noted change from original sdk
+#ifdef _PORTALSKY
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
 #endif
@@ -322,10 +332,10 @@ void idGameLocal::Init( void ) {
 
 	InitConsoleCommands();
 
-	//Ivan start - execute the default.cfg HardQore config file only the first time
-    if(!hardqore2_bind_run_once.GetBool()) {
+	//Ivan start - execute the default.cfg Hard Corps config file only the first time
+    if(!hardcorps_bind_run_once.GetBool()) {
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg\n" );
-		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta hardqore2_bind_run_once 1\n" );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "seta hardcorps_bind_run_once 1\n" );
 		cmdSystem->ExecuteCommandBuffer();
 	}
 	//Ivan end		
@@ -334,6 +344,7 @@ void idGameLocal::Init( void ) {
 	program.Startup( SCRIPT_DEFAULT );
 
 	smokeParticles = new idSmokeParticles;
+	trailsManager = new idTrailManager; //ivan rev 2019
 
 	// set up the aas
 	dict = FindEntityDefDict( "aas_types" );
@@ -389,6 +400,11 @@ void idGameLocal::Shutdown( void ) {
 
 	delete smokeParticles;
 	smokeParticles = NULL;
+
+	//ivan start //rev 2019
+	delete trailsManager;
+	trailsManager = NULL;
+	//ivan end //rev 2019
 
 	idClass::Shutdown();
 
@@ -450,6 +466,7 @@ void idGameLocal::SaveGame( idFile *f ) {
 
 	savegame.WriteBuildNumber( BUILD_NUMBER );
 
+//rev 2021 dhewm 1.5.1 build updates.  Found this comment in the commits.	
 	// DG: add some more information to savegame to make future quirks easier
 	savegame.WriteInt( INTERNAL_SAVEGAME_VERSION ); // to be independent of BUILD_NUMBER
 	savegame.WriteString( D3_OSTYPE ); // operating system - from CMake
@@ -458,6 +475,7 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteShort( (short)sizeof(void*) ); // tells us if it's from a 32bit (4) or 64bit system (8)
 	savegame.WriteShort( SDL_BYTEORDER ) ; // SDL_LIL_ENDIAN or SDL_BIG_ENDIAN
 	// DG end
+//rev 2021 dhewm 1.5.1 build updates End
 
 	// go through all entities and threads and add them to the object list
 	for( i = 0; i < MAX_GENTITIES; i++ ) {
@@ -495,6 +513,9 @@ void idGameLocal::SaveGame( idFile *f ) {
 		savegame.WriteUsercmd( usercmds[ i ] );
 		savegame.WriteDict( &persistentPlayerInfo[ i ] );
 	}
+
+	//ivan - save/reload trails BEFORE other entities //rev 2019
+	trailsManager->Save( &savegame );
 
 	for( i = 0; i < MAX_GENTITIES; i++ ) {
 		savegame.WriteObject( entities[ i ] );
@@ -568,7 +589,7 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
 
-#ifdef _PORTALSKY //un noted change from original sdk
+#ifdef _PORTALSKY
 	portalSkyEnt.Save( &savegame );
 	savegame.WriteBool( portalSkyActive );
 #endif
@@ -612,6 +633,7 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteInt( enemies_spawned_counter );
 	savegame.WriteInt( enemies_killed_counter );
 	savegame.WriteFloat( projSeeDistance );
+	musicEntity.Save( &savegame );
 	//ivan end
 
 	// spawnSpots
@@ -957,6 +979,7 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	enemies_killed_counter	= 0;
 	enemies_spawned_counter = 0;
 	projSeeDistance = 0.0f;
+	musicEntity = NULL;
 	//ivan end
 
 #ifdef  _PORTALSKY
@@ -994,6 +1017,9 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	smokeParticles->Init();
 
 	// cache miscellanious media references
+	trailsManager->Init(); //rev 2019
+
+	// cache miscellanious media references
 	FindEntityDef( "preCacheExtras", false );
 
 	if ( !sameMap ) {
@@ -1026,6 +1052,9 @@ void idGameLocal::LocalMapRestart( ) {
 
 	// clear the smoke particle free list
 	smokeParticles->Init();
+
+	// clear the sound system
+	trailsManager->Init(); //rev 2019
 
 	// clear the sound system
 	if ( gameSoundWorld ) {
@@ -1278,6 +1307,7 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 
 	savegame.ReadBuildNumber();
 
+//rev 2021 dhewm 3 1.5.1 updates.
 	// DG: I enhanced the information in savegames a bit for dhewm3 1.5.1
 	//     for which I bumped th BUILD_NUMBER to 1305
 	if( savegame.GetBuildNumber() >= 1305 )
@@ -1306,7 +1336,8 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 		// right now I have no further use for this information, but in the future
 		// it can be used for quirks for (then-) old savegames
 	}
-	// DG end
+	// DG end	
+//rev 2021 dhewm 3 1.5.1 updates END.
 
 	// Create the list of all objects in the game
 	savegame.CreateObjects();
@@ -1330,6 +1361,7 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 
 	// precache the player
 	FindEntityDef( "player_doommarine", false );
+	FindEntityDef( "player_scarlet", false );	//rev 2019
 
 	// precache any media specified in the map
 	for ( i = 0; i < mapFile->GetNumEntities(); i++ ) {
@@ -1353,6 +1385,9 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 		savegame.ReadUsercmd( usercmds[ i ] );
 		savegame.ReadDict( &persistentPlayerInfo[ i ] );
 	}
+
+	//ivan - save/reload trails BEFORE other entities //rev 2019
+	trailsManager->Restore( &savegame );
 
 	for( i = 0; i < MAX_GENTITIES; i++ ) {
 		savegame.ReadObject( reinterpret_cast<idClass *&>( entities[ i ] ) );
@@ -1441,7 +1476,7 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
 
-#ifdef _PORTALSKY //un noted change from original sdk
+#ifdef _PORTALSKY
 	portalSkyEnt.Restore( &savegame );
 	savegame.ReadBool( portalSkyActive );
 #endif
@@ -1488,6 +1523,7 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( enemies_spawned_counter );
 	savegame.ReadInt( enemies_killed_counter );
 	savegame.ReadFloat( projSeeDistance );
+	musicEntity.Restore( &savegame );
 	//ivan end
 
 	// spawnSpots
@@ -1585,6 +1621,10 @@ void idGameLocal::MapShutdown( void ) {
 		smokeParticles->Shutdown();
 	}
 
+	if ( trailsManager ) { //rev 2019
+		trailsManager->Shutdown(); //rev 2019
+	} //rev 2019
+	
 	pvs.Shutdown();
 
 	clip.Shutdown();
@@ -1931,7 +1971,16 @@ void idGameLocal::SpawnPlayer( int clientNum ) {
 
 	args.SetInt( "spawn_entnum", clientNum );
 	args.Set( "name", va( "player%d", clientNum + 1 ) );
+	
+//rev 2019 start character select via cvar
+	if ( cvarSystem->GetCVarBool( "pm_character") ) {
+	args.Set( "classname", isMultiplayer ? "player_doommarine_mp" : "player_scarlet" );
+	}else{
 	args.Set( "classname", isMultiplayer ? "player_doommarine_mp" : "player_doommarine" );
+	}
+	//args.Set( "classname", isMultiplayer ? "player_doommarine_mp" : "player_doommarine" );	
+//rev 2019 character select end	
+
 	if ( !SpawnEntityDef( args, &ent ) || !entities[ clientNum ] ) {
 		Error( "Failed to spawn player as '%s'", args.GetString( "classname" ) );
 	}
@@ -2100,7 +2149,7 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			pvs.FreeCurrentPVS( otherPVS );
 			playerConnectedAreas = newPVS;
 
-#ifdef _PORTALSKY //un noted change from original sdk
+#ifdef _PORTALSKY
 		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
 		if ( portalSkyEnt.GetEntity() ) {
 			idEntity *skyEnt = portalSkyEnt.GetEntity();
@@ -2354,10 +2403,16 @@ gameReturn_t idGameLocal::RunFrame( const usercmd_t *clientCmds ) {
 		smokeParticles->FreeSmokes();
 
 		// process events on the server
+		trailsManager->Think(); //rev 2019
+
+		// process events on the server
 		ServerProcessEntityNetworkEventQueue();
 
 		// update our gravity vector if needed.
 		UpdateGravity();
+
+		//ivan - music volume
+		UpdateMusicVolume();
 
 		// create a merged pvs for all players
 		SetupPlayerPVS();
@@ -3806,6 +3861,51 @@ void idGameLocal::KillBox( idEntity *ent, bool catch_teleport ) {
 }
 
 /*
+=================
+idGameLocal::HurtBox
+Check if something is on over lapping the player and cause damage to the player
+//rev 2020 added
+=================
+*/
+void idGameLocal::HurtBox( idEntity *ent ) {
+	int			i;
+	int			num;
+	idEntity *	hit;
+	idClipModel *cm;
+	idClipModel *clipModels[ MAX_GENTITIES ];
+	idPhysics	*phys;
+
+	phys = ent->GetPhysics();
+	if ( !phys->GetNumClipModels() ) {
+		return;
+	}
+
+	num = clip.ClipModelsTouchingBounds( phys->GetAbsBounds(), phys->GetClipMask(), clipModels, MAX_GENTITIES );
+	for ( i = 0; i < num; i++ ) {
+		cm = clipModels[ i ];
+
+		// don't check render entities
+		if ( cm->IsRenderModel() ) {
+			continue;
+		}
+
+		hit = cm->GetEntity();
+		if ( ( hit == ent ) || !hit->fl.takedamage ) {
+			continue;
+		}
+
+		if ( !phys->ClipContents( cm ) ) {
+			continue;
+		}
+
+		// nail it
+		if ( hit->IsType( idPlayer::Type ) ) {
+			hit->Damage( NULL, NULL, vec3_origin, "damage_touchofdeath", 1.0f, 0 );
+		}
+	}
+}
+
+/*
 ================
 idGameLocal::RequirementMet
 ================
@@ -4771,7 +4871,52 @@ void idGameLocal::UpdateSeeDistances( float distance ) {
 
 	//-- upd Proj see distance -- 
 	//note: the radius of the sphere is based on the camera distance, that is, the horizontal distance, which is bigger than the vertical one.
-	projSeeDistance = distance; //was: * 1.4f; 
+	//projSeeDistance = distance; //was: * 1.4f; 
+	projSeeDistance = distance +80.0f; //was: * 1.4f; 
+}
+
+/*
+================
+idGameLocal::SetMusicEntity
+================
+*/
+void idGameLocal::SetMusicEntity( idMusic *newMusicEnt ) {
+	idMusic *currentMusicEnt = musicEntity.GetEntity();
+	if ( currentMusicEnt && currentMusicEnt != newMusicEnt && currentMusicEnt->IsActive() ) {
+		currentMusicEnt->PostEventMS( &EV_Music_Stop, 0 ); //turn off immediately
+		Warning( "Music entity '%s' was already playing: stopped", currentMusicEnt->GetName() );
+	}
+	musicEntity = newMusicEnt;
+}
+
+/*
+================
+idGameLocal::StopMusic
+================
+*/
+void idGameLocal::StopMusic( void ) {
+	idMusic *currentMusicEnt = musicEntity.GetEntity();
+	if ( currentMusicEnt ) {
+		currentMusicEnt->PostEventMS( &EV_Music_FadeOut, 0 );
+	} else {
+		gameLocal.Warning("There's no music to stop!");
+	}
+}
+
+/*
+================
+idGameLocal::UpdateMusicVolume
+================
+*/
+void idGameLocal::UpdateMusicVolume( void ) {
+	if ( s_music_volume.IsModified() ) {
+		s_music_volume.ClearModified();
+		if ( s_music_volume.GetFloat() > MIN_MUSIC_VOLUME ) {
+			gameSoundWorld->FadeSoundClasses( MUSIC_SOUND_CLASS, s_music_volume.GetFloat(), 0.0f );
+		} else {
+			gameSoundWorld->FadeSoundClasses( MUSIC_SOUND_CLASS, DISABLED_MUSIC_VOLUME, 0.0f );
+		}
+	}
 }
 
 //ivan end

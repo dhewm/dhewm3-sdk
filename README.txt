@@ -1,3 +1,7 @@
+
+!!!   This is outdated and will get no further updates    !!!
+!!! Use the "Hard Corps" mod ("hardcorps" branch) instead !!!
+
 This allows you to run the HardQore2 mod in dhewm3!
 A big thank you to Revility (and the rest of the HardQore2 team) for releasing
 the source under GPL, so I could port it to dhewm3! :-)

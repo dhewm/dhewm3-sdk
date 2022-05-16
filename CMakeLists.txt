@@ -64,36 +64,67 @@ endif()
 
 # target cpu
 set(cpu ${CMAKE_SYSTEM_PROCESSOR})
+
+# Originally, ${CMAKE_SYSTEM_PROCESSOR} was supposed to contain the *target* CPU, according to CMake's documentation.
+# As far as I can tell this has always been broken (always returns host CPU) at least on Windows
+# (see e.g. https://cmake.org/pipermail/cmake-developers/2014-September/011405.html) and wasn't reliable on
+# other systems either, for example on Linux with 32bit userland but 64bit kernel it returned the kernel CPU type
+# (e.g. x86_64 instead of i686). Instead of fixing this, CMake eventually updated their documentation in 3.20,
+# now it's officially the same as CMAKE_HOST_SYSTEM_PROCESSOR except when cross-compiling (where it's explicitly set)
+# So we gotta figure out the actual target CPU type ourselves.. (why am I sticking to this garbage buildsystem?)
+if(NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL CMAKE_HOST_SYSTEM_PROCESSOR))
+	# special case: cross-compiling, here CMAKE_SYSTEM_PROCESSOR should be correct, hopefully
+	# (just leave cpu at ${CMAKE_SYSTEM_PROCESSOR})
+elseif(MSVC)
+	message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
+	if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+		set(cpu "x86")
+	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+		set(cpu "x86_64")
+	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
+		# at least on RPi 32bit, gcc -dumpmachine outputs "arm-linux-gnueabihf",
+		#  so we'll use "arm" there => use the same for 32bit ARM on MSVC
+		set(cpu "arm")
+	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
+		set(cpu "arm64")
+	else()
+		message(FATAL_ERROR "Unknown Target CPU/platform ${CMAKE_GENERATOR_PLATFORM}")
+	endif()
+	message(STATUS "  => CPU architecture extracted from that: \"${cpu}\"")
+else() # not MSVC and not cross-compiling, assume GCC or clang (-compatible), seems to work for MinGW as well
+	execute_process(COMMAND ${CMAKE_C_COMPILER} "-dumpmachine"
+	                RESULT_VARIABLE cc_dumpmachine_res
+	                OUTPUT_VARIABLE cc_dumpmachine_out)
+	if(cc_dumpmachine_res EQUAL 0)
+		string(STRIP ${cc_dumpmachine_out} cc_dumpmachine_out) # get rid of trailing newline
+		message(STATUS "`${CMAKE_C_COMPILER} -dumpmachine` says: \"${cc_dumpmachine_out}\"")
+		# gcc -dumpmachine and clang -dumpmachine seem to print something like "x86_64-linux-gnu" (gcc)
+		# or "x64_64-pc-linux-gnu" (clang) or "i686-w64-mingw32" (32bit mingw-w64) i.e. starting with the CPU,
+		# then "-" and then OS or whatever - so use everything up to first "-"
+		string(REGEX MATCH "^[^-]+" cpu ${cc_dumpmachine_out})
+		message(STATUS "  => CPU architecture extracted from that: \"${cpu}\"")
+	else()
+		message(WARNING "${CMAKE_C_COMPILER} -dumpmachine failed with error (code) ${cc_dumpmachine_res}")
+		message(WARNING "will use the (sometimes incorrect) CMAKE_SYSTEM_PROCESSOR (${cpu}) to determine D3_ARCH")
+	endif()
+endif()
+
 if(cpu STREQUAL "powerpc")
 	set(cpu "ppc")
+elseif(cpu STREQUAL "aarch64")
+	# "arm64" is more obvious, and some operating systems (like macOS) use it instead of "aarch64"
+	set(cpu "arm64")
 elseif(cpu MATCHES "i.86")
 	set(cpu "x86")
 elseif(cpu MATCHES "[aA][mM][dD]64" OR cpu MATCHES "[xX]64")
 	set(cpu "x86_64")
-endif()
-
-# On Windows ${CMAKE_SYSTEM_PROCESSOR} is broken (always returns host CPU)
-# which has only been reported >7 years ago (https://cmake.org/pipermail/cmake-developers/2014-September/011405.html)
-# so obviously a fix is too much to ask. Here's the special case to make that wonderful platform work;
-# except if it's Windows for ARM(64) I guess, no idea how to detect that properly (I don't own such hardware).
-if(MSVC)
-	if(cpu MATCHES ".*[aA][rR][mM].*")
-		message(FATAL_ERROR "please fix this code to work for Windows on ARM and send a pull request")
-	endif()
-	if(CMAKE_CL_64)
-		set(cpu "x86_64")
-	else()
-		set(cpu "x86")
-	endif()
-elseif(DEFINED ENV{MINGW_CHOST})
-	# looks like it's broken in MinGW32 shells (or 32bit mingw-w64 shells) as well, this should help:
-	message(STATUS "MINGW_CHOST = $ENV{MINGW_CHOST}")
-	if($ENV{MINGW_CHOST} MATCHES "^i.86.*")
-		set(cpu "x86")
-	elseif($ENV{MINGW_CHOST} MATCHES "^x86_64.*")
-		set(cpu "x86_64")
-	else()
-		message(FATAL_ERROR "please fix this code to work for MINGW_CHOST = $ENV{MINGW_CHOST} and send a pull request!")
+elseif(cpu MATCHES "[aA][rR][mM].*") # some kind of arm..
+	# On 32bit Raspbian gcc -dumpmachine returns sth starting with "arm-",
+	# while clang -dumpmachine says "arm6k-..." - try to unify that to "arm"
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8) # sizeof(void*) == 8 => must be arm64
+		set(cpu "arm64")
+	else() # should be 32bit arm then (probably "armv7l" "armv6k" or sth like that)
+		set(cpu "arm")
 	endif()
 endif()
 

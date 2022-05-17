@@ -34,6 +34,10 @@
 #define SDL_LIL_ENDIAN  1234
 #define SDL_BIG_ENDIAN  4321
 
+#ifndef BUILD_IS_BIG_ENDIAN
+  #error BUILD_IS_BIG_ENDIAN should be defined!
+#endif
+
 #if BUILD_IS_BIG_ENDIAN // this is from config.h, set by cmake
   #define SDL_BYTEORDER SDL_BIG_ENDIAN
 #else

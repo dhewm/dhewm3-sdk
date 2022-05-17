@@ -256,6 +256,18 @@ void idGameLocal::Clear( void ) {
 	memset( lagometer, 0, sizeof( lagometer ) );
 }
 
+
+// DG: for script debugger support
+static bool ( *updateDebuggerFnPtr )( idInterpreter *interpreter, idProgram *program, int instructionPointer ) = NULL;
+bool updateGameDebugger( idInterpreter *interpreter, idProgram *program, int instructionPointer ) {
+	bool ret = false;
+	if ( interpreter != NULL && program != NULL ) {
+		ret = updateDebuggerFnPtr ? updateDebuggerFnPtr( interpreter, program, instructionPointer ) : false;
+	}
+	return ret;
+}
+
+
 /*
 ===========
 idGameLocal::Init
@@ -332,6 +344,10 @@ void idGameLocal::Init( void ) {
 	gamestate = GAMESTATE_NOMAP;
 
 	Printf( "...%d aas types\n", aasList.Num() );
+
+	// debugger support - Note: a side effect of requesting this function pointer
+	//  is that now the engine knows that this mod supports script debugging.
+	common->GetAdditionalFunction(idCommon::FT_UpdateDebugger,(idCommon::FunctionPointer*) &updateDebuggerFnPtr,NULL);
 }
 
 /*

@@ -17,12 +17,18 @@ This repository also contains ports of existing mods whichs authors released
 the source under GPL; you can find these in their own branches:
 [Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom),
 [Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod),
-[Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz)
-[HardQore2](https://github.com/dhewm/dhewm3-sdk/tree/hardqore2) and
-[Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin)
+[Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz),
+[Hard Corps](https://github.com/dhewm/dhewm3-sdk/tree/hardcorps),
+[Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin) and
+[Doom3: The Lost Mission](https://github.com/dhewm/dhewm3-sdk/tree/d3le)
 
-You can find Win32 DLLs of those mods that work with dhewm3 1.5.0 at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_win32.zip  
-The equivalent Linux amd64 (x86_64) libs can be downloaded at https://github.com/dhewm/dhewm3/releases/download/1.5.0/dhewm3-mods_1.5.0_Linux_amd64.tar.gz
+In addition to this repository, there is also the LibreCoop mod that implements Coop
+gameplay for dhewm3: [LibreCoop Github for the source code](https://github.com/Stradex/librecoop)
+and [LibreCoop on ModDB which has the game data](https://www.moddb.com/mods/librecoop-dhewm3-coop).
+
+You can find Win32 DLLs and Linux x86_64 (amd64) `.so` libraries of those mods that work with
+dhewm3 1.5.x at [the dhewm3 Github release page](https://github.com/dhewm/dhewm3/releases/latest)
+(the dhewm3-mods-1.5.* archives).
 
 ## How to build
 
@@ -102,6 +108,14 @@ If you prefer E-Mail, you can find my address in the [git commits](https://githu
 ## New features that mods can use
 
 dhewm3 has some features that the original Doom3 didn't have that are interesting for Mods.
+
+### The Script Debugger
+
+dhewm3 1.5.2 and newer contain the Script Debugger (that you may remember from Quake4).  
+While most of the code for it is in the engine, the game code also needs some small changes for it to work.
+
+The [debugger branch](https://github.com/dhewm/dhewm3-sdk/tree/debugger)
+has the necessary changes in its last commit.
 
 ### Injecting all supported resolutions into the video menu
 

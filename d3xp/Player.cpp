@@ -804,8 +804,9 @@ void idInventory::AddPickupName( const char *name, const char *icon, idPlayer* o
 			msg.WriteString( name, MAX_EVENT_PARAM_SIZE );
 			owner->ServerSendEvent( idPlayer::EVENT_PICKUPNAME, &msg, false, -1 );
 		}
-	}
 #endif
+	}
+
 }
 
 /*
@@ -906,6 +907,8 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 		owner->GivePowerUp( BERSERK, SEC2MS( atof( value ) ) );
 	//} else if ( !idStr::Icmp( statname, "haste" ) ) {
 	//	owner->GivePowerUp( HASTE, SEC2MS( atof( value ) ) );
+	} else if( !idStr::Icmp( statname, "adrenaline" ) ) { // DG: this was missing in the d3le source, see #28
+		GivePowerUp( owner, ADRENALINE, SEC2MS( atof( value ) ) );
 #else
 	} else if ( !idStr::Icmp( statname, "berserk" ) ) {
 		GivePowerUp( owner, BERSERK, SEC2MS( atof( value ) ) );

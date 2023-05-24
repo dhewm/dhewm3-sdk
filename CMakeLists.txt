@@ -324,22 +324,23 @@ endif()
 
 
 set(src_game
+	game/Actor.cpp
 	game/AF.cpp
 	game/AFEntity.cpp
-	game/Actor.cpp
+	game/BrittleFracture.cpp
 	game/Camera.cpp
 	game/Entity.cpp
-	game/BrittleFracture.cpp
 	game/Fx.cpp
 	game/GameEdit.cpp
 	game/Game_local.cpp
 	game/Game_network.cpp
-	game/Item.cpp
+	game/Grabber.cpp
 	game/IK.cpp
+	game/Item.cpp
 	game/Light.cpp
 	game/Misc.cpp
-	game/Mover.cpp
 	game/Moveable.cpp
+	game/Mover.cpp
 	game/MultiplayerGame.cpp
 	game/Player.cpp
 	game/PlayerIcon.cpp
@@ -361,8 +362,8 @@ set(src_game
 	game/ai/AI_events.cpp
 	game/ai/AI_pathing.cpp
 	game/ai/AI_Vagary.cpp
-	game/gamesys/DebugGraph.cpp
 	game/gamesys/Class.cpp
+	game/gamesys/DebugGraph.cpp
 	game/gamesys/Event.cpp
 	game/gamesys/SaveGame.cpp
 	game/gamesys/SysCmds.cpp
@@ -381,6 +382,7 @@ set(src_game
 	game/physics/Force_Constant.cpp
 	game/physics/Force_Drag.cpp
 	game/physics/Force_Field.cpp
+	game/physics/Force_Grab.cpp
 	game/physics/Force_Spring.cpp
 	game/physics/Physics.cpp
 	game/physics/Physics_AF.cpp
@@ -398,84 +400,6 @@ set(src_game
 )
 
 add_globbed_headers(src_game "game")
-
-set(src_d3xp
-	d3xp/AF.cpp
-	d3xp/AFEntity.cpp
-	d3xp/Actor.cpp
-	d3xp/Camera.cpp
-	d3xp/Entity.cpp
-	d3xp/BrittleFracture.cpp
-	d3xp/Fx.cpp
-	d3xp/GameEdit.cpp
-	d3xp/Game_local.cpp
-	d3xp/Game_network.cpp
-	d3xp/Item.cpp
-	d3xp/IK.cpp
-	d3xp/Light.cpp
-	d3xp/Misc.cpp
-	d3xp/Mover.cpp
-	d3xp/Moveable.cpp
-	d3xp/MultiplayerGame.cpp
-	d3xp/Player.cpp
-	d3xp/PlayerIcon.cpp
-	d3xp/PlayerView.cpp
-	d3xp/Projectile.cpp
-	d3xp/Pvs.cpp
-	d3xp/SecurityCamera.cpp
-	d3xp/SmokeParticles.cpp
-	d3xp/Sound.cpp
-	d3xp/Target.cpp
-	d3xp/Trigger.cpp
-	d3xp/Weapon.cpp
-	d3xp/WorldSpawn.cpp
-	d3xp/ai/AAS.cpp
-	d3xp/ai/AAS_debug.cpp
-	d3xp/ai/AAS_pathing.cpp
-	d3xp/ai/AAS_routing.cpp
-	d3xp/ai/AI.cpp
-	d3xp/ai/AI_events.cpp
-	d3xp/ai/AI_pathing.cpp
-	d3xp/ai/AI_Vagary.cpp
-	d3xp/gamesys/DebugGraph.cpp
-	d3xp/gamesys/Class.cpp
-	d3xp/gamesys/Event.cpp
-	d3xp/gamesys/SaveGame.cpp
-	d3xp/gamesys/SysCmds.cpp
-	d3xp/gamesys/SysCvar.cpp
-	d3xp/gamesys/TypeInfo.cpp
-	d3xp/anim/Anim.cpp
-	d3xp/anim/Anim_Blend.cpp
-	d3xp/anim/Anim_Import.cpp
-	d3xp/anim/Anim_Testmodel.cpp
-	d3xp/script/Script_Compiler.cpp
-	d3xp/script/Script_Interpreter.cpp
-	d3xp/script/Script_Program.cpp
-	d3xp/script/Script_Thread.cpp
-	d3xp/physics/Clip.cpp
-	d3xp/physics/Force.cpp
-	d3xp/physics/Force_Constant.cpp
-	d3xp/physics/Force_Drag.cpp
-	d3xp/physics/Force_Field.cpp
-	d3xp/physics/Force_Spring.cpp
-	d3xp/physics/Physics.cpp
-	d3xp/physics/Physics_AF.cpp
-	d3xp/physics/Physics_Actor.cpp
-	d3xp/physics/Physics_Base.cpp
-	d3xp/physics/Physics_Monster.cpp
-	d3xp/physics/Physics_Parametric.cpp
-	d3xp/physics/Physics_Player.cpp
-	d3xp/physics/Physics_RigidBody.cpp
-	d3xp/physics/Physics_Static.cpp
-	d3xp/physics/Physics_StaticMulti.cpp
-	d3xp/physics/Push.cpp
-	d3xp/Grabber.cpp
-	d3xp/physics/Force_Grab.cpp
-
-	${src_d3xp_mod}
-)
-
-add_globbed_headers(src_d3xp "d3xp")
 
 set(src_idlib
 	idlib/bv/Bounds.cpp
@@ -593,19 +517,19 @@ endif()
 
 if(D3XP)
 	if (AROS)
-		add_executable(d3xp sys/aros/dll/dllglue.c ${src_d3xp})
+		add_executable(d3xp sys/aros/dll/dllglue.c ${src_game})
 		set_target_properties(d3xp PROPERTIES OUTPUT_NAME "${D3XP_NAME}.aros-${AROS_ARCH}")
 	else()
-		add_library(d3xp SHARED ${src_d3xp})
+		add_library(d3xp SHARED ${src_game})
 		# so mods can create whatever.dll instead of d3xp.dll from the code in d3xp/
 		set_target_properties(d3xp PROPERTIES OUTPUT_NAME "${D3XP_NAME}")
 	endif()
 
-	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX neo FILES ${src_d3xp})
+	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX neo FILES ${src_game})
 
 	set_target_properties(d3xp PROPERTIES PREFIX "")
-	set_target_properties(d3xp PROPERTIES COMPILE_DEFINITIONS "${D3XP_DEFS}")
-	target_include_directories(d3xp PRIVATE "${CMAKE_SOURCE_DIR}/d3xp")
+	set_target_properties(d3xp PROPERTIES COMPILE_DEFINITIONS "${D3XP_DEFS} _D3XP")
+	target_include_directories(d3xp PRIVATE "${CMAKE_SOURCE_DIR}/game")
 	set_target_properties(d3xp PROPERTIES LINK_FLAGS "${ldflags}")
 	set_target_properties(d3xp PROPERTIES INSTALL_NAME_DIR "@executable_path")
 	if (AROS)

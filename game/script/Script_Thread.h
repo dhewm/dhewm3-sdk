@@ -125,6 +125,9 @@ private:
 	void						Event_SetCvar( const char *name, const char *value ) const;
 	void						Event_GetCvar( const char *name ) const;
 	void						Event_Random( float range ) const;
+#ifdef _D3XP
+	void						Event_RandomInt( int range ) const;
+#endif
 	void						Event_GetTime( void );
 	void						Event_KillThread( const char *name );
 	void						Event_GetEntity( const char *name );
@@ -144,12 +147,20 @@ private:
 	void						Event_AngToUp( idAngles &ang );
 	void						Event_GetSine( float angle );
 	void						Event_GetCosine( float angle );
+#ifdef _D3XP
+	void						Event_GetArcSine( float a );
+	void						Event_GetArcCosine( float a );
+#endif
 	void						Event_GetSquareRoot( float theSquare );
 	void						Event_VecNormalize( idVec3 &vec );
 	void						Event_VecLength( idVec3 &vec );
 	void						Event_VecDotProduct( idVec3 &vec1, idVec3 &vec2 );
 	void						Event_VecCrossProduct( idVec3 &vec1, idVec3 &vec2 );
 	void						Event_VecToAngles( idVec3 &vec );
+#ifdef _D3XP
+	void						Event_VecToOrthoBasisAngles( idVec3 &vec );
+	void						Event_RotateVector( idVec3 &vec, idVec3 &ang );
+#endif
 	void						Event_OnSignal( int signal, idEntity *ent, const char *func );
 	void						Event_ClearSignalThread( int signal, idEntity *ent );
 	void						Event_SetCamera( idEntity *ent );

@@ -564,6 +564,10 @@ void idCameraAnim::GetViewParms( renderView_t *view ) {
 		return;
 	}
 
+#ifdef _D3XP
+	SetTimeState ts( timeGroup );
+#endif
+
 	if ( frameRate == USERCMD_HZ ) {
 		frameTime	= gameLocal.time - starttime;
 		frame		= frameTime / gameLocal.msec;

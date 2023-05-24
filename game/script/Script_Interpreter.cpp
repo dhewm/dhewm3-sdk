@@ -172,7 +172,7 @@ void idInterpreter::Reset( void ) {
 	currentFunction = 0;
 	NextInstruction( 0 );
 
-	threadDying	=	false;
+	threadDying		= false;
 	doneProcessing	= true;
 }
 

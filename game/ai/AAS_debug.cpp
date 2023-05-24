@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "sys/platform.h"
-#include "gamesys/SysCvar.h"
+#include <gamesys/SysCvar.h>
 #include "ai/AI.h"
 #include "Player.h"
 #include "Game_local.h"

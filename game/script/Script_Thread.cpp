@@ -52,6 +52,9 @@ const idEventDef EV_Thread_Trigger( "trigger", "e" );
 const idEventDef EV_Thread_SetCvar( "setcvar", "ss" );
 const idEventDef EV_Thread_GetCvar( "getcvar", "s", 's' );
 const idEventDef EV_Thread_Random( "random", "f", 'f' );
+#ifdef _D3XP
+const idEventDef EV_Thread_RandomInt( "randomInt", "d", 'd' );
+#endif
 const idEventDef EV_Thread_GetTime( "getTime", NULL, 'f' );
 const idEventDef EV_Thread_KillThread( "killthread", "s" );
 const idEventDef EV_Thread_SetThreadName( "threadname", "s" );
@@ -72,12 +75,20 @@ const idEventDef EV_Thread_AngToRight( "angToRight", "v", 'v' );
 const idEventDef EV_Thread_AngToUp( "angToUp", "v", 'v' );
 const idEventDef EV_Thread_Sine( "sin", "f", 'f' );
 const idEventDef EV_Thread_Cosine( "cos", "f", 'f' );
+#ifdef _D3XP
+const idEventDef EV_Thread_ArcSine( "asin", "f", 'f' );
+const idEventDef EV_Thread_ArcCosine( "acos", "f", 'f' );
+#endif
 const idEventDef EV_Thread_SquareRoot( "sqrt", "f", 'f' );
 const idEventDef EV_Thread_Normalize( "vecNormalize", "v", 'v' );
 const idEventDef EV_Thread_VecLength( "vecLength", "v", 'f' );
 const idEventDef EV_Thread_VecDotProduct( "DotProduct", "vv", 'f' );
 const idEventDef EV_Thread_VecCrossProduct( "CrossProduct", "vv", 'v' );
 const idEventDef EV_Thread_VecToAngles( "VecToAngles", "v", 'v' );
+#ifdef _D3XP
+const idEventDef EV_Thread_VecToOrthoBasisAngles( "VecToOrthoBasisAngles", "v", 'v' );
+const idEventDef EV_Thread_RotateVector("rotateVector", "vv", 'v');
+#endif
 const idEventDef EV_Thread_OnSignal( "onSignal", "des" );
 const idEventDef EV_Thread_ClearSignal( "clearSignalThread", "de" );
 const idEventDef EV_Thread_SetCamera( "setCamera", "e" );
@@ -130,6 +141,9 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_SetCvar,				idThread::Event_SetCvar )
 	EVENT( EV_Thread_GetCvar,				idThread::Event_GetCvar )
 	EVENT( EV_Thread_Random,				idThread::Event_Random )
+#ifdef _D3XP
+	EVENT( EV_Thread_RandomInt,				idThread::Event_RandomInt )
+#endif
 	EVENT( EV_Thread_GetTime,				idThread::Event_GetTime )
 	EVENT( EV_Thread_KillThread,			idThread::Event_KillThread )
 	EVENT( EV_Thread_SetThreadName,			idThread::Event_SetThreadName )
@@ -150,12 +164,20 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_AngToUp,				idThread::Event_AngToUp )
 	EVENT( EV_Thread_Sine,					idThread::Event_GetSine )
 	EVENT( EV_Thread_Cosine,				idThread::Event_GetCosine )
+#ifdef _D3XP
+	EVENT( EV_Thread_ArcSine,				idThread::Event_GetArcSine )
+	EVENT( EV_Thread_ArcCosine,				idThread::Event_GetArcCosine )
+#endif
 	EVENT( EV_Thread_SquareRoot,			idThread::Event_GetSquareRoot )
 	EVENT( EV_Thread_Normalize,				idThread::Event_VecNormalize )
 	EVENT( EV_Thread_VecLength,				idThread::Event_VecLength )
 	EVENT( EV_Thread_VecDotProduct,			idThread::Event_VecDotProduct )
 	EVENT( EV_Thread_VecCrossProduct,		idThread::Event_VecCrossProduct )
 	EVENT( EV_Thread_VecToAngles,			idThread::Event_VecToAngles )
+#ifdef _D3XP
+	EVENT( EV_Thread_VecToOrthoBasisAngles, idThread::Event_VecToOrthoBasisAngles )
+	EVENT( EV_Thread_RotateVector,			idThread::Event_RotateVector )
+#endif
 	EVENT( EV_Thread_OnSignal,				idThread::Event_OnSignal )
 	EVENT( EV_Thread_ClearSignal,			idThread::Event_ClearSignalThread )
 	EVENT( EV_Thread_SetCamera,				idThread::Event_SetCamera )
@@ -1070,6 +1092,16 @@ void idThread::Event_Random( float range ) const {
 	ReturnFloat( range * result );
 }
 
+#ifdef _D3XP
+
+void idThread::Event_RandomInt( int range ) const {
+	int result;
+	result = gameLocal.random.RandomInt(range);
+	ReturnFloat(result);
+}
+
+#endif
+
 /*
 ================
 idThread::Event_GetTime
@@ -1285,6 +1317,26 @@ void idThread::Event_GetCosine( float angle ) {
 	ReturnFloat( idMath::Cos( DEG2RAD( angle ) ) );
 }
 
+#ifdef _D3XP
+/*
+================
+idThread::Event_GetArcSine
+================
+*/
+void idThread::Event_GetArcSine( float a ) {
+	ReturnFloat(RAD2DEG(idMath::ASin(a)));
+}
+
+/*
+================
+idThread::Event_GetArcCosine
+================
+*/
+void idThread::Event_GetArcCosine( float a ) {
+	ReturnFloat(RAD2DEG(idMath::ACos(a)));
+}
+#endif
+
 /*
 ================
 idThread::Event_GetSquareRoot
@@ -1343,6 +1395,34 @@ void idThread::Event_VecToAngles( idVec3 &vec ) {
 	idAngles ang = vec.ToAngles();
 	ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
 }
+
+#ifdef _D3XP
+/*
+================
+idThread::Event_VecToOrthoBasisAngles
+================
+*/
+void idThread::Event_VecToOrthoBasisAngles( idVec3 &vec ) {
+	idVec3 left, up;
+	idAngles ang;
+
+	vec.OrthogonalBasis( left, up );
+	idMat3 axis( left, up, vec );
+
+	ang = axis.ToAngles();
+
+	ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
+}
+
+void idThread::Event_RotateVector( idVec3 &vec, idVec3 &ang ) {
+
+	idAngles tempAng(ang);
+	idMat3 axis = tempAng.ToMat3();
+	idVec3 ret = vec * axis;
+	ReturnVector(ret);
+
+}
+#endif
 
 /*
 ================

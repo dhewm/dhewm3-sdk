@@ -545,6 +545,11 @@ void idSaveGame::WriteRenderEntity( const renderEntity_t &renderEntity ) {
 	WriteBool( renderEntity.weaponDepthHack );
 
 	WriteInt( renderEntity.forceUpdate );
+
+#ifdef _D3XP
+	WriteInt( renderEntity.timeGroup );
+	WriteInt( renderEntity.xrayIndex );
+#endif
 }
 
 /*
@@ -1319,6 +1324,11 @@ void idRestoreGame::ReadRenderEntity( renderEntity_t &renderEntity ) {
 	ReadBool( renderEntity.weaponDepthHack );
 
 	ReadInt( renderEntity.forceUpdate );
+
+#ifdef _D3XP
+	ReadInt( renderEntity.timeGroup );
+	ReadInt( renderEntity.xrayIndex );
+#endif
 }
 
 /*

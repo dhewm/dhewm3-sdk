@@ -226,12 +226,24 @@ public:
 	void					Restore( idRestoreGame *savefile );
 	virtual void			Present( void );
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+#ifdef _D3XP
+	void					SetThrown( bool isThrown );
+	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity );
+#endif
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
+
+#ifdef _D3XP
+	bool					IsGibbed() { return gibbed; };
+#endif
 
 protected:
 	idRenderModel *			skeletonModel;
 	int						skeletonModelDefHandle;
 	bool					gibbed;
+
+#ifdef _D3XP
+	bool					wasThrown;
+#endif
 
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 	void					InitSkeletonModel( void );
@@ -303,7 +315,11 @@ public:
 protected:
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 
+#ifndef _D3XP
 private:
+#else
+public:
+#endif
 	idEntityPtr<idAFAttachment>	head;
 
 	void					Event_Gib( const char *damageDefName );
@@ -409,6 +425,12 @@ public:
 	void					Spawn( void );
 	virtual void			Think( void );
 
+#ifdef _D3XP
+	float					force;
+	float					velocity;
+	float					steerAngle;
+#endif
+
 private:
 	idAFBody *				wheels[6];
 	idAFConstraint_Hinge *	steering[4];
@@ -416,6 +438,37 @@ private:
 	float					wheelAngles[6];
 };
 
+#ifdef _D3XP
+/*
+===============================================================================
+
+idAFEntity_VehicleAutomated
+
+===============================================================================
+*/
+
+class idAFEntity_VehicleAutomated : public idAFEntity_VehicleSixWheels {
+public:
+	CLASS_PROTOTYPE( idAFEntity_VehicleAutomated );
+
+	void					Spawn( void );
+	void					PostSpawn( void );
+	virtual void			Think( void );
+
+private:
+
+	idEntity	*waypoint;
+	float		steeringSpeed;
+	float		currentSteering;
+	float		idealSteering;
+	float		originHeight;
+
+	void		Event_SetVelocity( float _velocity );
+	void		Event_SetTorque( float _torque );
+	void		Event_SetSteeringSpeed( float _steeringSpeed );
+	void		Event_SetWayPoint( idEntity *_waypoint );
+};
+#endif
 
 /*
 ===============================================================================
@@ -474,5 +527,90 @@ private:
 	void					Event_SetFingerAngle( float angle );
 	void					Event_StopFingers( void );
 };
+
+#ifdef _D3XP
+
+/**
+* idHarvestable contains all of the code required to turn an entity into a harvestable
+* entity. The entity must create an instance of this class and call the appropriate
+* interface methods at the correct time.
+*/
+class idHarvestable : public idEntity {
+public:
+	CLASS_PROTOTYPE( idHarvestable );
+
+	idHarvestable();
+	~idHarvestable();
+
+	void				Spawn();
+	void				Init(idEntity* parent);
+	void				Save( idSaveGame *savefile ) const;
+	void				Restore( idRestoreGame *savefile );
+
+	void				SetParent(idEntity* parent);
+
+	void				Think();
+	void				Gib();
+
+protected:
+	idEntityPtr<idEntity>	parentEnt;
+	float					triggersize;
+	idClipModel *			trigger;
+	float					giveDelay;
+	float					removeDelay;
+	bool					given;
+
+	idEntityPtr<idPlayer>	player;
+	int						startTime;
+
+	bool					fxFollowPlayer;
+	idEntityPtr<idEntityFx>	fx;
+	idStr					fxOrient;
+
+protected:
+	void					BeginBurn();
+	void					BeginFX();
+	void					CalcTriggerBounds( float size, idBounds &bounds );
+
+	bool					GetFxOrientationAxis(idMat3& mat);
+
+	void					Event_SpawnHarvestTrigger( void );
+	void					Event_Touch( idEntity *other, trace_t *trace );
+} ;
+
+
+/*
+===============================================================================
+
+idAFEntity_Harvest
+
+===============================================================================
+*/
+
+
+
+class idAFEntity_Harvest : public idAFEntity_WithAttachedHead {
+public:
+	CLASS_PROTOTYPE( idAFEntity_Harvest );
+
+	idAFEntity_Harvest();
+	~idAFEntity_Harvest();
+
+	void					Spawn( void );
+
+	void					Save( idSaveGame *savefile ) const;
+	void					Restore( idRestoreGame *savefile );
+
+	virtual void			Think( void );
+
+	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
+
+protected:
+	idEntityPtr<idHarvestable>	harvestEnt;
+protected:
+	void					Event_SpawnHarvestEntity( void );
+
+};
+#endif
 
 #endif /* !__GAME_AFENTITY_H__ */

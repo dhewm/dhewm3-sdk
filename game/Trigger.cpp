@@ -399,7 +399,13 @@ void idTrigger_Multi::TriggerAction( idEntity *activator ) {
 	} else {
 		// we can't just remove (this) here, because this is a touch function
 		// called while looping through area links...
+#ifdef _D3XP
+		// If the player spawned inside the trigger, the player Spawn function called Think directly,
+		// allowing for multiple triggers on a trigger_once.  Increasing the nextTriggerTime prevents it.
+		nextTriggerTime = gameLocal.time + 99999;
+#else
 		nextTriggerTime = gameLocal.time + 1;
+#endif
 		PostEventMS( &EV_Remove, 0 );
 	}
 }
@@ -997,8 +1003,26 @@ void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
 	const char *damage;
 
 	if ( on && other && gameLocal.time >= nextTime ) {
+#ifdef _D3XP
+		bool playerOnly = spawnArgs.GetBool( "playerOnly" );
+		if ( playerOnly ) {
+			if ( !other->IsType( idPlayer::Type ) ) {
+				return;
+			}
+		}
+#endif
 		damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
+
+#ifdef _D3XP
+		idVec3 dir = vec3_origin;
+		if(spawnArgs.GetBool("kick_from_center", "0")) {
+			dir = other->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
+			dir.Normalize();
+		}
+		other->Damage( NULL, NULL, dir, damage, 1.0f, INVALID_JOINT );
+#else
 		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
+#endif
 
 		ActivateTargets( other );
 		CallScript();
@@ -1190,3 +1214,113 @@ idTrigger_Touch::Disable
 void idTrigger_Touch::Disable( void ) {
 	BecomeInactive( TH_THINK );
 }
+
+#ifdef CTF
+/*
+===============================================================================
+
+  idTrigger_Flag
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTrigger_Multi, idTrigger_Flag )
+	EVENT( EV_Touch, idTrigger_Flag::Event_Touch )
+END_CLASS
+
+idTrigger_Flag::idTrigger_Flag( void ) {
+	team		= -1;
+	player		= false;
+	eventFlag	= NULL;
+}
+
+void idTrigger_Flag::Spawn( void ) {
+	team = spawnArgs.GetInt( "team", "0" );
+	player = spawnArgs.GetBool( "player", "0" );
+
+	idStr funcname = spawnArgs.GetString( "eventflag", "" );
+	if ( funcname.Length() ) {
+		eventFlag = idEventDef::FindEvent( funcname );// gameLocal.program.FindFunction( funcname );//, &idItemTeam::Type );
+		if ( eventFlag == NULL ) {
+			gameLocal.Warning( "trigger '%s' at (%s) event unknown '%s'", name.c_str(), GetPhysics()->GetOrigin().ToString(0), funcname.c_str() );
+		}
+	} else {
+		eventFlag = NULL;
+	}
+
+	idTrigger_Multi::Spawn();
+}
+
+void idTrigger_Flag::Event_Touch( idEntity *other, trace_t *trace ) {
+
+	idItemTeam * flag = NULL;
+
+	if ( player ) {
+		if ( !other->IsType( idPlayer::Type ) )
+			return;
+
+		idPlayer * player = static_cast<idPlayer *>(other);
+		if ( player->carryingFlag == false )
+			return;
+
+		if ( team != -1 && ( player->team != team || (player->team != 0 && player->team != 1))  )
+			return;
+
+		idItemTeam * flags[2];
+
+		flags[0] = gameLocal.mpGame.GetTeamFlag( 0 );
+		flags[1] = gameLocal.mpGame.GetTeamFlag( 1 );
+
+		int iFriend = 1 - player->team;			// index to the flag player team wants
+		int iOpp	= player->team;				// index to the flag opp team wants
+
+		// flag is captured if :
+		// 1)flag is truely bound to the player
+		// 2)opponent flag has been return
+		if ( flags[iFriend]->carried && !flags[iFriend]->dropped && //flags[iFriend]->IsBoundTo( player ) &&
+			!flags[iOpp]->carried && !flags[iOpp]->dropped )
+			flag = flags[iFriend];
+		else
+			return;
+	} else {
+		if ( !other->IsType( idItemTeam::Type ) )
+			return;
+
+		idItemTeam * item = static_cast<idItemTeam *>( other );
+
+		if ( item->team == team || team == -1 ) {
+			flag = item;
+		}
+		else
+			return;
+	}
+
+	if ( flag ) {
+		switch ( eventFlag->GetNumArgs() ) {
+			default :
+			case 0 :
+				flag->PostEventMS( eventFlag, 0 );
+			break;
+			case 1 :
+				flag->PostEventMS( eventFlag, 0, 0 );
+			break;
+			case 2 :
+				flag->PostEventMS( eventFlag, 0, 0, 0 );
+			break;
+		}
+
+/*
+		ServerSendEvent( eventFlag->GetEventNum(), NULL, true, false );
+
+		idThread *thread;
+		if ( scriptFlag ) {
+			thread = new idThread();
+			thread->CallFunction( flag, scriptFlag, false );
+			thread->DelayedStart( 0 );
+		}
+*/
+		idTrigger_Multi::Event_Touch( other, trace );
+	}
+}
+
+#endif

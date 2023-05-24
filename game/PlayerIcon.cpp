@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/platform.h"
 #include "renderer/ModelManager.h"
 
+#include "gamesys/SysCvar.h"
 #include "Player.h"
 
 #include "PlayerIcon.h"
@@ -36,6 +37,10 @@ If you have questions concerning this license or the applicable additional terms
 static const char * iconKeys[ ICON_NONE ] = {
 	"mtr_icon_lag",
 	"mtr_icon_chat"
+#ifdef CTF
+	,"mtr_icon_redteam",
+	"mtr_icon_blueteam"
+#endif
 };
 
 /*
@@ -91,15 +96,26 @@ void idPlayerIcon::Draw( idPlayer *player, const idVec3 &origin ) {
 
 	idMat3 axis = localPlayer->GetRenderView()->viewaxis;
 
-	if ( player->isLagged ) {
+	if ( player->isLagged && !player->spectating ) {
 		// create the icon if necessary, or update if already created
 		if ( !CreateIcon( player, ICON_LAG, origin, axis ) ) {
 			UpdateIcon( player, origin, axis );
 		}
-	} else if ( player->isChatting ) {
+	} else if ( player->isChatting && !player->spectating ) {
 		if ( !CreateIcon( player, ICON_CHAT, origin, axis ) ) {
 			UpdateIcon( player, origin, axis );
 		}
+#ifdef CTF
+	} else if ( g_CTFArrows.GetBool() && gameLocal.mpGame.IsGametypeFlagBased() && gameLocal.GetLocalPlayer() && player->team == gameLocal.GetLocalPlayer()->team && !player->IsHidden() && !player->AI_DEAD ) {
+		int icon = ICON_TEAM_RED + player->team;
+
+		if ( icon != ICON_TEAM_RED && icon != ICON_TEAM_BLUE )
+			return;
+
+		if ( !CreateIcon( player, ( playerIconType_t )icon, origin, axis ) ) {
+			UpdateIcon( player, origin, axis );
+		}
+#endif
 	} else {
 		FreeIcon();
 	}

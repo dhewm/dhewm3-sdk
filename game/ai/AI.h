@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Actor.h"
 #include "Projectile.h"
 
+class idFuncEmitter;
+
 /*
 ===============================================================================
 
@@ -149,6 +151,12 @@ extern const idEventDef AI_MuzzleFlash;
 extern const idEventDef AI_CreateMissile;
 extern const idEventDef AI_AttackMissile;
 extern const idEventDef AI_FireMissileAtTarget;
+#ifdef _D3XP
+extern const idEventDef AI_LaunchProjectile;
+extern const idEventDef AI_TriggerFX;
+extern const idEventDef AI_StartEmitter;
+extern const idEventDef AI_StopEmitter;
+#endif
 extern const idEventDef AI_AttackMelee;
 extern const idEventDef AI_DirectDamage;
 extern const idEventDef AI_JumpFrame;
@@ -171,6 +179,14 @@ typedef struct particleEmitter_s {
 	int					time;
 	jointHandle_t		joint;
 } particleEmitter_t;
+
+#ifdef _D3XP
+typedef struct funcEmitter_s {
+	char				name[64];
+	idFuncEmitter*		particle;
+	jointHandle_t		joint;
+} funcEmitter_t;
+#endif
 
 class idMoveState {
 public:
@@ -276,6 +292,10 @@ public:
 	static bool				TestTrajectory( const idVec3 &start, const idVec3 &end, float zVel, float gravity, float time, float max_height, const idClipModel *clip, int clipmask, const idEntity *ignore, const idEntity *targetEntity, int drawtime );
 							// Finds the best collision free trajectory for a clip model.
 	static bool				PredictTrajectory( const idVec3 &firePos, const idVec3 &target, float projectileSpeed, const idVec3 &projGravity, const idClipModel *clip, int clipmask, float max_height, const idEntity *ignore, const idEntity *targetEntity, int drawtime, idVec3 &aimDir );
+
+#ifdef _D3XP
+	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
+#endif
 
 protected:
 	// navigation
@@ -398,6 +418,14 @@ protected:
 	idVec3					lastVisibleReachableEnemyPos;
 	idVec3					lastReachableEnemyPos;
 	bool					wakeOnFlashlight;
+
+#ifdef _D3XP
+	bool					spawnClearMoveables;
+
+	idHashTable<funcEmitter_t> funcEmitters;
+
+	idEntityPtr<idHarvestable>	harvestEnt;
+#endif
 
 	// script variables
 	idScriptBool			AI_TALK;
@@ -529,6 +557,13 @@ protected:
 	void					UpdateParticles( void );
 	void					TriggerParticles( const char *jointName );
 
+#ifdef _D3XP
+	void					TriggerFX( const char* joint, const char* fx );
+	idEntity*				StartEmitter( const char* name, const char* joint, const char* particle );
+	idEntity*				GetEmitter( const char* name );
+	void					StopEmitter( const char* name );
+#endif
+
 	// AI script state management
 	void					LinkScriptVariables( void );
 	void					UpdateAIScript( void );
@@ -550,6 +585,9 @@ protected:
 	void					Event_AttackMissile( const char *jointname );
 	void					Event_FireMissileAtTarget( const char *jointname, const char *targetname );
 	void					Event_LaunchMissile( const idVec3 &muzzle, const idAngles &ang );
+#ifdef _D3XP
+	void					Event_LaunchProjectile( const char *entityDefName );
+#endif
 	void					Event_AttackMelee( const char *meleeDefName );
 	void					Event_DirectDamage( idEntity *damageTarget, const char *damageDefName );
 	void					Event_RadiusDamageFromJoint( const char *jointname, const char *damageDefName );
@@ -664,6 +702,15 @@ protected:
 	void					Event_CanReachEntity( idEntity *ent );
 	void					Event_CanReachEnemy( void );
 	void					Event_GetReachableEntityPosition( idEntity *ent );
+#ifdef _D3XP
+	void					Event_MoveToPositionDirect( const idVec3 &pos );
+	void					Event_AvoidObstacles( int ignore);
+	void					Event_TriggerFX( const char* joint, const char* fx );
+
+	void					Event_StartEmitter( const char* name, const char* joint, const char* particle );
+	void					Event_GetEmitter( const char* name );
+	void					Event_StopEmitter( const char* name );
+#endif
 };
 
 class idCombatNode : public idEntity {

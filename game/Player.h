@@ -806,7 +806,6 @@ private:
 	void					Event_GiveInventoryItem( const char* name );
 	void					Event_RemoveInventoryItem( const char* name );
 
-	void					Event_GetIdealWeapon( void );
 	void					Event_WeaponAvailable( const char* name );
 	void					Event_SetPowerupTime( int powerup, int time );
 	void					Event_IsPowerupActive( int powerup );
@@ -815,6 +814,7 @@ private:
 	void					Event_ToggleBloom( int on );
 	void					Event_SetBloomParms( float speed, float intensity );
 #endif
+	void					Event_GetIdealWeapon(void);
 };
 
 ID_INLINE bool idPlayer::IsReady( void ) {

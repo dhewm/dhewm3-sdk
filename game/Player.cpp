@@ -92,7 +92,6 @@ const idEventDef EV_SpectatorTouch( "spectatorTouch", "et" );
 #ifdef _D3XP
 const idEventDef EV_Player_GiveInventoryItem( "giveInventoryItem", "s" );
 const idEventDef EV_Player_RemoveInventoryItem( "removeInventoryItem", "s" );
-const idEventDef EV_Player_GetIdealWeapon( "getIdealWeapon", NULL, 's' );
 const idEventDef EV_Player_SetPowerupTime( "setPowerupTime", "dd" );
 const idEventDef EV_Player_IsPowerupActive( "isPowerupActive", "d", 'd' );
 const idEventDef EV_Player_WeaponAvailable( "weaponAvailable", "s", 'd');
@@ -101,6 +100,7 @@ const idEventDef EV_Player_StopHelltime( "stopHelltime", "d" );
 const idEventDef EV_Player_ToggleBloom( "toggleBloom", "d" );
 const idEventDef EV_Player_SetBloomParms( "setBloomParms", "ff" );
 #endif
+const idEventDef EV_Player_GetIdealWeapon("getIdealWeapon", NULL, 's');
 
 CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_GetButtons,			idPlayer::Event_GetButtons )
@@ -123,7 +123,6 @@ CLASS_DECLARATION( idActor, idPlayer )
 #ifdef _D3XP
 	EVENT( EV_Player_GiveInventoryItem,		idPlayer::Event_GiveInventoryItem )
 	EVENT( EV_Player_RemoveInventoryItem,	idPlayer::Event_RemoveInventoryItem )
-	EVENT( EV_Player_GetIdealWeapon,		idPlayer::Event_GetIdealWeapon )
 	EVENT( EV_Player_WeaponAvailable,		idPlayer::Event_WeaponAvailable )
 	EVENT( EV_Player_SetPowerupTime,		idPlayer::Event_SetPowerupTime )
 	EVENT( EV_Player_IsPowerupActive,		idPlayer::Event_IsPowerupActive )
@@ -132,6 +131,7 @@ CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_ToggleBloom,			idPlayer::Event_ToggleBloom )
 	EVENT( EV_Player_SetBloomParms,			idPlayer::Event_SetBloomParms )
 #endif
+	EVENT( EV_Player_GetIdealWeapon,		idPlayer::Event_GetIdealWeapon )
 END_CLASS
 
 const int MAX_RESPAWN_TIME = 10000;
@@ -9031,6 +9031,7 @@ idPlayer::Event_RemoveInventoryItem
 void idPlayer::Event_RemoveInventoryItem( const char* name ) {
 	RemoveInventoryItem(name);
 }
+#endif
 
 /*
 ==================
@@ -9048,6 +9049,7 @@ void idPlayer::Event_GetIdealWeapon( void ) {
 	}
 }
 
+#ifdef _D3XP
 /*
 ==================
 idPlayer::Event_SetPowerupTime

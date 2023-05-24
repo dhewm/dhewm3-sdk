@@ -8703,6 +8703,8 @@ void idPlayer::CalculateRenderView( void ) {
 
 #ifdef _D3XP
 	renderView->time = gameLocal.slow.time;
+#else
+	renderView->time = gameLocal.time;
 #endif
 
 	// calculate size of 3D view

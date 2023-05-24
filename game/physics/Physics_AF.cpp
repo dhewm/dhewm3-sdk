@@ -3033,7 +3033,8 @@ void idAFConstraint_Contact::Setup( idAFBody *b1, idAFBody *b2, contactInfo_t &c
 
 	if ( body1->GetBouncyness() > 0.0f && -vel > minBounceVelocity ) {
 		c1[0] = body1->GetBouncyness() * vel;
-	} else {
+	}
+	else {
 		c1[0] = 0.0f;
 	}
 

@@ -161,6 +161,9 @@ typedef enum {
 typedef struct {
 	idEntity	*ent;
 	int			dist;
+#ifdef CTF
+	int			team;
+#endif
 } spawnSpot_t;
 
 //============================================================================
@@ -218,6 +221,29 @@ private:
 	int						spawnId;
 };
 
+#ifdef _D3XP
+struct timeState_t {
+	int					time;
+	int					previousTime;
+	int					msec;
+	int					framenum;
+	int					realClientTime;
+
+	void				Set( int t, int pt, int ms, int f, int rct )		{ time = t; previousTime = pt; msec = ms; framenum = f; realClientTime = rct; };
+	void				Get( int& t, int& pt, int& ms, int& f, int& rct )	{ t = time; pt = previousTime; ms = msec; f = framenum; rct = realClientTime; };
+	void				Save( idSaveGame *savefile ) const	{ savefile->WriteInt( time ); savefile->WriteInt( previousTime ); savefile->WriteInt( msec ); savefile->WriteInt( framenum ); savefile->WriteInt( realClientTime ); }
+	void				Restore( idRestoreGame *savefile )	{ savefile->ReadInt( time ); savefile->ReadInt( previousTime ); savefile->ReadInt( msec ); savefile->ReadInt( framenum ); savefile->ReadInt( realClientTime ); }
+	void				Increment()											{ framenum++; previousTime = time; time += msec; realClientTime = time; };
+};
+
+enum slowmoState_t {
+	SLOWMO_STATE_OFF,
+	SLOWMO_STATE_RAMPUP,
+	SLOWMO_STATE_ON,
+	SLOWMO_STATE_RAMPDOWN
+};
+#endif
+
 //============================================================================
 
 class idGameLocal : public idGame {
@@ -272,7 +298,11 @@ public:
 	int						framenum;
 	int						previousTime;			// time in msec of last frame
 	int						time;					// in msec
+#ifdef _D3XP
+	int						msec;					// time since last update in milliseconds
+#else
 	static const int		msec = USERCMD_MSEC;	// time since last update in milliseconds
+#endif // _D3XP
 
 	int						vacuumAreaNum;			// -1 if level doesn't have any outside areas
 
@@ -294,6 +324,27 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+#ifdef _D3XP
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyAcive();
+
+	timeState_t				fast;
+	timeState_t				slow;
+
+	slowmoState_t			slowmoState;
+	float					slowmoMsec;
+
+	bool					quickSlowmoReset;
+
+	void					ComputeSlowMsec();
+	void					RunTimeGroup2();
+
+	void					ResetSlowTimeVars();
+	void					QuickSlowmoReset();
+#endif
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -386,6 +437,9 @@ public:
 
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
+#ifdef _D3XP
+	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
+#endif
 
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;
@@ -494,6 +548,12 @@ private:
 	idStaticList<spawnSpot_t, MAX_GENTITIES> spawnSpots;
 	idStaticList<idEntity *, MAX_GENTITIES> initialSpots;
 	int						currentInitialSpot;
+
+#ifdef CTF
+	idStaticList<spawnSpot_t, MAX_GENTITIES> teamSpawnSpots[2];
+	idStaticList<idEntity *, MAX_GENTITIES> teamInitialSpots[2];
+	int						teamCurrentInitialSpot[2];
+#endif
 
 	idDict					newInfo;
 
@@ -627,7 +687,7 @@ ID_INLINE int idEntityPtr<type>::GetEntityNum( void ) const {
 	return ( spawnId & ( ( 1 << GENTITYNUM_BITS ) - 1 ) );
 }
 
-//============================================================================
+//  ===========================================================================
 
 //
 // these defines work for all startsounds from all entity types

@@ -943,6 +943,15 @@ bool idClass::ProcessEventArgPtr( const idEventDef *ev, intptr_t *data ) {
 	assert( ev );
 	assert( idEvent::initialized );
 
+#ifdef _D3XP
+	SetTimeState ts;
+
+	if ( IsType( idEntity::Type ) ) {
+		idEntity *ent = (idEntity*)this;
+		ts.PushState( ent->timeGroup );
+	}
+#endif
+
 	if ( g_debugTriggers.GetBool() && ( ev == &EV_Activate ) && IsType( idEntity::Type ) ) {
 		const idEntity *ent = *reinterpret_cast<idEntity **>( data );
 		gameLocal.Printf( "%d: '%s' activated by '%s'\n", gameLocal.framenum, static_cast<idEntity *>( this )->GetName(), ent ? ent->GetName() : "NULL" );

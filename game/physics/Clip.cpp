@@ -965,24 +965,26 @@ idClip::TestHugeTranslation
 */
 ID_INLINE bool TestHugeTranslation( trace_t &results, const idClipModel *mdl, const idVec3 &start, const idVec3 &end, const idMat3 &trmAxis ) {
 	if ( mdl != NULL && ( end - start ).LengthSqr() > Square( CM_MAX_TRACE_DIST ) ) {
-
-
 		results.fraction = 0.0f;
 		results.endpos = start;
 		results.endAxis = trmAxis;
 		memset( &results.c, 0, sizeof( results.c ) );
 		results.c.point = start;
-		results.c.entityNum = ENTITYNUM_WORLD;
 
 		if ( mdl->GetEntity() ) {
 			gameLocal.Printf( "huge translation for clip model %d on entity %d '%s'\n", mdl->GetId(), mdl->GetEntity()->entityNumber, mdl->GetEntity()->GetName() );
 		} else {
 			gameLocal.Printf( "huge translation for clip model %d\n", mdl->GetId() );
 		}
-
 		gameLocal.Printf( "  from (%.2f %.2f %.2f) to (%.2f %.2f %.2f)\n", start.x, start.y, start.z, end.x, end.y, end.z);
 
+#ifndef CTF
+		// May be important: This occurs in CTF when a player connects and spawns
+		// in the PVS of a player that has a flag that is spawning the idMoveableItem
+		// "nuggets".  The error seems benign and the assert was getting in the way
+		// of testing.
 		assert( 0 );
+#endif
 		return true;
 	}
 	return false;

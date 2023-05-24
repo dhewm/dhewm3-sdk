@@ -36,6 +36,17 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "PlayerView.h"
 
+// _D3XP : rename all gameLocal.time to gameLocal.slow.time for merge!
+
+#ifdef _D3XP
+static int MakePowerOfTwo( int num ) {
+	int		pot;
+	for (pot = 1 ; pot < num ; pot<<=1) {
+	}
+	return pot;
+}
+#endif
+
 const int IMPULSE_DELAY = 150;
 /*
 ==============
@@ -65,6 +76,14 @@ idPlayerView::idPlayerView() {
 	fadeToColor.Zero();
 	fadeColor.Zero();
 	shakeAng.Zero();
+#ifdef _D3XP
+	fxManager = NULL;
+
+	if ( !fxManager ) {
+		fxManager = new FullscreenFXManager;
+		fxManager->Initialize( this );
+	}
+#endif
 
 	ClearEffects();
 }
@@ -118,6 +137,12 @@ void idPlayerView::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteObject( player );
 	savefile->WriteRenderView( view );
+
+#ifdef _D3XP
+	if ( fxManager ) {
+		fxManager->Save( savefile );
+	}
+#endif
 }
 
 /*
@@ -169,6 +194,12 @@ void idPlayerView::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadObject( reinterpret_cast<idClass *&>( player ) );
 	savefile->ReadRenderView( view );
+
+#ifdef _D3XP
+	if ( fxManager ) {
+		fxManager->Restore( savefile );
+	}
+#endif
 }
 
 /*
@@ -186,6 +217,16 @@ idPlayerView::ClearEffects
 ==============
 */
 void idPlayerView::ClearEffects() {
+#ifdef _D3XP
+	lastDamageTime = MS2SEC( gameLocal.slow.time - 99999 );
+
+	dvFinishTime = ( gameLocal.fast.time - 99999 );
+	kickFinishTime = ( gameLocal.slow.time - 99999 );
+
+	for ( int i = 0 ; i < MAX_SCREEN_BLOBS ; i++ ) {
+		screenBlobs[i].finishTime = gameLocal.slow.time;
+	}
+#else
 	lastDamageTime = MS2SEC( gameLocal.time - 99999 );
 
 	dvFinishTime = ( gameLocal.time - 99999 );
@@ -194,6 +235,7 @@ void idPlayerView::ClearEffects() {
 	for ( int i = 0 ; i < MAX_SCREEN_BLOBS ; i++ ) {
 		screenBlobs[i].finishTime = gameLocal.time;
 	}
+#endif // _D3XP
 
 	fadeTime = 0;
 	bfgVision = false;
@@ -227,13 +269,27 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	//
 	// double vision effect
 	//
+#ifdef _D3XP
+	if ( lastDamageTime > 0.0f && SEC2MS( lastDamageTime ) + IMPULSE_DELAY > gameLocal.slow.time ) {
+#else
 	if ( lastDamageTime > 0.0f && SEC2MS( lastDamageTime ) + IMPULSE_DELAY > gameLocal.time ) {
+#endif // _D3XP
 		// keep shotgun from obliterating the view
 		return;
 	}
 
 	float	dvTime = damageDef->GetFloat( "dv_time" );
 	if ( dvTime ) {
+#ifdef _D3XP
+		if ( dvFinishTime < gameLocal.fast.time ) {
+			dvFinishTime = gameLocal.fast.time;
+		}
+		dvFinishTime += g_dvTime.GetFloat() * dvTime;
+		// don't let it add up too much in god mode
+		if ( dvFinishTime > gameLocal.fast.time + 5000 ) {
+			dvFinishTime = gameLocal.fast.time + 5000;
+		}
+#else
 		if ( dvFinishTime < gameLocal.time ) {
 			dvFinishTime = gameLocal.time;
 		}
@@ -242,6 +298,7 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 		if ( dvFinishTime > gameLocal.time + 5000 ) {
 			dvFinishTime = gameLocal.time + 5000;
 		}
+#endif // _D3XP
 	}
 
 	//
@@ -249,7 +306,11 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	//
 	float	kickTime = damageDef->GetFloat( "kick_time" );
 	if ( kickTime ) {
+#ifdef _D3XP
+		kickFinishTime = gameLocal.slow.time + g_kickTime.GetFloat() * kickTime;
+#else
 		kickFinishTime = gameLocal.time + g_kickTime.GetFloat() * kickTime;
+#endif // _D3XP
 
 		// forward / back kick will pitch view
 		kickAngles[0] = localKickDir[0];
@@ -275,8 +336,13 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	float	blobTime = damageDef->GetFloat( "blob_time" );
 	if ( blobTime ) {
 		screenBlob_t	*blob = GetScreenBlob();
+#ifdef _D3XP
+		blob->startFadeTime = gameLocal.slow.time;
+		blob->finishTime = gameLocal.slow.time + blobTime * g_blobTime.GetFloat() * ((float)gameLocal.msec / USERCMD_MSEC);
+#else
 		blob->startFadeTime = gameLocal.time;
 		blob->finishTime = gameLocal.time + blobTime * g_blobTime.GetFloat();
+#endif // _D3XP
 
 		const char *materialName = damageDef->GetString( "mtr_blob" );
 		blob->material = declManager->FindMaterial( materialName );
@@ -297,7 +363,11 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	//
 	// save lastDamageTime for tunnel vision accentuation
 	//
+#ifdef _D3XP
+	lastDamageTime = MS2SEC( gameLocal.slow.time );
+#else
 	lastDamageTime = MS2SEC( gameLocal.time );
+#endif // _D3XP
 
 }
 
@@ -316,8 +386,8 @@ void idPlayerView::AddBloodSpray( float duration ) {
 	}
 	// visit this for chainsaw
 	screenBlob_t *blob = GetScreenBlob();
-	blob->startFadeTime = gameLocal.time;
-	blob->finishTime = gameLocal.time + ( duration * 1000 );
+	blob->startFadeTime = gameLocal.slow.time;
+	blob->finishTime = gameLocal.slow.time + ( duration * 1000 );
 	blob->material = bloodSprayMaterial;
 	blob->x = ( gameLocal.random.RandomInt() & 63 ) - 32;
 	blob->y = ( gameLocal.random.RandomInt() & 63 ) - 32;
@@ -360,11 +430,19 @@ void idPlayerView::WeaponFireFeedback( const idDict *weaponDef ) {
 
 	recoilTime = weaponDef->GetInt( "recoilTime" );
 	// don't shorten a damage kick in progress
+#ifdef _D3XP
+	if ( recoilTime && kickFinishTime < gameLocal.slow.time ) {
+#else
 	if ( recoilTime && kickFinishTime < gameLocal.time ) {
+#endif // _D3XP
 		idAngles angles;
 		weaponDef->GetAngles( "recoilAngles", "5 0 0", angles );
 		kickAngles = angles;
+#ifdef _D3XP
+		int	finish = gameLocal.slow.time + g_kickTime.GetFloat() * recoilTime;
+#else
 		int	finish = gameLocal.time + g_kickTime.GetFloat() * recoilTime;
+#endif // _D3XP
 		kickFinishTime = finish;
 	}
 
@@ -378,7 +456,11 @@ idPlayerView::CalculateShake
 void idPlayerView::CalculateShake() {
 	idVec3	origin, matrix;
 
+#ifdef _D3XP
+	float shakeVolume = gameSoundWorld->CurrentShakeAmplitudeForPosition( gameLocal.slow.time, player->firstPersonViewOrigin );
+#else
 	float shakeVolume = gameSoundWorld->CurrentShakeAmplitudeForPosition( gameLocal.time, player->firstPersonViewOrigin );
+#endif // _D3XP
 	//
 	// shakeVolume should somehow be molded into an angle here
 	// it should be thought of as being in the range 0.0 -> 1.0, although
@@ -411,8 +493,13 @@ idAngles idPlayerView::AngleOffset() const {
 
 	ang.Zero();
 
+#ifdef _D3XP
+	if ( gameLocal.slow.time < kickFinishTime ) {
+		float offset = kickFinishTime - gameLocal.slow.time;
+#else
 	if ( gameLocal.time < kickFinishTime ) {
 		float offset = kickFinishTime - gameLocal.time;
+#endif // _D3XP
 
 		ang = kickAngles * offset * offset * g_kickAmplitude.GetFloat();
 
@@ -440,11 +527,19 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 	}
 
 	// place the sound origin for the player
+#ifdef _D3XP
+	gameSoundWorld->PlaceListener( view->vieworg, view->viewaxis, player->entityNumber + 1, gameLocal.slow.time, hud ? hud->State().GetString( "location" ) : "Undefined" );
+#else
 	gameSoundWorld->PlaceListener( view->vieworg, view->viewaxis, player->entityNumber + 1, gameLocal.time, hud ? hud->State().GetString( "location" ) : "Undefined" );
+#endif // _D3XP
 
 	// if the objective system is up, don't do normal drawing
 	if ( player->objectiveSystemOpen ) {
+#ifdef _D3XP
+		player->objectiveSystem->Redraw( gameLocal.fast.time );
+#else
 		player->objectiveSystem->Redraw( gameLocal.time );
+#endif // _D3XP
 		return;
 	}
 
@@ -452,23 +547,72 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 	renderView_t	hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 
+#ifdef _D3XP
+	if ( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() ) {
+		renderView_t	portalView = hackedView;
+		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+		// setup global fixup projection vars
+		if ( 1 ) {
+			int vidWidth, vidHeight;
+			idVec2 shiftScale;
+
+			renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+			float pot;
+			int	 w = vidWidth;
+			pot = MakePowerOfTwo( w );
+			shiftScale.x = (float)w / pot;
+
+			int	 h = vidHeight;
+			pot = MakePowerOfTwo( h );
+			shiftScale.y = (float)h / pot;
+
+			hackedView.shaderParms[4] = shiftScale.x;
+			hackedView.shaderParms[5] = shiftScale.y;
+		}
+
+		gameRenderWorld->RenderScene( &portalView );
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+
+		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
+	}
+
+	// process the frame
+	fxManager->Process( &hackedView );
+#else
 	gameRenderWorld->RenderScene( &hackedView );
+#endif
 
 	if ( player->spectating ) {
 		return;
 	}
 
+#ifdef _D3XP
+	if ( !hud ) {
+		return;
+	}
+#endif
+
 	// draw screen blobs
 	if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() ) {
 		for ( int i = 0 ; i < MAX_SCREEN_BLOBS ; i++ ) {
 			screenBlob_t	*blob = &screenBlobs[i];
+#ifdef _D3XP
+			if ( blob->finishTime <= gameLocal.slow.time ) {
+#else
 			if ( blob->finishTime <= gameLocal.time ) {
+#endif // _D3XP
 				continue;
 			}
 
 			blob->y += blob->driftAmount;
 
+#ifdef _D3XP
+			float	fade = (float)( blob->finishTime - gameLocal.slow.time ) / ( blob->finishTime - blob->startFadeTime );
+#else
 			float	fade = (float)( blob->finishTime - gameLocal.time ) / ( blob->finishTime - blob->startFadeTime );
+#endif // _D3XP
 			if ( fade > 1.0f ) {
 				fade = 1.0f;
 			}
@@ -480,7 +624,11 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		player->DrawHUD( hud );
 
 		// armor impulse feedback
+#ifdef _D3XP
+		float	armorPulse = ( gameLocal.fast.time - player->lastArmorPulse ) / 250.0f;
+#else
 		float	armorPulse = ( gameLocal.time - player->lastArmorPulse ) / 250.0f;
+#endif // _D3XP
 
 		if ( armorPulse > 0.0f && armorPulse < 1.0f ) {
 			renderSystem->SetColor4( 1, 1, 1, 1.0 - armorPulse );
@@ -504,10 +652,15 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		}
 
 		if ( alpha < 1.0f  ) {
+#ifdef _D3XP
+			renderSystem->SetColor4( ( player->health <= 0.0f ) ? MS2SEC( gameLocal.slow.time ) : lastDamageTime, 1.0f, 1.0f, ( player->health <= 0.0f ) ? 0.0f : alpha );
+#else
 			renderSystem->SetColor4( ( player->health <= 0.0f ) ? MS2SEC( gameLocal.time ) : lastDamageTime, 1.0f, 1.0f, ( player->health <= 0.0f ) ? 0.0f : alpha );
+#endif // _D3XP
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, tunnelMaterial );
 		}
 
+#ifndef _D3XP
 		if ( player->PowerUpActive(BERSERK) ) {
 			int berserkTime = player->inventory.powerupEndTime[ BERSERK ] - gameLocal.time;
 			if ( berserkTime > 0 ) {
@@ -517,7 +670,7 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 				renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, berserkMaterial );
 			}
 		}
-
+#endif // not _D3XP
 		if ( bfgVision ) {
 			renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, bfgMaterial );
@@ -536,58 +689,6 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, mtr );
 		}
 	}
-}
-
-/*
-===================
-idPlayerView::DoubleVision
-===================
-*/
-void idPlayerView::DoubleVision( idUserInterface *hud, const renderView_t *view, int offset ) {
-
-	if ( !g_doubleVision.GetBool() ) {
-		SingleView( hud, view );
-		return;
-	}
-
-	float	scale = offset * g_dvAmplitude.GetFloat();
-	if ( scale > 0.5f ) {
-		scale = 0.5f;
-	}
-	float shift = scale * sin( sqrtf( offset ) * g_dvFrequency.GetFloat() );
-	shift = fabs( shift );
-
-	// if double vision, render to a texture
-	renderSystem->CropRenderSize( 512, 256, true );
-	SingleView( hud, view );
-	renderSystem->CaptureRenderToImage( "_scratch" );
-	renderSystem->UnCrop();
-
-	// carry red tint if in berserk mode
-	idVec4 color(1, 1, 1, 1);
-	if ( gameLocal.time < player->inventory.powerupEndTime[ BERSERK ] ) {
-		color.y = 0;
-		color.z = 0;
-	}
-
-	renderSystem->SetColor4( color.x, color.y, color.z, 1.0f );
-	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, shift, 1, 1, 0, dvMaterial );
-	renderSystem->SetColor4( color.x, color.y, color.z, 0.5f );
-	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1-shift, 0, dvMaterial );
-}
-
-/*
-===================
-idPlayerView::BerserkVision
-===================
-*/
-void idPlayerView::BerserkVision( idUserInterface *hud, const renderView_t *view ) {
-	renderSystem->CropRenderSize( 512, 256, true );
-	SingleView( hud, view );
-	renderSystem->CaptureRenderToImage( "_scratch" );
-	renderSystem->UnCrop();
-	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
-	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, dvMaterial );
 }
 
 
@@ -612,6 +713,9 @@ assumes: color.w is 0 or 1
 =================
 */
 void idPlayerView::Fade( idVec4 color, int time ) {
+#ifdef _D3XP
+	SetTimeState ts( player->timeGroup );
+#endif
 
 	if ( !fadeTime ) {
 		fadeFromColor.Set( 0.0f, 0.0f, 0.0f, 1.0f - color[ 3 ] );
@@ -648,6 +752,10 @@ void idPlayerView::ScreenFade() {
 		return;
 	}
 
+#ifdef _D3XP
+	SetTimeState ts( player->timeGroup );
+#endif
+
 	msec = fadeTime - gameLocal.realClientTime;
 
 	if ( msec <= 0 ) {
@@ -668,13 +776,759 @@ void idPlayerView::ScreenFade() {
 
 /*
 ===================
-idPlayerView::InfluenceVision
+idPlayerView::RenderPlayerView
 ===================
 */
-void idPlayerView::InfluenceVision( idUserInterface *hud, const renderView_t *view ) {
+void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
+	const renderView_t *view = player->GetRenderView();
 
+	SingleView( hud, view );
+	ScreenFade();
+
+	if ( net_clientLagOMeter.GetBool() && lagoMaterial && gameLocal.isClient ) {
+		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
+		renderSystem->DrawStretchPic( 10.0f, 380.0f, 64.0f, 64.0f, 0.0f, 0.0f, 1.0f, 1.0f, lagoMaterial );
+	}
+}
+
+#ifdef _D3XP
+/*
+===================
+idPlayerView::WarpVision
+===================
+*/
+int idPlayerView::AddWarp( idVec3 worldOrigin, float centerx, float centery, float initialRadius, float durationMsec ) {
+	FullscreenFX_Warp *fx = (FullscreenFX_Warp*)( fxManager->FindFX( "warp" ) );
+
+	if ( fx ) {
+		fx->EnableGrabber( true );
+		return 1;
+	}
+
+	return 1;
+}
+
+void idPlayerView::FreeWarp( int id ) {
+	FullscreenFX_Warp *fx = (FullscreenFX_Warp*)( fxManager->FindFX( "warp" ) );
+
+	if ( fx ) {
+		fx->EnableGrabber( false );
+		return;
+	}
+}
+
+
+
+
+
+/*
+==================
+FxFader::FxFader
+==================
+*/
+FxFader::FxFader() {
+	time = 0;
+	state = FX_STATE_OFF;
+	alpha = 0;
+	msec = 1000;
+}
+
+/*
+==================
+FxFader::SetTriggerState
+==================
+*/
+bool FxFader::SetTriggerState( bool active ) {
+
+	// handle on/off states
+	if ( active && state == FX_STATE_OFF ) {
+		state = FX_STATE_RAMPUP;
+		time = gameLocal.slow.time + msec;
+	}
+	else if ( !active && state == FX_STATE_ON ) {
+		state = FX_STATE_RAMPDOWN;
+		time = gameLocal.slow.time + msec;
+	}
+
+	// handle rampup/rampdown states
+	if ( state == FX_STATE_RAMPUP ) {
+		if ( gameLocal.slow.time >= time ) {
+			state = FX_STATE_ON;
+		}
+	}
+	else if ( state == FX_STATE_RAMPDOWN ) {
+		if ( gameLocal.slow.time >= time ) {
+			state = FX_STATE_OFF;
+		}
+	}
+
+	// compute alpha
+	switch ( state ) {
+		case FX_STATE_ON:		alpha = 1; break;
+		case FX_STATE_OFF:		alpha = 0; break;
+		case FX_STATE_RAMPUP:	alpha = 1 - (float)( time - gameLocal.slow.time ) / msec; break;
+		case FX_STATE_RAMPDOWN:	alpha = (float)( time - gameLocal.slow.time ) / msec; break;
+	}
+
+	if ( alpha > 0 ) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+/*
+==================
+FxFader::Save
+==================
+*/
+void FxFader::Save( idSaveGame *savefile ) {
+	savefile->WriteInt( time );
+	savefile->WriteInt( state );
+	savefile->WriteFloat( alpha );
+	savefile->WriteInt( msec );
+}
+
+/*
+==================
+FxFader::Restore
+==================
+*/
+void FxFader::Restore( idRestoreGame *savefile ) {
+	savefile->ReadInt( time );
+	savefile->ReadInt( state );
+	savefile->ReadFloat( alpha );
+	savefile->ReadInt( msec );
+}
+
+
+
+
+
+/*
+==================
+FullscreenFX_Helltime::Save
+==================
+*/
+void FullscreenFX::Save( idSaveGame *savefile ) {
+	fader.Save( savefile );
+}
+
+/*
+==================
+FullscreenFX_Helltime::Restore
+==================
+*/
+void FullscreenFX::Restore( idRestoreGame *savefile ) {
+	fader.Restore( savefile );
+}
+
+
+/*
+==================
+FullscreenFX_Helltime::Initialize
+==================
+*/
+void FullscreenFX_Helltime::Initialize() {
+	acInitMaterials[0] = declManager->FindMaterial( "textures/smf/bloodorb1/ac_init" );
+	acInitMaterials[1] = declManager->FindMaterial( "textures/smf/bloodorb2/ac_init" );
+	acInitMaterials[2] = declManager->FindMaterial( "textures/smf/bloodorb3/ac_init" );
+
+	acCaptureMaterials[0] = declManager->FindMaterial( "textures/smf/bloodorb1/ac_capture" );
+	acCaptureMaterials[1] = declManager->FindMaterial( "textures/smf/bloodorb2/ac_capture" );
+	acCaptureMaterials[2] = declManager->FindMaterial( "textures/smf/bloodorb3/ac_capture" );
+
+	acDrawMaterials[0] = declManager->FindMaterial( "textures/smf/bloodorb1/ac_draw" );
+	acDrawMaterials[1] = declManager->FindMaterial( "textures/smf/bloodorb2/ac_draw" );
+	acDrawMaterials[2] = declManager->FindMaterial( "textures/smf/bloodorb3/ac_draw" );
+
+	crCaptureMaterials[0] = declManager->FindMaterial( "textures/smf/bloodorb1/cr_capture" );
+	crCaptureMaterials[1] = declManager->FindMaterial( "textures/smf/bloodorb2/cr_capture" );
+	crCaptureMaterials[2] = declManager->FindMaterial( "textures/smf/bloodorb3/cr_capture" );
+
+	crDrawMaterials[0] = declManager->FindMaterial( "textures/smf/bloodorb1/cr_draw" );
+	crDrawMaterials[1] = declManager->FindMaterial( "textures/smf/bloodorb2/cr_draw" );
+	crDrawMaterials[2] = declManager->FindMaterial( "textures/smf/bloodorb3/cr_draw" );
+
+	clearAccumBuffer = true;
+}
+
+/*
+==================
+FullscreenFX_Helltime::DetermineLevel
+==================
+*/
+int FullscreenFX_Helltime::DetermineLevel() {
+	idPlayer *player;
+	int testfx = g_testHelltimeFX.GetInteger();
+
+	// for testing purposes
+	if ( testfx >= 0 && testfx < 3 ) {
+		return testfx;
+	}
+
+	player = fxman->GetPlayer();
+
+	if ( player->PowerUpActive( INVULNERABILITY ) ) {
+		return 2;
+	}
+	else if ( player->PowerUpActive( BERSERK ) ) {
+		return 1;
+	}
+	else if ( player->PowerUpActive( HELLTIME ) ) {
+		return 0;
+	}
+
+	return -1;
+}
+
+/*
+==================
+FullscreenFX_Helltime::Active
+==================
+*/
+bool FullscreenFX_Helltime::Active() {
+
+	if ( gameLocal.inCinematic || gameLocal.isMultiplayer ) {
+		return false;
+	}
+
+	if ( DetermineLevel() >= 0 ) {
+		return true;
+	}
+	else {
+		// latch the clear flag
+		if ( fader.GetAlpha() == 0 ) {
+			clearAccumBuffer = true;
+		}
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_Helltime::AccumPass
+==================
+*/
+void FullscreenFX_Helltime::AccumPass( const renderView_t *view ) {
+	idVec2 shiftScale;
+	int level = DetermineLevel();
+
+	// for testing
+	if ( level < 0 || level > 2 ) {
+		level = 0;
+	}
+
+	shiftScale = fxman->GetShiftScale();
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+
+	// capture pass
+	if ( clearAccumBuffer ) {
+		clearAccumBuffer = false;
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acInitMaterials[level] );
+	}
+	else {
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acCaptureMaterials[level] );
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale.y, shiftScale.x, 0, crCaptureMaterials[level] );
+	}
+
+	renderSystem->CaptureRenderToImage( "_accum" );
+}
+
+/*
+==================
+FullscreenFX_Helltime::HighQuality
+==================
+*/
+void FullscreenFX_Helltime::HighQuality() {
+	idVec2 shiftScale;
+	int level = DetermineLevel();
+
+	// for testing
+	if ( level < 0 || level > 2 ) {
+		level = 0;
+	}
+
+	shiftScale = fxman->GetShiftScale();
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+
+	// draw pass
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acDrawMaterials[level] );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale.y, shiftScale.x, 0, crDrawMaterials[level] );
+}
+
+/*
+==================
+FullscreenFX_Helltime::Restore
+==================
+*/
+void FullscreenFX_Helltime::Restore( idRestoreGame *savefile ) {
+	FullscreenFX::Restore( savefile );
+
+	// latch the clear flag
+	clearAccumBuffer = true;
+}
+
+
+
+
+
+/*
+==================
+FullscreenFX_Multiplayer::Initialize
+==================
+*/
+void FullscreenFX_Multiplayer::Initialize() {
+	acInitMaterials		= declManager->FindMaterial( "textures/smf/multiplayer1/ac_init" );
+	acCaptureMaterials	= declManager->FindMaterial( "textures/smf/multiplayer1/ac_capture" );
+	acDrawMaterials		= declManager->FindMaterial( "textures/smf/multiplayer1/ac_draw" );
+	crCaptureMaterials	= declManager->FindMaterial( "textures/smf/multiplayer1/cr_capture" );
+	crDrawMaterials		= declManager->FindMaterial( "textures/smf/multiplayer1/cr_draw" );
+	clearAccumBuffer	= true;
+}
+
+/*
+==================
+FullscreenFX_Multiplayer::DetermineLevel
+==================
+*/
+int FullscreenFX_Multiplayer::DetermineLevel() {
+	idPlayer *player;
+	int testfx = g_testMultiplayerFX.GetInteger();
+
+	// for testing purposes
+	if ( testfx >= 0 && testfx < 3 ) {
+		return testfx;
+	}
+
+	player = fxman->GetPlayer();
+
+	if ( player->PowerUpActive( INVULNERABILITY ) ) {
+		return 2;
+	}
+	//else if ( player->PowerUpActive( HASTE ) ) {
+	//	return 1;
+	//}
+	else if ( player->PowerUpActive( BERSERK ) ) {
+		return 0;
+	}
+
+	return -1;
+}
+
+/*
+==================
+FullscreenFX_Multiplayer::Active
+==================
+*/
+bool FullscreenFX_Multiplayer::Active() {
+
+	if ( !gameLocal.isMultiplayer && g_testMultiplayerFX.GetInteger() == -1 ) {
+		return false;
+	}
+
+	if ( DetermineLevel() >= 0 ) {
+		return true;
+	}
+	else {
+		// latch the clear flag
+		if ( fader.GetAlpha() == 0 ) {
+			clearAccumBuffer = true;
+		}
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_Multiplayer::AccumPass
+==================
+*/
+void FullscreenFX_Multiplayer::AccumPass( const renderView_t *view ) {
+	idVec2 shiftScale;
+	int level = DetermineLevel();
+
+	// for testing
+	if ( level < 0 || level > 2 ) {
+		level = 0;
+	}
+
+	shiftScale = fxman->GetShiftScale();
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+
+	// capture pass
+	if ( clearAccumBuffer ) {
+		clearAccumBuffer = false;
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acInitMaterials );
+	}
+	else {
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acCaptureMaterials );
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale.y, shiftScale.x, 0, crCaptureMaterials );
+	}
+
+	renderSystem->CaptureRenderToImage( "_accum" );
+}
+
+/*
+==================
+FullscreenFX_Multiplayer::HighQuality
+==================
+*/
+void FullscreenFX_Multiplayer::HighQuality() {
+	idVec2 shiftScale;
+	int level = DetermineLevel();
+
+	// for testing
+	if ( level < 0 || level > 2 ) {
+		level = 0;
+	}
+
+	shiftScale = fxman->GetShiftScale();
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+
+	// draw pass
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, acDrawMaterials );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale.y, shiftScale.x, 0, crDrawMaterials );
+}
+
+/*
+==================
+FullscreenFX_Multiplayer::Restore
+==================
+*/
+void FullscreenFX_Multiplayer::Restore( idRestoreGame *savefile ) {
+	FullscreenFX::Restore( savefile );
+
+	// latch the clear flag
+	clearAccumBuffer = true;
+}
+
+
+
+
+
+/*
+==================
+FullscreenFX_Warp::Initialize
+==================
+*/
+void FullscreenFX_Warp::Initialize() {
+	material = declManager->FindMaterial( "textures/smf/warp" );
+	grabberEnabled = false;
+	startWarpTime = 0;
+}
+
+/*
+==================
+FullscreenFX_Warp::Active
+==================
+*/
+bool FullscreenFX_Warp::Active() {
+	if ( grabberEnabled ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_Warp::Save
+==================
+*/
+void FullscreenFX_Warp::Save( idSaveGame *savefile ) {
+	FullscreenFX::Save( savefile );
+
+	savefile->WriteBool( grabberEnabled );
+	savefile->WriteInt( startWarpTime );
+}
+
+/*
+==================
+FullscreenFX_Warp::Restore
+==================
+*/
+void FullscreenFX_Warp::Restore( idRestoreGame *savefile ) {
+	FullscreenFX::Restore( savefile );
+
+	savefile->ReadBool( grabberEnabled );
+	savefile->ReadInt( startWarpTime );
+}
+
+/*
+==================
+FullscreenFX_Warp::DrawWarp
+==================
+*/
+void FullscreenFX_Warp::DrawWarp( WarpPolygon_t wp, float interp ) {
+	idVec4 mid1_uv, mid2_uv;
+	idVec4 mid1, mid2;
+	idVec2 drawPts[6], shiftScale;
+	WarpPolygon_t trans;
+
+	trans = wp;
+	shiftScale = fxman->GetShiftScale();
+
+	// compute mid points
+	mid1 = trans.outer1 * ( interp ) + trans.center * ( 1 - interp );
+	mid2 = trans.outer2 * ( interp ) + trans.center * ( 1 - interp );
+	mid1_uv = trans.outer1 * ( 0.5 ) + trans.center * ( 1 - 0.5 );
+	mid2_uv = trans.outer2 * ( 0.5 ) + trans.center * ( 1 - 0.5 );
+
+	// draw [outer1, mid2, mid1]
+	drawPts[0].Set( trans.outer1.x, trans.outer1.y );
+	drawPts[1].Set( mid2.x, mid2.y );
+	drawPts[2].Set( mid1.x, mid1.y );
+	drawPts[3].Set( trans.outer1.z, trans.outer1.w );
+	drawPts[4].Set( mid2_uv.z, mid2_uv.w );
+	drawPts[5].Set( mid1_uv.z, mid1_uv.w );
+	for ( int j = 0; j < 3; j++ ) {
+		drawPts[j+3].x *= shiftScale.x;
+		drawPts[j+3].y *= shiftScale.y;
+	}
+	renderSystem->DrawStretchTri( drawPts[0], drawPts[1], drawPts[2], drawPts[3], drawPts[4], drawPts[5], material );
+
+	// draw [outer1, outer2, mid2]
+	drawPts[0].Set( trans.outer1.x, trans.outer1.y );
+	drawPts[1].Set( trans.outer2.x, trans.outer2.y );
+	drawPts[2].Set( mid2.x, mid2.y );
+	drawPts[3].Set( trans.outer1.z, trans.outer1.w );
+	drawPts[4].Set( trans.outer2.z, trans.outer2.w );
+	drawPts[5].Set( mid2_uv.z, mid2_uv.w );
+	for ( int j = 0; j < 3; j++ ) {
+		drawPts[j+3].x *= shiftScale.x;
+		drawPts[j+3].y *= shiftScale.y;
+	}
+	renderSystem->DrawStretchTri( drawPts[0], drawPts[1], drawPts[2], drawPts[3], drawPts[4], drawPts[5], material );
+
+	// draw [mid1, mid2, center]
+	drawPts[0].Set( mid1.x, mid1.y );
+	drawPts[1].Set( mid2.x, mid2.y );
+	drawPts[2].Set( trans.center.x, trans.center.y );
+	drawPts[3].Set( mid1_uv.z, mid1_uv.w );
+	drawPts[4].Set( mid2_uv.z, mid2_uv.w );
+	drawPts[5].Set( trans.center.z, trans.center.w );
+	for ( int j = 0; j < 3; j++ ) {
+		drawPts[j+3].x *= shiftScale.x;
+		drawPts[j+3].y *= shiftScale.y;
+	}
+	renderSystem->DrawStretchTri( drawPts[0], drawPts[1], drawPts[2], drawPts[3], drawPts[4], drawPts[5], material );
+}
+
+/*
+==================
+FullscreenFX_Warp::HighQuality
+==================
+*/
+void FullscreenFX_Warp::HighQuality() {
+	float x1, y1, x2, y2, radius, interp;
+	idVec2 center;
+	int STEP = 9;
+
+	interp = ( idMath::Sin( (float)( gameLocal.slow.time - startWarpTime ) / 1000 ) + 1 ) / 2.f;
+	interp = 0.7 * ( 1 - interp ) + 0.3 * ( interp );
+
+	// draw the warps
+	center.x = 320;
+	center.y = 240;
+	radius = 200;
+
+	for ( float i = 0; i < 360; i += STEP ) {
+		// compute the values
+		x1 = idMath::Sin( DEG2RAD( i ) );
+		y1 = idMath::Cos( DEG2RAD( i ) );
+
+		x2 = idMath::Sin( DEG2RAD( i + STEP ) );
+		y2 = idMath::Cos( DEG2RAD( i + STEP ) );
+
+		// add warp polygon
+		WarpPolygon_t p;
+
+		p.outer1.x = center.x + x1 * radius;
+		p.outer1.y = center.y + y1 * radius;
+		p.outer1.z = p.outer1.x / 640.f;
+		p.outer1.w = 1 - ( p.outer1.y / 480.f );
+
+		p.outer2.x = center.x + x2 * radius;
+		p.outer2.y = center.y + y2 * radius;
+		p.outer2.z = p.outer2.x / 640.f;
+		p.outer2.w = 1 - ( p.outer2.y / 480.f );
+
+		p.center.x = center.x;
+		p.center.y = center.y;
+		p.center.z = p.center.x / 640.f;
+		p.center.w = 1 - ( p.center.y / 480.f );
+
+		// draw it
+		DrawWarp( p, interp );
+	}
+}
+
+
+
+
+
+/*
+==================
+FullscreenFX_EnviroSuit::Initialize
+==================
+*/
+void FullscreenFX_EnviroSuit::Initialize() {
+	material = declManager->FindMaterial( "textures/smf/enviro_suit" );
+}
+
+/*
+==================
+FullscreenFX_EnviroSuit::Active
+==================
+*/
+bool FullscreenFX_EnviroSuit::Active() {
+	idPlayer *player;
+
+	player = fxman->GetPlayer();
+
+	if ( player->PowerUpActive( ENVIROSUIT ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_EnviroSuit::HighQuality
+==================
+*/
+void FullscreenFX_EnviroSuit::HighQuality() {
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, material );
+}
+
+
+
+
+
+/*
+==================
+FullscreenFX_DoubleVision::Initialize
+==================
+*/
+void FullscreenFX_DoubleVision::Initialize() {
+	material = declManager->FindMaterial( "textures/smf/doubleVision" );
+}
+
+/*
+==================
+FullscreenFX_DoubleVision::Active
+==================
+*/
+bool FullscreenFX_DoubleVision::Active() {
+
+	if ( gameLocal.fast.time < fxman->GetPlayerView()->dvFinishTime ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_DoubleVision::HighQuality
+==================
+*/
+void FullscreenFX_DoubleVision::HighQuality() {
+	int offset = fxman->GetPlayerView()->dvFinishTime - gameLocal.fast.time;
+	float	scale = offset * g_dvAmplitude.GetFloat();
+	idPlayer *player;
+	idVec2 shiftScale;
+
+	// for testing purposes
+	if ( !Active() ) {
+		static int test = 0;
+		if ( test > 312 ) {
+			test = 0;
+		}
+
+		offset = test++;
+		scale = offset * g_dvAmplitude.GetFloat();
+	}
+
+	player = fxman->GetPlayer();
+	shiftScale = fxman->GetShiftScale();
+
+	offset *= 2;		// crutch up for higher res
+
+	// set the scale and shift
+	if ( scale > 0.5f ) {
+		scale = 0.5f;
+	}
+	float shift = scale * sin( sqrtf( (float)offset ) * g_dvFrequency.GetFloat() );
+	shift = fabs( shift );
+
+	// carry red tint if in berserk mode
+	idVec4 color(1, 1, 1, 1);
+	if ( gameLocal.fast.time < player->inventory.powerupEndTime[ BERSERK ] ) {
+		color.y = 0;
+		color.z = 0;
+	}
+
+	if ( !gameLocal.isMultiplayer && (gameLocal.fast.time < player->inventory.powerupEndTime[ HELLTIME ] || gameLocal.fast.time < player->inventory.powerupEndTime[ INVULNERABILITY ])) {
+		color.y = 0;
+		color.z = 0;
+	}
+
+	renderSystem->SetColor4( color.x, color.y, color.z, 1.0f );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, shift, shiftScale.y, shiftScale.x, 0, material );
+	renderSystem->SetColor4( color.x, color.y, color.z, 0.5f );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, shiftScale.y, (1-shift) * shiftScale.x, 0, material );
+}
+
+
+
+
+/*
+==================
+FullscreenFX_InfluenceVision::Initialize
+==================
+*/
+void FullscreenFX_InfluenceVision::Initialize() {
+
+}
+
+/*
+==================
+FullscreenFX_InfluenceVision::Active
+==================
+*/
+bool FullscreenFX_InfluenceVision::Active() {
+	idPlayer *player;
+
+	player = fxman->GetPlayer();
+
+	if ( player->GetInfluenceMaterial() || player->GetInfluenceEntity() ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_InfluenceVision::HighQuality
+==================
+*/
+void FullscreenFX_InfluenceVision::HighQuality() {
 	float distance = 0.0f;
 	float pct = 1.0f;
+	idPlayer *player;
+	idVec2 shiftScale;
+
+	shiftScale = fxman->GetShiftScale();
+	player = fxman->GetPlayer();
+
 	if ( player->GetInfluenceEntity() ) {
 		distance = ( player->GetInfluenceEntity()->GetPhysics()->GetOrigin() - player->GetPhysics()->GetOrigin() ).Length();
 		if ( player->GetInfluenceRadius() != 0.0f && distance < player->GetInfluenceRadius() ) {
@@ -682,45 +1536,413 @@ void idPlayerView::InfluenceVision( idUserInterface *hud, const renderView_t *vi
 			pct = 1.0f - idMath::ClampFloat( 0.0f, 1.0f, pct );
 		}
 	}
+
 	if ( player->GetInfluenceMaterial() ) {
-		SingleView( hud, view );
-		renderSystem->CaptureRenderToImage( "_currentRender" );
 		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, pct );
 		renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, player->GetInfluenceMaterial() );
 	} else if ( player->GetInfluenceEntity() == NULL ) {
-		SingleView( hud, view );
 		return;
 	} else {
-		int offset =  25 + sinf( gameLocal.time );
-		DoubleVision( hud, view, pct * offset );
+//		int offset =  25 + sinf( gameLocal.slow.time );
+//		DoubleVision( hud, view, pct * offset );
+	}
+}
+
+
+
+
+/*
+==================
+FullscreenFX_Bloom::Initialize
+==================
+*/
+void FullscreenFX_Bloom::Initialize() {
+	drawMaterial		= declManager->FindMaterial( "textures/smf/bloom2/draw" );
+	initMaterial		= declManager->FindMaterial( "textures/smf/bloom2/init" );
+	currentMaterial		= declManager->FindMaterial( "textures/smf/bloom2/currentMaterial" );
+
+	currentIntensity	= 0;
+	targetIntensity		= 0;
+}
+
+/*
+==================
+FullscreenFX_Bloom::Active
+==================
+*/
+bool FullscreenFX_Bloom::Active() {
+	idPlayer *player;
+
+	player = fxman->GetPlayer();
+
+	if ( player && player->bloomEnabled ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+==================
+FullscreenFX_Bloom::HighQuality
+==================
+*/
+void FullscreenFX_Bloom::HighQuality() {
+	float shift, delta;
+	idVec2 shiftScale;
+	idPlayer *player;
+	int num;
+
+	shift = 1;
+	player = fxman->GetPlayer();
+	shiftScale = fxman->GetShiftScale();
+	renderSystem->SetColor4( 1, 1, 1, 1 );
+
+	// if intensity value is different, start the blend
+	targetIntensity = g_testBloomIntensity.GetFloat();
+
+	if ( player && player->bloomEnabled ) {
+		targetIntensity = player->bloomIntensity;
+	}
+
+	delta = targetIntensity - currentIntensity;
+	float step = 0.001f;
+
+	if ( step < fabs( delta ) ) {
+		if ( delta < 0 ) {
+			step = -step;
+		}
+
+		currentIntensity += step;
+	}
+
+	// draw the blends
+	num = g_testBloomNumPasses.GetInteger();
+
+	for ( int i = 0; i < num; i++ ) {
+		float s1 = 0, t1 = 0, s2 = 1, t2 = 1;
+		float alpha;
+
+		// do the center scale
+		s1 -= 0.5;
+		s1 *= shift;
+		s1 += 0.5;
+		s1 *= shiftScale.x;
+
+		t1 -= 0.5;
+		t1 *= shift;
+		t1 += 0.5;
+		t1 *= shiftScale.y;
+
+		s2 -= 0.5;
+		s2 *= shift;
+		s2 += 0.5;
+		s2 *= shiftScale.x;
+
+		t2 -= 0.5;
+		t2 *= shift;
+		t2 += 0.5;
+		t2 *= shiftScale.y;
+
+		// draw it
+		if ( num == 1 ) {
+			alpha = 1;
+		}
+		else {
+			alpha = 1 - (float)i / ( num - 1 );
+		}
+
+		renderSystem->SetColor4( alpha, alpha, alpha, 1 );
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, s1, t2, s2, t1, drawMaterial );
+
+		shift += currentIntensity;
 	}
 }
 
 /*
-===================
-idPlayerView::RenderPlayerView
-===================
+==================
+FullscreenFX_Bloom::Save
+==================
 */
-void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
-	const renderView_t *view = player->GetRenderView();
+void FullscreenFX_Bloom::Save( idSaveGame *savefile ) {
+	FullscreenFX::Save( savefile );
+	savefile->WriteFloat( currentIntensity );
+	savefile->WriteFloat( targetIntensity );
+}
 
-	if ( g_skipViewEffects.GetBool() ) {
-		SingleView( hud, view );
-	} else {
-		if ( player->GetInfluenceMaterial() || player->GetInfluenceEntity() ) {
-			InfluenceVision( hud, view );
-		} else if ( gameLocal.time < dvFinishTime ) {
-			DoubleVision( hud, view, dvFinishTime - gameLocal.time );
-		} else if ( player->PowerUpActive( BERSERK ) ) {
-			BerserkVision( hud, view );
-		} else {
-			SingleView( hud, view );
+/*
+==================
+FullscreenFX_Bloom::Restore
+==================
+*/
+void FullscreenFX_Bloom::Restore( idRestoreGame *savefile ) {
+	FullscreenFX::Restore( savefile );
+	savefile->ReadFloat( currentIntensity );
+	savefile->ReadFloat( targetIntensity );
+}
+
+
+
+
+
+
+/*
+==================
+FullscreenFXManager::FullscreenFXManager
+==================
+*/
+FullscreenFXManager::FullscreenFXManager() {
+	highQualityMode = false;
+	playerView = NULL;
+	blendBackMaterial = NULL;
+	shiftScale.Set( 0, 0 );
+}
+
+/*
+==================
+FullscreenFXManager::~FullscreenFXManager
+==================
+*/
+FullscreenFXManager::~FullscreenFXManager() {
+
+}
+
+/*
+==================
+FullscreenFXManager::FindFX
+==================
+*/
+FullscreenFX* FullscreenFXManager::FindFX( idStr name ) {
+	for ( int i = 0; i < fx.Num(); i++ ) {
+		if ( fx[i]->GetName() == name ) {
+			return fx[i];
 		}
-		ScreenFade();
 	}
 
-	if ( net_clientLagOMeter.GetBool() && lagoMaterial && gameLocal.isClient ) {
-		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
-		renderSystem->DrawStretchPic( 10.0f, 380.0f, 64.0f, 64.0f, 0.0f, 0.0f, 1.0f, 1.0f, lagoMaterial );
+	return NULL;
+}
+
+/*
+==================
+FullscreenFXManager::CreateFX
+==================
+*/
+void FullscreenFXManager::CreateFX( idStr name, idStr fxtype, int fade ) {
+	FullscreenFX *pfx = NULL;
+
+	if ( fxtype == "helltime" ) {
+		pfx = new FullscreenFX_Helltime;
+	}
+	else if ( fxtype == "warp" ) {
+		pfx = new FullscreenFX_Warp;
+	}
+	else if ( fxtype == "envirosuit" ) {
+		pfx = new FullscreenFX_EnviroSuit;
+	}
+	else if ( fxtype == "doublevision" ) {
+		pfx = new FullscreenFX_DoubleVision;
+	}
+	else if ( fxtype == "multiplayer" ) {
+		pfx = new FullscreenFX_Multiplayer;
+	}
+	else if ( fxtype == "influencevision" ) {
+		pfx = new FullscreenFX_InfluenceVision;
+	}
+	else if ( fxtype == "bloom" ) {
+		pfx = new FullscreenFX_Bloom;
+	}
+	else {
+		assert( 0 );
+	}
+
+	if ( pfx ) {
+		pfx->Initialize();
+		pfx->SetFXManager( this );
+		pfx->SetName( name );
+		pfx->SetFadeSpeed( fade );
+		fx.Append( pfx );
 	}
 }
+
+/*
+==================
+FullscreenFXManager::Initialize
+==================
+*/
+void FullscreenFXManager::Initialize( idPlayerView *pv ) {
+	// set the playerview
+	playerView = pv;
+	blendBackMaterial = declManager->FindMaterial( "textures/smf/blendBack" );
+
+	// allocate the fx
+	CreateFX( "helltime", "helltime", 1000 );
+	CreateFX( "warp", "warp", 0 );
+	CreateFX( "envirosuit", "envirosuit", 500 );
+	CreateFX( "doublevision", "doublevision", 0 );
+	CreateFX( "multiplayer", "multiplayer", 1000 );
+	CreateFX( "influencevision", "influencevision", 1000 );
+	CreateFX( "bloom", "bloom", 0 );
+
+	// pre-cache the texture grab so we dont hitch
+	renderSystem->CropRenderSize( 512, 512, true );
+	renderSystem->CaptureRenderToImage( "_accum" );
+	renderSystem->UnCrop();
+
+	renderSystem->CropRenderSize( 512, 256, true );
+	renderSystem->CaptureRenderToImage( "_scratch" );
+	renderSystem->UnCrop();
+
+	renderSystem->CaptureRenderToImage( "_currentRender" );
+}
+
+/*
+==================
+FullscreenFXManager::Blendback
+==================
+*/
+void FullscreenFXManager::Blendback( float alpha ) {
+	// alpha fade
+	if ( alpha < 1.f ) {
+		renderSystem->SetColor4( 1, 1, 1, 1 - alpha );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, shiftScale.y, shiftScale.x, 0.f, blendBackMaterial );
+	}
+}
+
+/*
+==================
+FullscreenFXManager::Save
+==================
+*/
+void FullscreenFXManager::Save( idSaveGame *savefile ) {
+	savefile->WriteBool( highQualityMode );
+	savefile->WriteVec2( shiftScale );
+
+	for ( int i = 0; i < fx.Num(); i++ ) {
+		FullscreenFX *pfx = fx[i];
+		pfx->Save( savefile );
+	}
+}
+
+/*
+==================
+FullscreenFXManager::Restore
+==================
+*/
+void FullscreenFXManager::Restore( idRestoreGame *savefile ) {
+	savefile->ReadBool( highQualityMode );
+	savefile->ReadVec2( shiftScale );
+
+	for ( int i = 0; i < fx.Num(); i++ ) {
+		FullscreenFX *pfx = fx[i];
+		pfx->Restore( savefile );
+	}
+}
+
+/*
+==================
+FullscreenFXManager::CaptureCurrentRender
+==================
+*/
+void FullscreenFXManager::CaptureCurrentRender() {
+	renderSystem->CaptureRenderToImage( "_currentRender" );
+}
+
+/*
+==================
+FullscreenFXManager::Process
+==================
+*/
+void FullscreenFXManager::Process( const renderView_t *view ) {
+	bool allpass = false;
+
+	if ( g_testFullscreenFX.GetInteger() == -2 ) {
+		allpass = true;
+	}
+
+	if ( g_lowresFullscreenFX.GetBool() ) {
+		highQualityMode = false;
+	}
+	else {
+		highQualityMode = true;
+	}
+
+	// compute the shift scale
+	if ( highQualityMode ) {
+		int vidWidth, vidHeight;
+		renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+		float pot;
+		int	 w = vidWidth;
+		pot = MakePowerOfTwo( w );
+		shiftScale.x = (float)w / pot;
+
+		int	 h = vidHeight;
+		pot = MakePowerOfTwo( h );
+		shiftScale.y = (float)h / pot;
+	}
+	else {
+		// if we're in low-res mode, shrink view down
+		shiftScale.x = 1;
+		shiftScale.y = 1;
+		renderSystem->CropRenderSize( 512, 512, true );
+	}
+
+	// do the first render
+	gameRenderWorld->RenderScene( view );
+
+	// do the process
+	for ( int i = 0; i < fx.Num(); i++ ) {
+		FullscreenFX *pfx = fx[i];
+		bool drawIt = false;
+
+		// determine if we need to draw
+		if ( pfx->Active() || g_testFullscreenFX.GetInteger() == i || allpass ) {
+			drawIt = pfx->SetTriggerState( true );
+		}
+		else {
+			drawIt = pfx->SetTriggerState( false );
+		}
+
+		// do the actual drawing
+		if ( drawIt ) {
+			// we need to dump to _currentRender
+			CaptureCurrentRender();
+
+			// handle the accum pass if we have one
+			if ( pfx->HasAccum() ) {
+
+				// if we're in high quality mode, we need to crop the accum pass
+				if ( highQualityMode ) {
+					renderSystem->CropRenderSize( 512, 512, true );
+					pfx->AccumPass( view );
+					renderSystem->UnCrop();
+				}
+				else {
+					pfx->AccumPass( view );
+				}
+			}
+
+			// do the high quality pass
+			pfx->HighQuality();
+
+			// do the blendback
+			Blendback( pfx->GetFadeAlpha() );
+		}
+	}
+
+	if ( !highQualityMode ) {
+		// we need to dump to _currentRender
+		CaptureCurrentRender();
+
+		// uncrop view
+		renderSystem->UnCrop();
+
+		// draw the final full-screen image
+		renderSystem->SetColor4( 1, 1, 1, 1 );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 1, 1, 0.f, blendBackMaterial );
+	}
+}
+
+
+
+#endif

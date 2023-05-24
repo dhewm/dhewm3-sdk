@@ -166,7 +166,7 @@ void idAASLocal::CalculateAreaTravelTimes(void) {
 		}
 	}
 
-	assert( ( (ptrdiff_t) bytePtr - (ptrdiff_t) areaTravelTimes ) <= numAreaTravelTimes * sizeof( unsigned short ) );
+	assert(  ( ( ptrdiff_t ) bytePtr - ( ptrdiff_t ) areaTravelTimes ) <= numAreaTravelTimes * sizeof( unsigned short ) );
 }
 
 /*
@@ -326,9 +326,9 @@ void idAASLocal::RoutingStats( void ) const {
 	gameLocal.Printf( "%6d area cache (%d KB)\n", numAreaCache, totalAreaCacheMemory >> 10 );
 	gameLocal.Printf( "%6d portal cache (%d KB)\n", numPortalCache, totalPortalCacheMemory >> 10 );
 	gameLocal.Printf( "%6d total cache (%d KB)\n", numAreaCache + numPortalCache, totalCacheMemory >> 10 );
-	gameLocal.Printf( "%6d area travel times (%zu KB)\n", numAreaTravelTimes, ( numAreaTravelTimes * sizeof( unsigned short ) ) >> 10 );
-	gameLocal.Printf( "%6d area cache entries (%zu KB)\n", areaCacheIndexSize, ( areaCacheIndexSize * sizeof( idRoutingCache * ) ) >> 10 );
-	gameLocal.Printf( "%6d portal cache entries (%zu KB)\n", portalCacheIndexSize, ( portalCacheIndexSize * sizeof( idRoutingCache * ) ) >> 10 );
+	gameLocal.Printf( "%6d area travel times (%zd KB)\n", numAreaTravelTimes, ( numAreaTravelTimes * sizeof( unsigned short ) ) >> 10 );
+	gameLocal.Printf( "%6d area cache entries (%zd KB)\n", areaCacheIndexSize, ( areaCacheIndexSize * sizeof( idRoutingCache * ) ) >> 10 );
+	gameLocal.Printf( "%6d portal cache entries (%zd KB)\n", portalCacheIndexSize, ( portalCacheIndexSize * sizeof( idRoutingCache * ) ) >> 10 );
 }
 
 /*

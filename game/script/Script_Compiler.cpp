@@ -1486,8 +1486,8 @@ idCompiler::GetExpression
 ==============
 */
 idVarDef *idCompiler::GetExpression( int priority ) {
-	const opcode_t	*op;
-	const opcode_t	*oldop;
+	const opcode_t		*op;
+	const opcode_t		*oldop;
 	idVarDef		*e;
 	idVarDef		*e2;
 	const idVarDef	*oldtype;

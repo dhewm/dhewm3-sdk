@@ -89,7 +89,12 @@ public:
 	void				Save( idSaveGame *savefile ) const;
 	void				Restore( idRestoreGame *savefile );
 
+#ifdef CTF
+protected:
+#else
 private:
+#endif
+
 	float				wait;
 	float				random;
 	float				delay;
@@ -286,5 +291,31 @@ private:
 
 	void				Event_Trigger( idEntity *activator );
 };
+
+#ifdef CTF
+/*
+===============================================================================
+
+  Trigger that responces to CTF flags
+
+===============================================================================
+*/
+class idTrigger_Flag : public idTrigger_Multi {
+public:
+	CLASS_PROTOTYPE( idTrigger_Flag );
+
+						idTrigger_Flag( void );
+	void				Spawn( void );
+
+private:
+	int					team;
+	bool				player;			// flag must be attached/carried by player
+
+	const idEventDef *	eventFlag;
+
+	void				Event_Touch( idEntity *other, trace_t *trace );
+};
+
+#endif /* CTF */
 
 #endif /* !__GAME_TRIGGER_H__ */

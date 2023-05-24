@@ -32,6 +32,10 @@ If you have questions concerning this license or the applicable additional terms
 typedef enum {
 	ICON_LAG,
 	ICON_CHAT,
+#ifdef CTF
+	ICON_TEAM_RED,
+	ICON_TEAM_BLUE,
+#endif
 	ICON_NONE
 } playerIconType_t;
 

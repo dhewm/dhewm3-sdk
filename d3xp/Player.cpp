@@ -5662,7 +5662,7 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 		landTime = gameLocal.time;
 		if ( !noDamage ) {
 			pain_debounce_time = gameLocal.time + pain_delay + 1;  // ignore pain since we'll play our landing anim
-			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_fatalfall", 1.0f, 0 );
+			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_fatalfall", 1.0f, 0, idVec3( 0, 0, 0 ) );
 		}
 	} else if ( delta > hardDelta ) {
 		AI_HARDLANDING = true;
@@ -5670,7 +5670,7 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 		landTime	= gameLocal.time;
 		if ( !noDamage ) {
 			pain_debounce_time = gameLocal.time + pain_delay + 1;  // ignore pain since we'll play our landing anim
-			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_hardfall", 1.0f, 0 );
+			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_hardfall", 1.0f, 0, idVec3( 0, 0, 0 ) );
 		}
 	} else if ( delta > 30 ) {
 		AI_HARDLANDING = true;
@@ -5678,7 +5678,7 @@ void idPlayer::CrashLand( const idVec3 &oldOrigin, const idVec3 &oldVelocity ) {
 		landTime	= gameLocal.time;
 		if ( !noDamage ) {
 			pain_debounce_time = gameLocal.time + pain_delay + 1;  // ignore pain since we'll play our landing anim
-			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_softfall", 1.0f, 0 );
+			Damage( NULL, NULL, idVec3( 0, 0, -1 ), "damage_softfall", 1.0f, 0, idVec3( 0, 0, 0 ) );
 		}
 	} else if ( delta > 7 ) {
 		AI_SOFTLANDING = true;
@@ -6094,7 +6094,7 @@ void idPlayer::UpdateAir( void ) {
 			const idDict *damageDef = gameLocal.FindEntityDefDict( "damage_noair", false );
 			int dmgTiming = 1000 * ((damageDef) ? damageDef->GetFloat( "delay", "3.0" ) : 3.0f );
 			if ( gameLocal.time > lastAirDamage + dmgTiming ) {
-				Damage( NULL, NULL, vec3_origin, "damage_noair", 1.0f, 0 );
+				Damage( NULL, NULL, vec3_origin, "damage_noair", 1.0f, 0, idVec3( 0, 0, 0 ) );
 				lastAirDamage = gameLocal.time;
 			}
 		}
@@ -7761,7 +7761,7 @@ void idPlayer::Kill( bool delayRespawn, bool nodamage ) {
 			ServerSpectate( true );
 			forceRespawn = true;
 		} else {
-			Damage( this, this, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT );
+			Damage( this, this, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 			if ( delayRespawn ) {
 				forceRespawn = false;
 				int delay = spawnArgs.GetFloat( "respawn_delay" );
@@ -8038,7 +8038,7 @@ inflictor, attacker, dir, and point can be NULL for environmental effects
 ============
 */
 void idPlayer::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir,
-					   const char *damageDefName, const float damageScale, const int location ) {
+					   const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint ) {
 	idVec3		kick;
 	int			damage;
 	int			armorSave;
@@ -9258,7 +9258,7 @@ void idPlayer::Event_ExitTeleporter( void ) {
 
 	if ( teleportKiller != -1 ) {
 		// we got killed while being teleported
-		Damage( gameLocal.entities[ teleportKiller ], gameLocal.entities[ teleportKiller ], vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT );
+		Damage( gameLocal.entities[ teleportKiller ], gameLocal.entities[ teleportKiller ], vec3_origin, "damage_telefrag", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 		teleportKiller = -1;
 	} else {
 		// kill anything that would have waited at teleport exit

@@ -288,10 +288,10 @@ private:
 
 	// ammo management
 	ammo_t					ammoType;
-	int						ammoRequired;		// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
-	int						clipSize;			// 0 means no reload
-	int						ammoClip;
-	int						lowAmmo;			// if ammo in clip hits this threshold, snd_
+	float						ammoRequired;	// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
+	float						clipSize;		// 0 means no reload
+	float						ammoClip;
+	float						lowAmmo;		// if ammo in clip hits this threshold, snd_
 	bool					powerAmmo;			// true if the clip reduction is a factor of the power setting when
 												// a projectile is launched
 	// mp client
@@ -371,8 +371,8 @@ private:
 	void					Event_WeaponHolstered( void );
 	void					Event_WeaponRising( void );
 	void					Event_WeaponLowering( void );
-	void					Event_UseAmmo( int amount );
-	void					Event_AddToClip( int amount );
+	void					Event_UseAmmo( float amount );
+	void					Event_AddToClip( float amount );
 	void					Event_AmmoInClip( void );
 	void					Event_AmmoAvailable( void );
 	void					Event_TotalAmmoCount( void );
@@ -407,7 +407,7 @@ private:
 	void					Event_GrabberHasTarget( void );
 	void					Event_GrabberSetGrabDistance( float dist );
 	void					Event_LaunchProjectilesEllipse( int num_projectiles, float spreada, float spreadb, float fuseOffset, float power );
-	void					Event_LaunchPowerup( const char* powerup, float duration, int useAmmo );
+	void					Event_LaunchPowerup( const char* powerup, float duration, float useAmmo );
 
 	void					Event_StartWeaponSmoke();
 	void					Event_StopWeaponSmoke();

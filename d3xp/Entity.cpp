@@ -3072,7 +3072,7 @@ inflictor, attacker, dir, and point can be NULL for environmental effects
 ============
 */
 void idEntity::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir,
-					  const char *damageDefName, const float damageScale, const int location ) {
+					  const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint ) {
 	if ( !fl.takedamage ) {
 		return;
 	}

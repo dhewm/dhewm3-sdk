@@ -1001,7 +1001,7 @@ idMover::Event_PartBlocked
 */
 void idMover::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 	if ( g_debugMover.GetBool() ) {
 		gameLocal.Printf( "%d: '%s' blocked by '%s'\n", gameLocal.slow.time, name.c_str(), blockingEntity->name.c_str() );
@@ -3843,7 +3843,7 @@ idDoor::Event_PartBlocked
 */
 void idDoor::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 
@@ -4286,7 +4286,7 @@ idPlat::Event_PartBlocked
 */
 void idPlat::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 
@@ -4377,7 +4377,7 @@ idMover_Periodic::Event_PartBlocked
 */
 void idMover_Periodic::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	}
 }
 

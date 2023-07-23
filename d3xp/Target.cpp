@@ -147,7 +147,7 @@ void idTarget_Damage::Event_Activate( idEntity *activator ) {
 	for( i = 0; i < targets.Num(); i++ ) {
 		ent = targets[ i ].GetEntity();
 		if ( ent ) {
-			ent->Damage( this, this, vec3_origin, damage, 1.0f, INVALID_JOINT );
+			ent->Damage( this, this, vec3_origin, damage, 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 		}
 	}
 }

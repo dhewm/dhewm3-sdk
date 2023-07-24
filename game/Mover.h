@@ -66,6 +66,26 @@ public:
 
 	void					SetPortalState( bool open );
 
+	void					Event_EnableClip( void );
+	void					Event_DisableClip( void );
+	void					Event_BecomeSolid( void );
+	void					Event_CanBecomeSolid( void );
+	void					Event_BecomeNonSolid( void );
+	bool					CanBecomeSolid( void );
+	void					BecomeSolid( void );
+	void					BecomeNonSolid( void );
+
+	// only for use with hub-style map initialization
+	void					SetDestPos( const idVec3 &pos ) { dest_position=pos; }
+	void					SetDestAng( const idAngles &ang ) { dest_angles=ang; }
+
+// HEXEN : Zeroth
+//	void				eoc_SetMoveTime( float time );
+//	void				eoc_MoveToPos( const idVec3 &pos );
+
+	void				SetPersistentPos( idVec3 &pos );
+	void				SetPersistentAng( idAngles &ang );
+
 protected:
 	typedef enum {
 		ACCELERATION_STAGE,

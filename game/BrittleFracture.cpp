@@ -39,8 +39,8 @@ CLASS_DECLARATION( idEntity, idBrittleFracture )
 	EVENT( EV_Touch, idBrittleFracture::Event_Touch )
 END_CLASS
 
-const int SHARD_ALIVE_TIME	= 5000;
-const int SHARD_FADE_START	= 2000;
+const int SHARD_ALIVE_TIME	= 5000; // HEXEN : Zeroth - changed from 5000
+const int SHARD_FADE_START	= 3500; // HEXEN : Zeroth - changed from 2000
 
 static const char *brittleFracture_SnapshotName = "_BrittleFracture_Snapshot_";
 
@@ -772,12 +772,38 @@ void idBrittleFracture::ProjectDecal( const idVec3 &point, const idVec3 &dir, co
 idBrittleFracture::DropShard
 ================
 */
-void idBrittleFracture::DropShard( shard_t *shard, const idVec3 &point, const idVec3 &dir, const float impulse, const int time ) {
+void idBrittleFracture::DropShard( shard_t *shard, const idVec3 &point, const idVec3 &odir, const float oimpulse, const int time ) {
 	int i, j, clipModelId;
 	float dist, f;
 	idVec3 dir2, origin;
 	idMat3 axis;
 	shard_t *neighbour;
+
+	idVec3 dir = odir; // HEXEN : Zeroth
+	float impulse = oimpulse; // HEXEN : Zeroth
+
+	// HEXEN : Zeroth
+	if ( dir.Length() < 5 ) { // 5 is just an (whats that word?)
+		dir = idVec3(0,0,-1) * spawnArgs.GetFloat( "forceIfZero", "0" );
+		impulse = dir.Normalize();
+	}
+
+	// HEXEN : Zeroth
+	if ( spawnArgs.GetBool( "blastBothWays", "0" ) ) {
+		dir = -dir;
+		//m = dir.Normalize();
+	}
+
+	// HEXEN : Zeroth
+	if ( spawnArgs.GetBool( "randomDir", "0" ) ) {
+		float len = dir.Length();
+		dir.x = gameLocal.random.RandomFloat() - 0.5;
+		dir.y = gameLocal.random.RandomFloat() - 0.5;
+		dir.z = gameLocal.random.RandomFloat() - 0.5;
+		dir.Normalize();
+		dir *= len;
+		//m = dir.Normalize();
+	}
 
 	// don't display decals on dropped shards
 	shard->decals.DeleteContents( true );
@@ -818,10 +844,26 @@ void idBrittleFracture::DropShard( shard_t *shard, const idVec3 &point, const id
 	shard->physicsObj.SetAxis( axis );
 	shard->physicsObj.SetBouncyness( bouncyness );
 	shard->physicsObj.SetFriction( 0.6f, 0.6f, friction );
-	shard->physicsObj.SetGravity( gameLocal.GetGravity() );
+
+	// HEXEN : Zeroth
+	float grv = spawnArgs.GetFloat( "shardGravity", "0" );
+	if ( grv ) {
+		shard->physicsObj.SetGravity( idVec3(0,0,-1) * grv );
+	} else {
+		shard->physicsObj.SetGravity( gameLocal.GetGravity() );
+	}
+
+	// HEXEN : Zeroth
+	float velScale = 1;
+	if ( spawnArgs.GetBool( "shardRandomVelocity", "0" ) ) {
+		velScale = gameLocal.random.RandomFloat();
+	} else {
+		velScale = 1;
+	}
+
 	shard->physicsObj.SetContents( CONTENTS_RENDERMODEL );
 	shard->physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
-	shard->physicsObj.ApplyImpulse( 0, origin, impulse * linearVelocityScale * dir );
+	shard->physicsObj.ApplyImpulse( 0, origin, impulse * linearVelocityScale * dir * velScale ); // HEXEN : Zeroth: added velScale
 	shard->physicsObj.SetAngularVelocity( dir.Cross( dir2 ) * ( f * angularVelocityScale ) );
 
 	shard->clipModel->SetId( clipModelId );
@@ -884,7 +926,10 @@ void idBrittleFracture::Shatter( const idVec3 &point, const idVec3 &impulse, con
 		DropShard( shard, point, dir, m, time );
 	}
 
-	DropFloatingIslands( point, impulse, time );
+	// HEXEN : Zeroth
+	if ( spawnArgs.GetBool( "dropFloatingIsland", "1" ) ) {
+		DropFloatingIslands( point, dir, time ); // impulse changed to dir
+	}
 }
 
 /*
@@ -895,12 +940,13 @@ idBrittleFracture::DropFloatingIslands
 void idBrittleFracture::DropFloatingIslands( const idVec3 &point, const idVec3 &impulse, const int time ) {
 	int i, j, numIslands;
 	int queueStart, queueEnd;
+	float m; // HEXEN : Zeroth
 	shard_t *curShard, *nextShard, **queue;
 	bool touchesEdge;
 	idVec3 dir;
 
 	dir = impulse;
-	dir.Normalize();
+	m = dir.Normalize();  // HEXEN : Zeroth - added 'm = '
 
 	numIslands = 0;
 	queue = (shard_t **) _alloca16( shards.Num() * sizeof(shard_t **) );
@@ -955,7 +1001,7 @@ void idBrittleFracture::DropFloatingIslands( const idVec3 &point, const idVec3 &
 		// if the island is not connected to the world at any edges
 		if ( !touchesEdge ) {
 			for ( j = 0; j < queueEnd; j++ ) {
-				DropShard( queue[j], point, dir, 0.0f, time );
+				DropShard( queue[j], point, dir, m, time );  // HEXEN : Zeroth - 0.0f to m
 			}
 		}
 	}
@@ -969,6 +1015,7 @@ idBrittleFracture::Break
 void idBrittleFracture::Break( void ) {
 	fl.takedamage = false;
 	physicsObj.SetContents( CONTENTS_RENDERMODEL | CONTENTS_TRIGGER );
+	gameLocal.SetPersistentRemove( name.c_str() );
 }
 
 /*

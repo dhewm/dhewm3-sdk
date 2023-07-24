@@ -88,8 +88,13 @@ protected:
 	int						nextDamageTime;			// next time the movable can hurt the player
 	int						nextSoundTime;			// next time the moveable can make a sound
 
+// HEXEN : Zeroth
+protected:
+	bool					brokenScript;			// call ::Broken on killed.
+	bool					removeWhenBroken;		// removes entity after it's "fuse" delay
+
+
 	const idMaterial *		GetRenderModelMaterial( void ) const;
-	void					BecomeNonSolid( void );
 	void					InitInitialSpline( int startTime );
 	bool					FollowInitialSplinePath( void );
 
@@ -98,6 +103,19 @@ protected:
 	void					Event_SetOwnerFromSpawnArgs( void );
 	void					Event_IsAtRest( void );
 	void					Event_EnableDamage( float enable );
+	void					Event_DirectDamage( idEntity *damageTarget, const char *damageDefName );
+
+	void					DirectDamage( const char *meleeDefName, idEntity *ent );
+// HEXEN : Zeroth
+protected:
+	void					Event_BecomeSolid( void );
+
+// HEXEN : Zeroth
+public:
+	void					BecomeNonSolid( void );
+	void					BecomeSolid( void );
+public:
+	bool					savePersistentInfo;
 };
 
 
@@ -160,7 +178,7 @@ public:
 
 	virtual void			Think( void );
 	virtual void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir,
-								const char *damageDefName, const float damageScale, const int location );
+								const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 	virtual void			Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
 
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
@@ -200,5 +218,66 @@ private:
 	void					Event_Explode();
 	void					Event_TriggerTargets();
 };
+
+#if 0
+// HEXEN : Zeroth
+// for idWood and other entities with renderModels that need more vertex/face info
+class Destructible_FaceData_t {
+public:
+	// this could be a bit more effiecient with idVec3 pointers that point to surface geometry...
+	idList< idVec3 > verts;
+	idVec3					center; // center of face
+	float					area;
+	idPlane *				plane;
+	idList< int >			adjacent; // stores indexes of adjacent faces
+//	idVec3					worldCenter(void) const;
+//	idVec3					worldNotm(void) const;
+};
+
+
+//ID_INLINE idVec3 faceData_t::worldCenter(void) const {
+//	return center + physicsObj.GetOrigin() * physicsObj.GetAxis();
+//}
+
+//ID_INLINE idVec3 faceData_t::worldNorm(void) const {
+//	return norm + physicsObj.GetOrigin() * physicsObj.GetAxis();
+//}
+
+class Destructible_ModelData_t {
+public:
+	idList<Destructible_FaceData_t>		faces;
+	idVec3					center;
+	float					area;
+	float					avgArea;
+//	idVec3					worldCenter(void) const;
+};
+
+//ID_INLINE idVec3 geoData_t::worldCenter(void) const {
+//	return geo.center + physicsObj.GetOrigin() * physicsObj.GetAxis();
+//}
+
+// HEXEN : Zeroth
+class idWood : public idMoveable {
+public:
+	CLASS_PROTOTYPE( idWood );
+
+	idWood::idWood( void );
+
+	void					Spawn( void );
+	virtual void			Killed( idEntity *inflictor, idEntity *attacker, int damage, const idVec3 &dir, int location );
+	void					Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, 
+									const char *damageDefName, const float damageScale, const int location, idVec3 &iPoint );
+	bool					CheckFloating( idWood *caller, idWood *chain[], int c );
+
+	bool						geoConstructed;
+	Destructible_ModelData_t	geo;
+
+	idVec3					lastiPoint; // last damage position
+
+private:
+	void					ConstructGeo( void );
+
+};
+#endif
 
 #endif /* !__GAME_MOVEABLE_H__ */

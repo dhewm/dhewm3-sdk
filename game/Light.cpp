@@ -567,6 +567,7 @@ idLight::On
 ================
 */
 void idLight::On( void ) {
+	gameLocal.SetPersistentLightOn( name.c_str(), true );
 	currentLevel = levels;
 	// offset the start time of the shader to sync it to the game time
 	renderLight.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
@@ -584,6 +585,7 @@ idLight::Off
 ================
 */
 void idLight::Off( void ) {
+	gameLocal.SetPersistentLightOn( name.c_str(), false );
 	currentLevel = 0;
 	// kill any sound it was making
 	if ( refSound.referenceSound && refSound.referenceSound->CurrentlyPlaying() ) {
@@ -646,6 +648,7 @@ idLight::BecomeBroken
 ================
 */
 void idLight::BecomeBroken( idEntity *activator ) {
+	gameLocal.SetPersistentLightBroken( name.c_str() );
 	const char *damageDefName;
 
 	fl.takedamage = false;

@@ -459,7 +459,7 @@ public:
 	void					ArtifactScrollRight( int startfrom );
 	void					ArtifactScrollLeft( int startfrom );
 	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
-	// HEXEN : Zeroth
+// HEXEN : Zeroth
 	/*virtual*/ bool		StuckToSurface( void );
 	void					SpawnHellions( void );
 	void					UpdateHudAutoMap( void );
@@ -786,7 +786,7 @@ private:
 
 public:
 	idVec3					VecForwardP( void ) const;
-	idVec3					idPlayer::VecFacingP( void ) const;
+	idVec3					VecFacingP( void ) const;
 	void					OpenCustomGui( idStr file );
 };
 

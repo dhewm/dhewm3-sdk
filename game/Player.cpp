@@ -221,8 +221,8 @@ void idInventory::Clear( void ) {
 	// set to -1 so that the gun knows to have a full clip the first time we get it and at the start of the level
 	// HEXEN : Zeroth. You can't memset floats as -1, else you get -1.#QNAN0 values.
 	// memset( clip, -1, sizeof( clip ) );
-	for (int i=0; i< MAX_WEAPONS; i++) {
-		clip[i]=-1;
+	for ( int i = 0; i < MAX_WEAPONS; i++ ) {
+		clip[i] = -1;
 	}
 
 	items.DeleteContents( true );

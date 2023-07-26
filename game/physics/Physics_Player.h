@@ -48,7 +48,7 @@ typedef enum {
 	PM_DEAD,				// no acceleration or turning, but free falling
 	PM_SPECTATOR,			// flying without gravity but with collision detection
 	PM_FREEZE,				// stuck in place without control
-	PM_NOCLIP				// flying without collision detection nor gravity
+	PM_NOCLIP,				// flying without collision detection nor gravity
 	PM_FLY					// flying without gravity but with collision detection
 } pmtype_t;
 

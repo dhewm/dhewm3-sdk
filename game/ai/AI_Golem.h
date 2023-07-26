@@ -1,7 +1,6 @@
 #ifndef __AI_GOLEM_
 #define __AI_GOLEM_
 
-#include "../../idlib/precompiled.h"
 #pragma hdrstop
 
 #include "../Game_local.h"
@@ -39,7 +38,7 @@ private:
     void		nextBone( void );
 	void		BlowUp( void );
 	void		Event_SawEnemy( void );
-	idMoveable *idAI_Golem::FindGolemRock( void );
+	idMoveable	*FindGolemRock( void );
 };
 
 

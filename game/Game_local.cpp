@@ -50,6 +50,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Trigger.h"
 
 #include "Game_local.h"
+#include "Sound.h"
 
 // HEXEN : Zeroth
 #include "projectiles/Wraithverge.h"

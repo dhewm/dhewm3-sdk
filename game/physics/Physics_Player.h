@@ -49,6 +49,7 @@ typedef enum {
 	PM_SPECTATOR,			// flying without gravity but with collision detection
 	PM_FREEZE,				// stuck in place without control
 	PM_NOCLIP				// flying without collision detection nor gravity
+	PM_FLY					// flying without gravity but with collision detection
 } pmtype_t;
 
 typedef enum {
@@ -99,6 +100,14 @@ public:
 	bool					IsCrouching( void ) const;
 	bool					OnLadder( void ) const;
 	const idVec3 &			PlayerGetOrigin( void ) const;	// != GetOrigin
+
+// HEXEN : Zeroth
+public:
+	bool			 	    StuckToSurface( void );
+	void			 	    SetStuckToSurface( bool yesOrNo );
+	idVec3					GetSurfaceNormal( void );
+	void					SetSurfaceNormal( idVec3 newNormal );
+	void					DoStuckToSurface( void );
 
 public:	// common physics interface
 	bool					Evaluate( int timeStepMSec, int endTimeMSec );
@@ -177,6 +186,7 @@ private:
 	void					WaterJumpMove( void );
 	void					WaterMove( void );
 	void					FlyMove( void );
+	void					FlyMoveWithCollision( void );
 	void					AirMove( void );
 	void					WalkMove( void );
 	void					DeadMove( void );
@@ -192,6 +202,11 @@ private:
 	void					SetWaterLevel( void );
 	void					DropTimers( void );
 	void					MovePlayer( int msec );
+
+// HEXEN : Zeroth
+private:
+	void					EvalGravity( void );
+	void					StuckToSurfaceMove( void );
 };
 
 #endif /* !__PHYSICS_PLAYER_H__ */

@@ -112,6 +112,8 @@ public:
 
 	static void				SaveTraceModels( idSaveGame *savefile );
 	static void				RestoreTraceModels( idRestoreGame *savefile );
+// HEXEN : Zeroth
+	int						GetRenderModelHandle( void );
 
 private:
 	bool					enabled;				// true if this clip model is used for clipping
@@ -277,6 +279,7 @@ public:
 								int contentMask, const idEntity *passEntity );
 	bool					TraceBounds( trace_t &results, const idVec3 &start, const idVec3 &end, const idBounds &bounds,
 								int contentMask, const idEntity *passEntity );
+	idVec3					TraceSurfaceNormal( trace_t &results, const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass );
 
 	// clip versus a specific model
 	void					TranslationModel( trace_t &results, const idVec3 &start, const idVec3 &end,
@@ -338,6 +341,18 @@ private:
 ID_INLINE bool idClip::TracePoint( trace_t &results, const idVec3 &start, const idVec3 &end, int contentMask, const idEntity *passEntity ) {
 	Translation( results, start, end, NULL, mat3_identity, contentMask, passEntity );
 	return ( results.fraction < 1.0f );
+}
+
+ID_INLINE idVec3 idClip::TraceSurfaceNormal( trace_t &trace, const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass ) {
+        TracePoint( trace, A, B, clipMask, pass );
+
+        // if near a surface
+        if ( trace.fraction < 1.0f ) {
+			idVec3 bub = trace.c.normal;
+			return trace.c.normal;
+        } else {
+			return idVec3( 0, 0, 0 );
+        }
 }
 
 ID_INLINE bool idClip::TraceBounds( trace_t &results, const idVec3 &start, const idVec3 &end, const idBounds &bounds, int contentMask, const idEntity *passEntity ) {

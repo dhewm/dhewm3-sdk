@@ -110,6 +110,11 @@ protected:
 
 	// results of last evaluate
 	idEntityPtr<idEntity>	groundEntityPtr;
+
+// HEXEN : Zeroth
+protected:
+	bool					IsStuckToSurface;
+	idVec3					SurfaceNormal;
 };
 
 #endif /* !__PHYSICS_ACTOR_H__ */

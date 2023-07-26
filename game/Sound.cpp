@@ -128,6 +128,14 @@ void idSound::Spawn( void ) {
 	} else {
 		timerOn = false;
 	}
+
+	// HEXEN : Zeroth
+	// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+
+    if ( spawnArgs.GetBool( "s_music" ) ) {                  //SnoopJeDi
+       gameLocal.musicSpeakers.Append( entityNumber );
+    }
+	// ******
 }
 
 /*
@@ -260,6 +268,7 @@ idSound::DoSound
 */
 void idSound::DoSound( bool play ) {
 	if ( play ) {
+		s_music_vol.SetModified(); // Zeroth: sometimes triggered speakers like to ignore that they're supposed to be faded
 		StartSoundShader( refSound.shader, SND_CHANNEL_ANY, refSound.parms.soundShaderFlags, true, &playingUntilTime );
 		playingUntilTime += gameLocal.time;
 	} else {

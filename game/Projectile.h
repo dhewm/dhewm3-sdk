@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Force_Constant.h"
 #include "Entity.h"
 
+#include "Moveable.h"
+
 /*
 ===============================================================================
 
@@ -124,13 +126,20 @@ protected:
 private:
 	bool					netSyncPhysics;
 
+// HEXEN : Zeroth: changed to protected
+protected:
 	void					AddDefaultDamageEffect( const trace_t &collision, const idVec3 &velocity );
 
+private:
 	void					Event_Explode( void );
 	void					Event_Fizzle( void );
 	void					Event_RadiusDamage( idEntity *ignore );
 	void					Event_Touch( idEntity *other, trace_t *trace );
 	void					Event_GetProjectileState( void );
+
+// HEXEN : Zeroth
+private:
+	void					Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower );
 };
 
 class idGuidedProjectile : public idProjectile {
@@ -268,6 +277,10 @@ private:
 
 	void					Event_Explode( void );
 	void					Event_Fizzle( void );
+
+public:
+	bool					randomPosInBounds;
+	idMoveable				*randomPosEnt;
 };
 
 #endif /* !__GAME_PROJECTILE_H__ */

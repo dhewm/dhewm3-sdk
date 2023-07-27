@@ -2,6 +2,9 @@
 #pragma hdrstop
 
 #include "../Game_local.h"
+#include "../Projectile.h"
+
+#include "Soul.h"
 
 const float	SOUL_SPEED	= 1000.0f;
 

@@ -2,6 +2,11 @@
 #pragma hdrstop
 
 #include "../Game_local.h"
+#include "../Player.h"
+#include "../Projectile.h"
+#include "../ai/AI.h"
+
+#include "FireStorm.h"
 
 const int	FIREBEAM_METEOR_DELAY	= 300; // in msec
 const int	FIREBEAM_METEOR_NUM		= 8;
@@ -27,9 +32,7 @@ CLASS_DECLARATION( idProjectile, idProj_FireBeam )
 	EVENT( EV_LaunchFireBeam,				idProj_FireBeam::Event_Launch )
 END_CLASS
 
-void idProj_FireBeam::Spawn( void ) {
-	
-}
+void idProj_FireBeam::Spawn( void ) { }
 
 void idProj_FireBeam::Think( void ) {
 	if ( state == 2 && meteorNum < FIREBEAM_METEOR_NUM ) {

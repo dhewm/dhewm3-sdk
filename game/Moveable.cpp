@@ -31,7 +31,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Fx.h"
 
+#include "Game_local.h"
 #include "Moveable.h"
+#include "Projectile.h"
 
 /*
 ===============================================================================

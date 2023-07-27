@@ -26,13 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "sys/platform.h"
+#include "../../sys/platform.h"
 
-#include "gamesys/SysCvar.h"
-#include "Player.h"
-#include "Camera.h"
+#include "../Game_local.h"
+#include "../gamesys/SysCvar.h"
+#include "../Player.h"
+#include "../Camera.h"
 
-#include "script/Script_Thread.h"
+#include "Script_Thread.h"
 
 const idEventDef EV_Thread_Execute( "<execute>", NULL );
 const idEventDef EV_Thread_SetCallback( "<script_setcallback>", NULL );
@@ -1180,7 +1181,7 @@ void idThread::Event_SpawnParticle( const char *particleName, const idVec3 &orig
 		return;
 	}
 
-	//gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time+1, gameLocal.random.CRandomFloat(), origin, idMat3() );
+	//gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time + 1, gameLocal.random.CRandomFloat(), origin, idMat3() );
 	gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time, gameLocal.random.RandomFloat(), origin, idMat3( 1, 0, 0, 0, 0, 0, 0, 0, 0 ) );
 }
 

@@ -1,9 +1,13 @@
 
 #pragma hdrstop
 
+#include "../Entity.h"
 #include "../Game_local.h"
+#include "../Moveable.h"
+#include "AI.h"
+#include "AI_Golem.h"
 
-const idVec3 GOLEM_ROCKS_NO_GRAVITY				= idVec3(0,0,0);
+const idVec3 GOLEM_ROCKS_NO_GRAVITY				= idVec3( 0, 0, 0 );
 const int GOLEM_ROCKS_MAX						= 13;
 const int GOLEM_ROCKS_MIN						= 8;
 const int GOLEM_ROCKS_MIN_CHECK_DELAY			= 2000;
@@ -37,7 +41,7 @@ void idAI_Golem::Save( idSaveGame *savefile ) const {
 	savefile->WriteString( golemType );
 	savefile->WriteBool( alive );
 	savefile->WriteInt( rocks.Num() );
-	for ( int i=0; i<rocks.Num(); i++ ) {
+	for ( int i = 0; i < rocks.Num(); i++ ) {
 		savefile->WriteObject( rocks[i] );
 	}
 }
@@ -52,14 +56,14 @@ void idAI_Golem::Restore( idRestoreGame *savefile ) {
 	int i;
 	savefile->ReadInt( i );
 	idClass *obj;
-	for ( ; i>0; i-- ) {
+	for ( ; i > 0; i-- ) {
 		savefile->ReadObject( obj );
 		rocks.Append( static_cast< idMoveable* >( obj ) );
 	}
 }
 
 void idAI_Golem::findNewRocks() {
-	idMoveable	*rock = FindGolemRock();
+	idMoveable *rock = FindGolemRock();
 	if ( rock ) {
 		addRock( rock );
 	}
@@ -68,15 +72,15 @@ void idAI_Golem::findNewRocks() {
 
 void idAI_Golem::addRock( idMoveable *newRock ) {
    	newRock->BecomeNonSolid();
-    newRock->spawnArgs.SetBool("golem_owned", 1);
-	newRock->spawnArgs.SetFloat("golem_bindTime", gameLocal.time + GOLEM_RICKS_MAX_MOVE_TIME_BEFORE_BIND );
-    newRock->spawnArgs.SetBool("golem_bound", 0);
-	newRock->spawnArgs.Set("old_bounce", newRock->spawnArgs.GetString("snd_bounce") );
-    newRock->spawnArgs.Set("snd_bounce", ""); // no bounce sounds while on the golem, gets REAL annoying.
-	newRock->spawnArgs.Set("bone", curBone);
+    newRock->spawnArgs.SetBool( "golem_owned", 1 );
+	newRock->spawnArgs.SetFloat( "golem_bindTime", gameLocal.time + GOLEM_RICKS_MAX_MOVE_TIME_BEFORE_BIND );
+    newRock->spawnArgs.SetBool( "golem_bound", 0 );
+	newRock->spawnArgs.Set( "old_bounce", newRock->spawnArgs.GetString( "snd_bounce" ) );
+    newRock->spawnArgs.Set( "snd_bounce", "" ); // no bounce sounds while on the golem, gets REAL annoying.
+	newRock->spawnArgs.Set( "bone", curBone );
 	newRock->health = 1000;
 	newRock->GetPhysics()->DisableClip();
-	rocks.Append(newRock);
+	rocks.Append( newRock );
 
 	totRocks++;
 	nextBone();	
@@ -117,7 +121,7 @@ void idAI_Golem::evalRocks() {
 				rocks[i]->GetPhysics()->SetGravity( GOLEM_ROCKS_NO_GRAVITY );
 				//rocks[i]->SetOrigin( GetLocalCoordinates( GetJointPos(animator.GetJointHandle(bone)) ) );
 				rocks[i]->SetOrigin( GetJointPos(animator.GetJointHandle(bone)) );
-				rocks[i]->spawnArgs.Set("golem_bound", "1");
+				rocks[i]->spawnArgs.Set( "golem_bound", "1");
 				rocks[i]->SetAngles( idAngles(gameLocal.random.RandomInt() % 200 - 100, gameLocal.random.RandomInt() % 200 - 100, gameLocal.random.RandomInt() % 200 - 100 ) );
 				rocks[i]->BindToJoint(this, bone, 1);
 				rocks[i]->GetPhysics()->EnableClip();
@@ -167,7 +171,7 @@ void idAI_Golem::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &
 			if ( health < -999 ) {
 				health = -999;
 			}
-			gameLocal.Printf("BLOWUP!\n");
+			gameLocal.Printf( "BLOWUP!\n" );
 			BlowUp();
 			Killed( inflictor, attacker, damage, dir, location );
 		} else {
@@ -194,11 +198,11 @@ void idAI_Golem::BlowUp( void ) {
 	// rocks get removed from head to toe.
     for (int i=rocks.Num(); i >= 0; i--) {
         if ( !rocks[i] ) {
-			rocks[i]->GetPhysics()->SetGravity(gameLocal.GetGravity());
-			rocks[i]->spawnArgs.Set("golem_owned", 0);
-			rocks[i]->spawnArgs.Set("golem_bound", 0);
-			rocks[i]->spawnArgs.Set("golem_bindTime", 0);
-			rocks[i]->spawnArgs.Set("snd_bounce", rocks[i]->spawnArgs.GetString("old_bounce") ); //Z.TODO
+			rocks[i]->GetPhysics()->SetGravity( gameLocal.GetGravity() );
+			rocks[i]->spawnArgs.Set( "golem_owned", 0 );
+			rocks[i]->spawnArgs.Set( "golem_bound", 0 );
+			rocks[i]->spawnArgs.Set( "golem_bindTime", 0 );
+			rocks[i]->spawnArgs.Set( "snd_bounce", rocks[i]->spawnArgs.GetString( "old_bounce" ) ); //Z.TODO
 			rocks[i]->Unbind();
 			rocks[i]->BecomeSolid();
 			idVec3 dx;
@@ -213,7 +217,7 @@ void idAI_Golem::BlowUp( void ) {
 			dx.Normalize();
 			rocks[i]->GetPhysics()->EnableClip();
 			rocks[i]->GetPhysics()->SetAngularVelocity( dx * 100 );
-			rocks.RemoveIndex(i);
+			rocks.RemoveIndex( i );
 		}
     }
 }
@@ -242,7 +246,7 @@ void idAI_Golem::nextBone() {
 }
 
 void idAI_Golem::Event_SawEnemy() {
-	alive=true;
+	alive = true;
 }
 
 const char * idAI_Golem::GetGolemType( void ) const {
@@ -252,7 +256,7 @@ const char * idAI_Golem::GetGolemType( void ) const {
 // HEXEN : Zeroth
 idMoveable *idAI_Golem::FindGolemRock( void ) {
 	int hash, i;
-	idMoveable *target=NULL;
+	idMoveable *target = NULL;
 
 	hash = gameLocal.entypeHash.GenerateKey( idMoveable::Type.classname, true );
 
@@ -264,15 +268,15 @@ idMoveable *idAI_Golem::FindGolemRock( void ) {
 				continue;
 			}
 
-			if ( target->spawnArgs.GetInt("golem_owned") == 1 ) {
+			if ( target->spawnArgs.GetInt( "golem_owned" ) == 1 ) {
 				continue;
 			}
 /* smaller golemd haven't been implemented yet
-			if ( !target->spawnArgs.GetInt("forLargeGolem") ) {
+			if ( !target->spawnArgs.GetInt( "forLargeGolem" ) ) {
 				continue;
 			}
 */
-			if ( GetGolemType() != target->spawnArgs.GetString("rockType") ) {
+			if ( GetGolemType() != target->spawnArgs.GetString( "rockType" ) ) {
 				continue;
 			}
 

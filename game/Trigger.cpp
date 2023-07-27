@@ -959,7 +959,7 @@ idTrigger_Hurt::Save
 void idTrigger_Hurt::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( on );
 	savefile->WriteFloat( delay );
-	savefile->WriteInt( nextTime );
+	savefile->WriteInt( nextTime.Num() );
 }
 
 /*
@@ -998,7 +998,7 @@ void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
 
 	if ( on && other && gameLocal.time >= nextTime ) {
 		damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
-		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
+		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT, trace->c.point );
 
 		ActivateTargets( other );
 		CallScript();

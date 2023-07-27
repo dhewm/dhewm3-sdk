@@ -3,6 +3,9 @@
 #pragma hdrstop
 
 #include "Game_local.h"
+#include "Item.h"
+#include "Player.h"
+#include "gameSys/SysCvar.h"
 
 int idPlayer::FindArtifact( int art ) {
 	for (int belt=0; belt<Artifact.Num(); belt++) {

@@ -1,7 +1,9 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
+#include "../Entity.h"
+#include "AI.h"
+#include "AI_Veloxite.h"
 
 const float VELOX_MAX_WALL_DIST				= 75.0f; // get on walls this far away
 const float VELOX_SURFACECHECK_RATE			= 0.25f; // four times per second should be enough

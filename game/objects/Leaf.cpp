@@ -1,7 +1,9 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
+#include "../Entity.h"
+#include "../Moveable.h"
+#include "Leaf.h"
 
 CLASS_DECLARATION( idMoveable, idEntity_Leaf )
 
@@ -38,7 +40,7 @@ void idEntity_Leaf::Spawn() {
 	else if ( dir < 2 && dir > 1 ) { spreadY = 0; }
 	else { spreadY = -spread; }
 
-	SetAngles( idAngles( gameLocal.random.CRandomFloat()*360, gameLocal.random.CRandomFloat()*360, gameLocal.random.CRandomFloat()*360) );
+	SetAngles( idAngles( gameLocal.random.CRandomFloat()*360, gameLocal.random.CRandomFloat()*360, gameLocal.random.CRandomFloat()*360 ) );
 	GetPhysics()->SetLinearVelocity( idVec3( 0, 0, 0 ) );
 	GetPhysics()->SetGravity( idVec3( 0, 0, 0 ) ); //gravity - if we set zero gravity, the leaves stop when they hit the ground. dont know why, but it's cool!
 

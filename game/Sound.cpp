@@ -26,6 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "gamesys/SysCvar.h"
 #include "sys/platform.h"
 #include "Entity.h"
 

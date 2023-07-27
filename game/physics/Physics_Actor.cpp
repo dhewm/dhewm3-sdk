@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 #include "Entity.h"
+#include "Player.h"
 
 #include "physics/Physics_Actor.h"
 

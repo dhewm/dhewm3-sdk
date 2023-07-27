@@ -2965,7 +2965,7 @@ void idAI::SlideMove( void ) {
 		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 5000 );
 	}
 
-	if ( !af_push_moveables && attack.Length() && TestMelee() ) {
+	if ( !af_push_moveables && attack.Length() && TestMelee( idVec3() ) ) {
 		DirectDamage( attack, enemy.GetEntity() );
 	} else {
 		idEntity *blockEnt = physicsObj.GetSlideMoveEntity();

@@ -459,8 +459,9 @@ public:
 	void					ArtifactScrollRight( int startfrom );
 	void					ArtifactScrollLeft( int startfrom );
 	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
+
 // HEXEN : Zeroth
-	/*virtual*/ bool		StuckToSurface( void );
+	bool					StuckToSurface( void );
 	void					SpawnHellions( void );
 	void					UpdateHudAutoMap( void );
 	void					AutoMapChange( idStr mapFloor );

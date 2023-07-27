@@ -39,6 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "PlayerIcon.h"
 #include "GameEdit.h"
 
+#include "Moveable.h"
 #include "Mover.h"
 
 class idAI;
@@ -461,7 +462,7 @@ public:
 	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
 
 // HEXEN : Zeroth
-	bool					StuckToSurface( void );
+	/*virtual*/ bool		StuckToSurface( void );
 	void					SpawnHellions( void );
 	void					UpdateHudAutoMap( void );
 	void					AutoMapChange( idStr mapFloor );

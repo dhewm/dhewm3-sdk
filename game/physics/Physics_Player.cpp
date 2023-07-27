@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 #include "gamesys/SysCvar.h"
+#include "Actor.h"
 #include "Entity.h"
 
 #include "physics/Physics_Player.h"
@@ -1433,7 +1434,7 @@ void idPhysics_Player::EvalGravity( void ) {
 	idVec3 curGrav = gravityVector;
 
 	float curTime = MS2SEC( gameLocal.realClientTime );
-	if ( TransitionToGravity != idVec3(0,0,0) && GetGravityNormal() != TransitionToGravity && nextTransition < curTime ) {
+	if ( TransitionToGravity != idVec3( 0, 0, 0 ) && GetGravityNormal() != TransitionToGravity && nextTransition < curTime ) {
 		double gravAmount = sqrt( curGrav.x * curGrav.x + curGrav.y * curGrav.y + curGrav.z * curGrav.z );
 		idVec3 gravDir =	TransitionToGravity		* curTransition +
 							TransitionFromGravity	* ( transitions - curTransition );

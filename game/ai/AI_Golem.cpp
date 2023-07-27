@@ -149,10 +149,10 @@ void idAI_Golem::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &
 	}
 
 	if ( !inflictor ) {
-		inflictor = gameLocal.world;
+		inflictor = (idEntity *) gameLocal.world;
 	}
 	if ( !attacker ) {
-		attacker = gameLocal.world;
+		attacker = (idEntity *) gameLocal.world;
 	}
 
 	const idDict *damageDef = gameLocal.FindEntityDefDict( damageDefName );

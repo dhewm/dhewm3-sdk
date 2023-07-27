@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "physics/Force_Constant.h"
 #include "Entity.h"
 
+#include "Game_local.h"
 #include "Moveable.h"
 
 /*

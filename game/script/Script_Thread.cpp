@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../gamesys/SysCvar.h"
 #include "../Player.h"
 #include "../Camera.h"
+#include "../SmokeParticles.h"
 
 #include "Script_Thread.h"
 

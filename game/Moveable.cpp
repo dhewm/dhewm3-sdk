@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Game_local.h"
 #include "Moveable.h"
 #include "Projectile.h"
+#include "SmokeParticles.h"
 
 /*
 ===============================================================================
@@ -417,14 +418,13 @@ void idMoveable::Killed( idEntity *inflictor, idEntity *attacker, int damage, co
 				gameLocal.Error( "'projectile_debris' is not an idDebris" );
 			}
 
-			debris = static_cast<idDebris *>(ent);
+			debris = static_cast<idDebris *>( ent );
 			debris->randomPosInBounds = true;
 			debris->randomPosEnt = this;
 			debris->Create( this, physicsObj.GetOrigin(), dir.ToMat3() );
 			debris->Launch();
 			debris->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = ( gameLocal.time + 1500 ) * 0.001f;
 			debris->UpdateVisuals();
-
 		}
 		kv = spawnArgs.MatchPrefix( "def_debris", kv );
 	}

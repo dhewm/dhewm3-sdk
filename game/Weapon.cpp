@@ -2912,7 +2912,8 @@ idWeapon::Event_CreateProjectile
 void idWeapon::Event_CreateProjectile( void ) {
 	if ( !gameLocal.isClient ) {
 		// HEXEN : Zeroth
-		projectileEnts.Append( &idEntity() );
+		idEntity * newProjectile = new idEntity();
+		projectileEnts.Append( newProjectile );
 		int pnum = projectileEnts.Num() - 1;
 		gameLocal.SpawnEntityDef( projectileDict, &(projectileEnts[pnum]), false );
 		if ( projectileEnts[pnum] ) {

@@ -34,7 +34,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "gamesys/Event.h"
 #include "Entity.h"
 #include "Player.h"
-#include "Projectile.h"
 
 /*
 ===============================================================================

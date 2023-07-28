@@ -46,6 +46,8 @@ If you have questions concerning this license or the applicable additional terms
 
 extern const idEventDef EV_Explode;
 
+class idMoveable;
+
 class idProjectile : public idEntity {
 public :
 	CLASS_PROTOTYPE( idProjectile );

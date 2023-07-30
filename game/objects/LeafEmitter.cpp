@@ -1,8 +1,8 @@
 
 #pragma hdrstop
 
-#include "../Entity.h"
-#include "../Game_local.h"
+#include "Entity.h"
+#include "Game_local.h"
 #include "LeafEmitter.h"
 
 CLASS_DECLARATION( idEntity, idEntity_LeafEmitter )

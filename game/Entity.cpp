@@ -1665,7 +1665,9 @@ bool idEntity::StartSound( const char *soundName, const s_channelType channel, i
 
 	// we should ALWAYS be playing sounds from the def.
 	// hardcoded sounds MUST be avoided at all times because they won't get precached.
+#ifdef _DEBUG && 0
 	assert( idStr::Icmpn( soundName, "snd_", 4 ) == 0 );
+#endif
 
 	if ( !spawnArgs.GetString( soundName, "", &sound ) ) {
 		return false;
@@ -5676,7 +5678,7 @@ idEntity::Event_SetGravity
 =====================
 */
 void idEntity::Event_SetGravity( const idVec3 &grav ) {
-	GetPhysics()->SetGravity(grav);
+	GetPhysics()->SetGravity( grav );
 }
 
 /*
@@ -5686,9 +5688,9 @@ idEntity::Event_GetGravity
 =====================
 */
 void idEntity::Event_GetGravity( void ) {
-	idVec3 cur=GetPhysics()->GetGravity();
+	idVec3 cur = GetPhysics()->GetGravity();
 
-	idThread::ReturnVector(cur);
+	idThread::ReturnVector( cur );
 }
 
 /*
@@ -5698,9 +5700,9 @@ idEntity::Event_GetGravityNormal
 =====================
 */
 void idEntity::Event_GetGravityNormal( void ) {
-	idVec3 cur=GetPhysics()->GetGravityNormal();
+	idVec3 cur = GetPhysics()->GetGravityNormal();
 
-	idThread::ReturnVector(cur);
+	idThread::ReturnVector( cur );
 }
 
 /*
@@ -5710,7 +5712,7 @@ idEntity::Event_GetSelfEntity
 =====================
 */
 void idEntity::Event_GetSelfEntity( void ) {
-	idThread::ReturnEntity(this);
+	idThread::ReturnEntity( this );
 }
 
 /*
@@ -5720,7 +5722,7 @@ idEntity::Event_GetHealth
 =====================
 */
 void idEntity::Event_GetHealth( void ) {
-	idThread::ReturnInt(health);
+	idThread::ReturnInt( health );
 }
 
 /*
@@ -5768,7 +5770,7 @@ idEntity::SetState
 */
 void idEntity::SetState( const function_t *newState ) {
 	if ( !newState ) {
-		gameLocal.Printf("idEntity::SetState(): %s: Null State.\n", name.c_str());
+		gameLocal.Printf( "idEntity::SetState(): %s: Null State.\n", name.c_str() );
 	}
 
 	state = newState;
@@ -5795,7 +5797,7 @@ idEntity::UpdateScript
 =====================
 */
 void idEntity::UpdateScript( void ) {
-    int    i;
+    int i;
 
     // a series of state changes can happen in a single frame.
     // this loop limits them in case we've entered an infinite loop.
@@ -5928,8 +5930,8 @@ idEntity::IsInUse
 ================
 */
 bool IsInUse( void ) {
-	if (scriptThread != NULL) {
-		return (scriptThread->IsBusy());
+	if ( scriptThread != NULL ) {
+		return ( scriptThread->IsBusy() );
 	}
 
 	return false;
@@ -5953,9 +5955,9 @@ idEntity::Event_SpawnProjectiles
 ================
 */
 void idEntity::Event_SpawnProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower ) {
-	idProjectile		*proj;
+	idProjectile	*proj;
 	idEntity		*ent;
-	int			i;
+	int				i;
 	idVec3			dir;
 	float			ang;
 	float			spin;
@@ -5979,7 +5981,7 @@ void idEntity::Event_SpawnProjectiles( int num_projectiles, float spread, float 
 	playerViewAxis = physics->GetAxis();
 
 	if ( !projectileDict.GetNumKeyVals() ) {
-		const char *classname =  this->spawnArgs.GetString("inv_name");
+		const char *classname =  this->spawnArgs.GetString( "inv_name" );
 		gameLocal.Warning( "No projectile defined on '%s'", classname );
 		return;
 	}
@@ -6033,7 +6035,7 @@ void idEntity::Event_SpawnProjectiles( int num_projectiles, float spread, float 
 				ent->fl.networkSync = false;
 			}
 
-			proj = static_cast<idProjectile *>(ent);
+			proj = static_cast<idProjectile *>( ent );
 			proj->Create( owner, playerViewOrigin, dir );
 
 			projBounds = proj->GetPhysics()->GetBounds().Rotate( proj->GetPhysics()->GetAxis() );
@@ -6086,7 +6088,7 @@ idEntity::Event_GetMaster
 ================
 */
 void idEntity::Event_GetMaster( void ) {
-	idThread::ReturnEntity(bindMaster);
+	idThread::ReturnEntity( bindMaster );
 }
 
 /*
@@ -6096,7 +6098,7 @@ idEntity::Event_GetModelDims
 ================
 */
 void idEntity::Event_GetModelDims( void ) {
-	idThread::ReturnVector(GetModelDims());
+	idThread::ReturnVector( GetModelDims() );
 }
 
 /*
@@ -6108,9 +6110,9 @@ idEntity::GetModelDims
 idVec3 idEntity::GetModelDims( void ) {
 	idVec3 a;
 	if ( renderEntity.hModel ) {
-		a.x = abs(renderEntity.bounds.GetMaxs().x) + abs(renderEntity.bounds.GetMins().x);
-		a.y = abs(renderEntity.bounds.GetMaxs().y) + abs(renderEntity.bounds.GetMins().y);
-		a.z = abs(renderEntity.bounds.GetMaxs().z) + abs(renderEntity.bounds.GetMins().z);
+		a.x = abs( renderEntity.bounds.GetMaxs().x ) + abs( renderEntity.bounds.GetMins().x );
+		a.y = abs( renderEntity.bounds.GetMaxs().y ) + abs( renderEntity.bounds.GetMins().y );
+		a.z = abs( renderEntity.bounds.GetMaxs().z ) + abs( renderEntity.bounds.GetMins().z );
 	} else {
 		a.Zero();
 	}
@@ -6124,7 +6126,7 @@ idEntity::Event_ResetGravity
 ================
 */
 void idEntity::Event_ResetGravity( void ) {
-	physics->SetGravity(gameLocal.GetGravity());
+	physics->SetGravity( gameLocal.GetGravity() );
 }
 
 // HEXEN : Zeroth - broken

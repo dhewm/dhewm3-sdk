@@ -1,10 +1,10 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
-#include "../Player.h"
-#include "../Projectile.h"
-#include "../ai/AI.h"
+#include "Game_local.h"
+#include "Player.h"
+#include "Projectile.h"
+#include "ai/AI.h"
 
 #include "FireStorm.h"
 

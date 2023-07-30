@@ -1,8 +1,8 @@
 
 #pragma hdrstop
 
-#include "../Entity.h"
-#include "../Moveable.h"
+#include "Entity.h"
+#include "Moveable.h"
 #include "Leaf.h"
 
 CLASS_DECLARATION( idMoveable, idEntity_Leaf )

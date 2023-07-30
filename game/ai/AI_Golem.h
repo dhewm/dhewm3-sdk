@@ -3,7 +3,7 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
+#include "Game_local.h"
 
 const idVec3 GOLEM_TRACE_MINS	= idVec3(-1,-1,-1);
 const idVec3 GOLEM_TRACE_MAXS	= idVec3(-1,-1,-1);

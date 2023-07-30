@@ -1,7 +1,7 @@
 
 #pragma hdrstop
 
-#include "../Entity.h"
+#include "Entity.h"
 #include "AI.h"
 #include "AI_Veloxite.h"
 

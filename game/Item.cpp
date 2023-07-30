@@ -71,17 +71,17 @@ CLASS_DECLARATION( idEntity, idItem )
 	EVENT( EV_RespawnItem,		idItem::Event_Respawn )
 	EVENT( EV_RespawnFx,		idItem::Event_RespawnFx )
 //	EVENT( EV_SetNextState,		idItem::Event_SetNextState )
-//	EVENT( EV_SetState,		idItem::Event_SetState )
-//	EVENT( EV_GetState,		idItem::Event_GetState )
+//	EVENT( EV_SetState,			idItem::Event_SetState )
+//	EVENT( EV_GetState,			idItem::Event_GetState )
 // HEXEN : Zeroth
 	EVENT( EV_ArtifactStart,			idItem::Event_ArtifactStart )
-	EVENT( EV_ArtifactDone,			idItem::Event_ArtifactDone )
+	EVENT( EV_ArtifactDone,				idItem::Event_ArtifactDone )
 	EVENT( EV_ArtifactCoolDown,			idItem::Event_ArtifactCoolDown )
 	EVENT( EV_SetArtifactActive,		idItem::Event_SetArtifactActive )
-	EVENT( EV_OwnerLaunchProjectiles,		idItem::Event_OwnerLaunchProjectiles )
-	EVENT( EV_OwnerCreateProjectile,			idItem::Event_OwnerCreateProjectile )
-	EVENT( EV_GetOwner,                         idItem::Event_GetOwner )
-	EVENT( EV_HideMultiModel,				idItem::Event_HideMultiModel )
+	EVENT( EV_OwnerLaunchProjectiles,	idItem::Event_OwnerLaunchProjectiles )
+	EVENT( EV_OwnerCreateProjectile,	idItem::Event_OwnerCreateProjectile )
+	EVENT( EV_GetOwner,					idItem::Event_GetOwner )
+	EVENT( EV_HideMultiModel,			idItem::Event_HideMultiModel )
 END_CLASS
 
 
@@ -585,8 +585,8 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 	}
 
 	if ( val ) {
-		if ( spawnArgs.GetString("scriptobject") != "" ) {
-			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool("dontNotifyOnPickup") ) {
+		if ( spawnArgs.GetString( "scriptobject" ) != "" ) {
+			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool( "dontNotifyOnPickup" ) ) {
 				CallFunc( "pickup_message" );
 			}
 			CallFunc( "pickup_effect" );
@@ -1814,7 +1814,9 @@ idItem::SetOwner
 ================
 */
 void idItem::SetOwner( idPlayer *_owner ) {
+#ifdef _DEBUG && 0
 	assert( !owner );
+#endif
 	owner = _owner;
 	lastOwner = _owner;
 	// SetName( va( "%s_weapon", owner->name.c_str() ) );
@@ -1833,7 +1835,9 @@ idItem::CallFunc
 bool idItem::CallFunc( char *funcName ) {
 	const function_t *func = GetScriptFunction( (const char*) funcName );
 	if ( !func ) {
+#ifdef _DEBUG && 0
 		assert( 0 );
+#endif
 		gameLocal.Error( "Can't find function use' in object '%s'", scriptObject.GetTypeName() );
 		return false;
 	}

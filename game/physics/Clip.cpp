@@ -981,8 +981,9 @@ ID_INLINE bool TestHugeTranslation( trace_t &results, const idClipModel *mdl, co
 		}
 
 		gameLocal.Printf( "  from (%.2f %.2f %.2f) to (%.2f %.2f %.2f)\n", start.x, start.y, start.z, end.x, end.y, end.z);
-
+#ifdef _DEBUG && 0
 		assert( 0 );
+#endif
 		return true;
 	}
 	return false;

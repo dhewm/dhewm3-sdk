@@ -4775,7 +4775,7 @@ idGameLocal::InitHub
 */
 void idGameLocal::InitHub( void ) {
 	idEntity* ent;
-	idStr name,tmp,name_str,st;
+	idStr name, tmp, name_str, st;
 	int nt = 0;
 	idVec3 vc;
 	idAngles ag;
@@ -4809,7 +4809,7 @@ void idGameLocal::InitHub( void ) {
 
 			if ( persistentLevelInfo.GetInt( name_str ) ) {
 				delete ent;
-				gameLocal.entities[i]=NULL;
+				gameLocal.entities[i] = NULL;
 				continue;
 			}
 
@@ -4819,10 +4819,10 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st == "on" ) {
-				static_cast<idTrigger *>(gameLocal.entities[i])->Enable();
+				static_cast<idTrigger *>( gameLocal.entities[i] )->Enable();
 				continue;
 			} else if ( st == "off" ) {
-				static_cast<idTrigger *>(gameLocal.entities[i])->Disable();
+				static_cast<idTrigger *>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -4832,10 +4832,10 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st == "on" ) {
-				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Enable();
+				static_cast<idTrigger_Timer *>( gameLocal.entities[i] )->Enable();
 				continue;
 			} else if ( st == "off" ) {
-				static_cast<idTrigger_Timer *>(gameLocal.entities[i])->Disable();
+				static_cast<idTrigger_Timer *>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -4845,10 +4845,10 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st == "on" ) {
-				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Enable();
+				static_cast<idTrigger_Touch *>( gameLocal.entities[i] )->Enable();
 				continue;
 			} else if ( st == "off" ) {
-				static_cast<idTrigger_Touch *>(gameLocal.entities[i])->Disable();
+				static_cast<idTrigger_Touch *>( gameLocal.entities[i] )->Disable();
 				continue;
 			}
 
@@ -4859,7 +4859,7 @@ void idGameLocal::InitHub( void ) {
 
 			if ( st != "" ) {
 				nt = persistentLevelInfo.GetInt( name_str );
-				static_cast<idTrigger_Count *>(gameLocal.entities[i])->SetCount( nt );
+				static_cast<idTrigger_Count *>( gameLocal.entities[i] )->SetCount( nt );
 				continue;
 			}
 
@@ -4870,7 +4870,7 @@ void idGameLocal::InitHub( void ) {
 
 			if ( st != "" ) {
 				nt = persistentLevelInfo.GetInt( name_str );
-				static_cast<idTrigger_Count *>(gameLocal.entities[i])->SetGoal( nt );
+				static_cast<idTrigger_Count *>( gameLocal.entities[i] )->SetGoal( nt );
 				continue;
 			}
 
@@ -4880,7 +4880,7 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st == "1" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->BecomeBroken( NULL );
+				static_cast<idLight *>( gameLocal.entities[i] )->BecomeBroken( NULL );
 				continue;
 			}
 
@@ -4890,10 +4890,10 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st == "on" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->On();
+				static_cast<idLight *>( gameLocal.entities[i] )->On();
 				continue;
 			} else if ( st == "off" ) {
-				static_cast<idLight *>(gameLocal.entities[i])->Off();
+				static_cast<idLight *>( gameLocal.entities[i] )->Off();
 				continue;
 			}
 
@@ -4904,8 +4904,8 @@ void idGameLocal::InitHub( void ) {
 
 			if ( st != "" ) {
 				vc = persistentLevelInfo.GetVector( name_str );
-				static_cast<idMover *>(gameLocal.entities[i])->GetPhysics()->SetOrigin( vc );
-				static_cast<idMover *>(gameLocal.entities[i])->SetDestPos( vc );
+				static_cast<idMover *>( gameLocal.entities[i] )->GetPhysics()->SetOrigin( vc );
+				static_cast<idMover *>( gameLocal.entities[i] )->SetDestPos( vc );
 				continue;
 			}
 
@@ -4917,7 +4917,7 @@ void idGameLocal::InitHub( void ) {
 			if ( st != "" ) {
 				ag = persistentLevelInfo.GetAngles( name_str );
 				ag.Normalize360();
-				static_cast<idPhysics_Parametric *>(static_cast<idMover *>(gameLocal.entities[i])->GetPhysics())->SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, ag, ang_zero, ang_zero );
+				static_cast<idPhysics_Parametric *>( static_cast<idMover *>( gameLocal.entities[i] )->GetPhysics() )->SetAngularExtrapolation( EXTRAPOLATION_NONE, 0, 0, ag, ang_zero, ang_zero );
 				continue;
 			}
 
@@ -4927,13 +4927,13 @@ void idGameLocal::InitHub( void ) {
 			st = persistentLevelInfo.GetString( name_str );
 
 			if ( st != "" ) {
-				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetOrigin( persistentLevelInfo.GetVector( name_str ) );
+				static_cast<idPhysics_Parametric *>( static_cast<idMoveable *>(gameLocal .entities[i] )->GetPhysics() )->SetOrigin( persistentLevelInfo.GetVector( name_str ) );
 				name_str = tmp;
 				name_str += "_moveable_ang";
-				static_cast<idMoveable *>(gameLocal.entities[i])->SetAngles( persistentLevelInfo.GetAngles( name_str ) );
+				static_cast<idMoveable *>( gameLocal.entities[i] )->SetAngles( persistentLevelInfo.GetAngles( name_str ) );
 				name_str = tmp;
 				name_str += "_moveable_vel";
-				static_cast<idPhysics_Parametric *>(static_cast<idMoveable *>(gameLocal.entities[i])->GetPhysics())->SetLinearVelocity( persistentLevelInfo.GetVector( name_str ) );
+				static_cast<idPhysics_Parametric *>( static_cast<idMoveable *>( gameLocal.entities[i] )->GetPhysics() )->SetLinearVelocity( persistentLevelInfo.GetVector( name_str ) );
 				continue;
 			}
 		}
@@ -5111,27 +5111,27 @@ Zeroth
 idGameLocal::SavePersistentMoveables
 ===============
 */
-void idGameLocal::SavePersistentMoveables(void) {
+void idGameLocal::SavePersistentMoveables( void ) {
 	idEntity* ent;
 	idStr tmp, name_str, st, name;
 	int nt = 0;
 	// idVec3 vc;
 	idAngles ag;
 
-	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+	for ( int i = 0; i < MAX_GENTITIES; i++ ) {
 		ent = gameLocal.entities[i];
-		if (ent) {
+		if ( ent ) {
 
 			name = ent->GetEntityDefName();
 
 			// find moveables locations
-			if ( name.Left(9) == "moveable_" ) {
-				/*
+			if ( name.Left( 9 ) == "moveable_" ) {
+				#if 0
 				vc = ent->GetPhysics()->GetOrigin();
-				if ( vc == ent->spawnArgs.GetVector("origin") ) {
+				if ( vc == ent->spawnArgs.GetVector( "origin" ) ) {
 					continue;
 				}
-				*/
+				#endif
 
 				if ( static_cast<idMoveable *>( ent )->savePersistentInfo == false ) {
 					continue;

@@ -1,8 +1,8 @@
 
 #pragma hdrstop
 
-#include "../Entity.h"
-#include "../Misc.h"
+#include "Entity.h"
+#include "Misc.h"
 #include "Tree.h"
 
 CLASS_DECLARATION( idAnimated, idAnimated_Tree )

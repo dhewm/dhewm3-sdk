@@ -1,12 +1,12 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
-#include "../Player.h"
-#include "../Projectile.h"
-#include "../ai/AI.h"
-#include "../ai/AI_Golem.h"
-#include "../ai/AI_Veloxite.h"
+#include "Game_local.h"
+#include "Player.h"
+#include "Projectile.h"
+#include "ai/AI.h"
+#include "ai/AI_Golem.h"
+#include "ai/AI_Veloxite.h"
 
 #include "Wraithverge.h"
 

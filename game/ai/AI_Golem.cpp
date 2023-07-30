@@ -1,9 +1,9 @@
 
 #pragma hdrstop
 
-#include "../Entity.h"
-#include "../Game_local.h"
-#include "../Moveable.h"
+#include "Entity.h"
+#include "Game_local.h"
+#include "Moveable.h"
 #include "AI.h"
 #include "AI_Golem.h"
 

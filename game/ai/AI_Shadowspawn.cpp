@@ -1,7 +1,7 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
+#include "Game_local.h"
 
 const int SHADOWSPAWN_RANGE_ATTACK_RATE		= 3;
 const int SHADOWSPAWN_DRAIN_RATE			= 10;

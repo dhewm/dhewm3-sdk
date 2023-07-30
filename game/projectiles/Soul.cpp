@@ -1,8 +1,8 @@
 
 #pragma hdrstop
 
-#include "../Game_local.h"
-#include "../Projectile.h"
+#include "Game_local.h"
+#include "Projectile.h"
 
 #include "Soul.h"
 

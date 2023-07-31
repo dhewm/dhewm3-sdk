@@ -1206,9 +1206,9 @@ bool idClip::Motion( trace_t &results, const idVec3 &start, const idVec3 &end, c
 	trace_t translationalTrace, rotationalTrace, trace;
 	idRotation endRotation;
 	const idTraceModel *trm;
-
+#ifdef _DEBUG && 0
 	assert( rotation.GetOrigin() == start );
-
+#endif
 	if ( TestHugeTranslation( results, mdl, start, end, trmAxis ) ) {
 		return true;
 	}

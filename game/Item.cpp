@@ -587,9 +587,10 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 	if ( val ) {
 		if ( spawnArgs.GetString( "scriptobject" ) != "" ) {
 			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool( "dontNotifyOnPickup" ) ) {
-				CallFunc( "pickup_message" );
+				// CallFunc( "pickup_message" ); // doesn't work in dhewm3, crashes
+				player->ShowHudMessage( va("You got the %s\n", spawnArgs.GetString( "inv_name" )) );
 			}
-			CallFunc( "pickup_effect" );
+			// CallFunc( "pickup_effect" ); // doesn't work in dhewm3, crashes
 		}
 
 		gameLocal.SetPersistentRemove( name.c_str() );

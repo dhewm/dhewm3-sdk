@@ -141,7 +141,14 @@ public:
 
 	idList< idEntityPtr<idEntity> >	targets;		// when this entity is activated these entities entity are activated
 
-	int						health;					// FIXME: do all objects really need health?
+	// HEXEN : Zeroth
+protected:
+	int						nextFlame;
+	int						fireJoint;
+public:
+	int						health;
+	int						onFire;
+
 
 	struct entityFlags_s {
 		bool				notarget			:1;	// if true never attack or target this entity
@@ -157,6 +164,16 @@ public:
 		bool				hasAwakened			:1;	// before a monster has been awakened the first time, use full PVS for dormant instead of area-connected
 		bool				networkSync			:1; // if true the entity is synchronized over the network
 	} fl;
+
+// HEXEN : Zeroth
+public:
+	bool					gravityMod;
+	bool					inWater;
+
+// HEXEN : Zeroth
+public:
+	idVec3					curGrav( void );
+	idVec3					curNorm( void );
 
 public:
 	ABSTRACT_PROTOTYPE( idEntity );
@@ -177,6 +194,16 @@ public:
 							// clients generate views based on all the player specific options,
 							// cameras have custom code, and everything else just uses the axis orientation
 	virtual renderView_t *	GetRenderView();
+	void ShutdownThreads( void );
+	void UpdateScript( void );
+	void SetState( const char *statename );
+	void SetState( const function_t *newState );
+	const function_t *GetScriptFunction( const char *funcname );
+	const char *WaitState( void ) const;
+	void SetWaitState( const char *_waitstate );
+	//idThread *ConstructScriptObject( void );
+	//void idEntity::FinishSetup( void );
+	//bool IsInUse( void ); // HEXEN : Zeroth
 
 	// thinking
 	virtual void			Think( void );
@@ -302,7 +329,7 @@ public:
 							// returns true if this entity can be damaged from the given origin
 	virtual bool			CanDamage( const idVec3 &origin, idVec3 &damagePoint ) const;
 							// applies damage to this entity
-	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 							// adds a damage effect like overlays, blood, sparks, debris etc.
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
 							// callback function for when another entity received damage from this entity.  damage can be adjusted and returned to the caller.
@@ -361,10 +388,23 @@ public:
 	void					ServerSendEvent( int eventId, const idBitMsg *msg, bool saveEvent, int excludeClient ) const;
 	void					ClientSendEvent( int eventId, const idBitMsg *msg ) const;
 
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+	void                    FadeMusic( int channel, float to, float over );
+// ******
+
 protected:
 	renderEntity_t			renderEntity;						// used to present a model to the renderer
 	int						modelDefHandle;						// handle to static renderer model
 	refSound_t				refSound;							// used to present sound to the audio engine
+
+// HEXEN : Zeroth
+	// state variables
+	const function_t		*state;
+	const function_t		*idealState;
+	// script variables
+	idThread *				scriptThread;
+	idStr					waitState;
 
 private:
 	idPhysics_Static		defaultPhysicsObj;					// default physics object
@@ -381,6 +421,7 @@ private:
 	signalList_t *			signals;
 
 	int						mpGUIState;							// local cache to avoid systematic SetStateInt
+	idThread *				thread;
 
 private:
 	void					FixupLocalizedStrings();
@@ -465,6 +506,32 @@ private:
 	void					Event_HasFunction( const char *name );
 	void					Event_CallFunction( const char *name );
 	void					Event_SetNeverDormant( int enable );
+
+// HEXEN : Zeroth
+private:
+	idDict					projectileDict;
+	idEntity				*projectileEnt;
+	void Event_GetState( void );
+	void Event_SetState( const char *name );
+	void Event_SetNextState( const char *name );
+
+	void					Event_SetGravity( const idVec3 &grav );
+	void					Event_GetGravity( void );
+	void					Event_GetGravityNormal( void );
+	void                    Event_GetSelfEntity( void );
+	void					Event_SetHealth( float newHealth );
+	void					Event_GetHealth( void );
+	void					Event_GetType( void );
+	void					Event_SpawnProjectiles( int num_projectiles, float spread, float fuseOffset, float launchPower, float dmgPower );
+	void					Event_CreateProjectile( void );
+	void					Event_GetMaster( void );
+	void					Event_GetModelDims( void );
+	void					Event_ReplaceMaterial( const char * replacee, const char * replacer );
+	void					Event_ResetGravity( void );
+	void					Event_HudMessage( const char *message );
+public:
+	idAngles				GetAngles( void );
+	idVec3					GetModelDims( void );
 };
 
 /*
@@ -509,6 +576,7 @@ public:
 	virtual void			AddDamageEffect( const trace_t &collision, const idVec3 &velocity, const char *damageDefName );
 	void					AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &localPoint, const idVec3 &localNormal, const idVec3 &localDir, const idDeclEntityDef *def, const idMaterial *collisionMaterial );
 	void					UpdateDamageEffects( void );
+	void					EmitFlames( void );
 
 	virtual bool			ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
@@ -529,6 +597,15 @@ private:
 	void					Event_SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles );
 	void					Event_GetJointPos( jointHandle_t jointnum );
 	void					Event_GetJointAngle( jointHandle_t jointnum );
+
+// HEXEN : Zeroth
+private:
+	void					Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
+public:
+	idVec3					GetJointPos( jointHandle_t jointnum );
+	void					TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
+	void 					SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles );
+	idAngles				GetJointAngle( jointHandle_t jointnum );
 };
 
 #endif /* !__GAME_ENTITY_H__ */

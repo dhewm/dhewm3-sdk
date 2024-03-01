@@ -389,6 +389,10 @@ public:
 
 	void			Lerp( const idVec3 &v1, const idVec3 &v2, const float l );
 	void			SLerp( const idVec3 &v1, const idVec3 &v2, const float l );
+
+// HEXEN : Zeroth
+public:
+	float			toAngle( idVec3 B ); // return the angle in degrees between two idVec3s
 };
 
 extern idVec3 vec3_origin;

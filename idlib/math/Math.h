@@ -201,6 +201,12 @@ public:
 
 	static int					FloatHash( const float *array, const int numFloats );
 
+/*
+// HEXEN : Zeroth
+	static idVec3				Vec45CtrClock( idVec3 vec );
+	static idVec3				Vec45Cloc( idVec3 vec );
+*/
+
 	static const float			PI;							// pi
 	static const float			TWO_PI;						// pi * 2
 	static const float			HALF_PI;					// pi / 2
@@ -928,5 +934,29 @@ ID_INLINE int idMath::FloatHash( const float *array, const int numFloats ) {
 	}
 	return hash;
 }
+
+#if 0
+// HEXEN : Zeroth
+ID_INLINE idVec3 idMath::Vec45CtrClock( idVec3 vec ) {
+	idVec3 perpVec;
+	// perpendicular vector to forward, counterclockwise
+	perpVec.x = -vec.y;
+	perpVec.y = vec.x;
+	perpVec.z = 0;
+	return perpVec;
+}
+#endif
+
+#if 0
+// HEXEN : Zeroth
+ID_INLINE idVec3 idMath::Vec45Clock( idVec3 vec ) {
+	idVec3 perpVec;
+	// perpendicular vector to forward, clockwise
+	perpVec_x = vec.y;
+	perpVec_y = -vec.x;
+	perpVec_z = 0;
+	return perpVec;
+}
+#endif
 
 #endif /* !__MATH_MATH_H__ */

@@ -136,6 +136,8 @@ private:
 	void						Event_SpawnVector( const char *key, idVec3 &defaultvalue );
 	void						Event_ClearPersistantArgs( void );
 	void						Event_SetPersistantArg( const char *key, const char *value );
+	void 						Event_SetPersistantMapArg( const char *key, const char *value );
+	void 						Event_GetPersistantMapFloat( const char *key, const char *defaultvalue );
 	void						Event_GetPersistantString( const char *key );
 	void						Event_GetPersistantFloat( const char *key );
 	void						Event_GetPersistantVector( const char *key );
@@ -188,6 +190,19 @@ private:
 	void						Event_DrawText( const char *text, const idVec3 &origin, float scale, const idVec3 &color, const int align, const float lifetime );
 	void						Event_InfluenceActive( void );
 
+// HEXEN : Zeroth
+private:
+//	void						Event_SoundMute( float yesorno );
+	void						Event_ASin( const float angle );
+	void						Event_ACos( const float angle );
+	void						Event_ATan( const float angle );
+	void						Event_GetRandomBanishLocation( void );
+	void						Event_GetEntityNum( const idEntity *ent );
+	void						Event_GetEntityNumFromName( const idStr entName );
+	void						Event_TraceSurfaceNormal( const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass );
+	void						Event_GetWorldGravity( void );
+	void						Event_SpawnParticle( const char *particleName, const idVec3 &origin );
+
 public:
 								CLASS_PROTOTYPE( idThread );
 
@@ -228,6 +243,7 @@ public:
 	static idList<idThread*>&	GetThreads ( void );
 
 	bool						IsDoneProcessing ( void );
+	//bool						IsBusy( void ); // HEXEN : Zeroth - this will be true if the script is in a function - whether paused or not.
 	bool						IsDying			 ( void );
 
 	void						End( void );
@@ -320,6 +336,22 @@ idThread::IsDoneProcessing
 ID_INLINE bool idThread::IsDoneProcessing ( void ) {
 	return interpreter.doneProcessing;
 }
+
+#if 0
+/*
+================
+Zeroth
+idThread::IsBusy
+================
+*/
+ID_INLINE bool idThread::IsBusy ( void ) {
+	if ( interpreter.GetCallstackDepth() == 0 ) {
+		return false;
+	} else {
+		return true;
+	}
+}
+#endif
 
 /*
 ================

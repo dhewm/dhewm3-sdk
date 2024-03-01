@@ -108,6 +108,10 @@ public:	// common physics interface
 	const idVec3 &			GetGravity( void ) const;
 	const idVec3 &			GetGravityNormal( void ) const;
 
+// HEXEN : Zeroth
+public:
+	void					SetGravityNormal( idVec3 newNormal );
+
 	void					ClipTranslation( trace_t &results, const idVec3 &translation, const idClipModel *model ) const;
 	void					ClipRotation( trace_t &results, const idRotation &rotation, const idClipModel *model ) const;
 	int						ClipContents( const idClipModel *model ) const;
@@ -143,6 +147,10 @@ public:	// common physics interface
 
 	void					WriteToSnapshot( idBitMsgDelta &msg ) const;
 	void					ReadFromSnapshot( const idBitMsgDelta &msg );
+
+// HEXEN : Zeroth
+public:
+	int						NumGroundContacts( void ) const;
 
 protected:
 	idEntity *				self;					// entity using this physics object

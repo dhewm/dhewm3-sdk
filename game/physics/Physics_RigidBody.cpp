@@ -967,11 +967,12 @@ bool idPhysics_RigidBody::Evaluate( int timeStepMSec, int endTimeMSec ) {
 	current.externalForce.Zero();
 	current.externalTorque.Zero();
 
-	if ( IsOutsideWorld() ) {
-		gameLocal.Warning( "rigid body moved outside world bounds for entity '%s' type '%s' at (%s)",
-					self->name.c_str(), self->GetType()->classname, current.i.position.ToString(0) );
-		Rest();
-	}
+// HEXEN : Zeroth - for some entities, it is okay to move outside world bounds. would be nice to have a "canMoveOutsideWorld" spawnArg
+//	if ( IsOutsideWorld() ) {
+//		gameLocal.Warning( "rigid body moved outside world bounds for entity '%s' type '%s' at (%s)",
+//					self->name.c_str(), self->GetType()->classname, current.i.position.ToString(0) );
+//		Rest();
+//	}
 
 #ifdef RB_TIMINGS
 	timer_total.Stop();

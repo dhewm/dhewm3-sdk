@@ -1345,11 +1345,6 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 
 	savegame.ReadBuildNumber();
 
-	// a number to signify which release the save file belons to. this
-	// way we can make save games compatible with newer releases of 
-	int eocnum;
-	savegame.ReadInt( eocnum );
-
 	// DG: I enhanced the information in savegames a bit for dhewm3 1.5.1
 	//     for which I bumped th BUILD_NUMBER to 1305
 	if( savegame.GetBuildNumber() >= 1305 )
@@ -1379,6 +1374,11 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 		// it can be used for quirks for (then-) old savegames
 	}
 	// DG end
+
+	// a number to signify which release the save file belons to. this
+	// way we can make save games compatible with newer releases of 
+	int eocnum;
+	savegame.ReadInt( eocnum );
 
 	// Create the list of all objects in the game
 	savegame.CreateObjects();

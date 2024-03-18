@@ -248,7 +248,7 @@ idCVar rb_showBuoyancy(				"rb_showBuoyancy",			"0",			CVAR_GAME | CVAR_BOOL, "s
 #endif
 
 // The default values for player movement cvars are set in def/player.def
-idCVar pm_jumpheight(				"pm_jumpheight",			"120",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate hieght the player can jump" ); // un noted changes from original sdk
+idCVar pm_jumpheight(				"pm_jumpheight",			"120",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate height the player can jump" ); // un noted changes from original sdk
 idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "maximum height the player can step up without jumping" ); // un noted changes from original sdk
 idCVar pm_crouchspeed(				"pm_crouchspeed",			"140",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while crouched" ); // un noted changes from original sdk
 idCVar pm_walkspeed(				"pm_walkspeed",				"260",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking" ); // un noted changes from original sdk

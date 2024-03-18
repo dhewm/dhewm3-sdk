@@ -4613,4 +4613,4 @@ void idPortalSky::Event_Activate( idEntity *activator ) {
 	gameLocal.SetPortalSkyEnt( this );
 }
 
-#endif /* _PORTALSKY */f
+#endif /* _PORTALSKY */

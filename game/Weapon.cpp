@@ -593,6 +593,9 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( worldMuzzleFlashHandle );
 	savefile->ReadRenderLight( worldMuzzleFlash );
+	if ( worldMuzzleFlashHandle != -1 ) { // DG: enforce getting fresh handle
+		worldMuzzleFlashHandle = gameRenderWorld->AddLightDef( &worldMuzzleFlash );
+	}
 
 	savefile->ReadVec3( flashColor );
 	savefile->ReadInt( muzzleFlashEnd );
@@ -667,6 +670,9 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( nozzleGlowHandle );
 	savefile->ReadRenderLight( nozzleGlow );
+	if ( nozzleGlowHandle != -1 ) { // DG: enforce getting fresh handle
+		nozzleGlowHandle = gameRenderWorld->AddLightDef( &nozzleGlow );
+	}
 
 	savefile->ReadVec3( nozzleGlowColor );
 	savefile->ReadMaterial( nozzleGlowShader );

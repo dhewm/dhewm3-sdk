@@ -11,6 +11,11 @@ set(D3XP_DEFS	"GAME_DLL;_D3XP;CTF" CACHE STRING "Compiler definitions for the mo
 
 option(ONATIVE	"Optimize for the host CPU" OFF)
 
+if(NOT MSVC) # GCC/clang or compatible, hopefully
+	option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored compiler warnings/errors (GCC/Clang only; esp. useful with ninja)." OFF)
+	option(ASAN		"Enable GCC/Clang Adress Sanitizer (ASan)" OFF) # TODO: MSVC might also support this, somehow?
+endif()
+
 set(src_game_mod
 	# add additional .cpp files of your mod in game/
 	# (that you added to the ones already existant in the SDK/in dhewm3)
@@ -166,6 +171,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_compile_options(-march=pentium3)
 	endif()
 
+	if(FORCE_COLORED_OUTPUT)
+		if(CMAKE_COMPILER_IS_GNUCC)
+		   add_compile_options (-fdiagnostics-color=always)
+		elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		   add_compile_options (-fcolor-diagnostics)
+		endif ()
+	endif ()
+
 	set(CMAKE_C_FLAGS_DEBUG "-g -D_DEBUG -O0")
 	set(CMAKE_C_FLAGS_DEBUGALL "-g -ggdb -D_DEBUG")
 	set(CMAKE_C_FLAGS_PROFILE "-g -ggdb -D_DEBUG -O1 -fno-omit-frame-pointer")
@@ -181,6 +194,13 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	# (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100839)
 	add_compile_options(-ffp-contract=off)
 
+	if(ASAN)
+		# if this doesn't work, ASan might not be available on your platform, don't set ASAN then..
+		add_compile_options(-fsanitize=address)
+		# TODO: do we need to link against libasan or sth? or is it enough if dhewm3 executable does?
+		# set(ldflags ${ldflags} -fsanitize=address)
+	endif()
+
 	if(NOT AROS)
 		CHECK_CXX_COMPILER_FLAG("-fvisibility=hidden" cxx_has_fvisibility)
 		if(NOT cxx_has_fvisibility)
@@ -193,7 +213,6 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_compile_options(-Wno-sign-compare)
 	add_compile_options(-Wno-switch)
 	add_compile_options(-Wno-strict-overflow)
-	add_compile_options(-Wno-format-security)
 	
 	if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
 		# ‘void* memset(void*, int, size_t)’ clearing an object of type ‘struct refSound_t’ with no trivial copy-assignment; use assignment or value-initialization instead

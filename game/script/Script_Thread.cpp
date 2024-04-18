@@ -839,7 +839,7 @@ void idThread::Error( const char *fmt, ... ) const {
 	vsprintf( text, fmt, argptr );
 	va_end( argptr );
 
-	interpreter.Error( text );
+	interpreter.Error( "%s", text );
 }
 
 /*
@@ -855,7 +855,7 @@ void idThread::Warning( const char *fmt, ... ) const {
 	vsprintf( text, fmt, argptr );
 	va_end( argptr );
 
-	interpreter.Warning( text );
+	interpreter.Warning( "%s", text );
 }
 
 /*

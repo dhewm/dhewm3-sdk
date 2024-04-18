@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8...3.22 FATAL_ERROR)
 project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
@@ -10,6 +10,11 @@ set(D3XP_NAME	"d3xp" CACHE STRING "Name of the mod built from d3xp/ (will result
 set(D3XP_DEFS	"GAME_DLL;_D3XP;CTF" CACHE STRING "Compiler definitions for the mod built from d3xp/")
 
 option(ONATIVE	"Optimize for the host CPU" OFF)
+
+if(NOT MSVC) # GCC/clang or compatible, hopefully
+	option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored compiler warnings/errors (GCC/Clang only; esp. useful with ninja)." OFF)
+	option(ASAN		"Enable GCC/Clang Adress Sanitizer (ASan)" OFF) # TODO: MSVC might also support this, somehow?
+endif()
 
 set(src_game_mod
 	# add additional .cpp files of your mod in game/
@@ -75,21 +80,9 @@ if(NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL CMAKE_HOST_SYSTEM_PROCESSOR))
 	# special case: cross-compiling, here CMAKE_SYSTEM_PROCESSOR should be correct, hopefully
 	# (just leave cpu at ${CMAKE_SYSTEM_PROCESSOR})
 elseif(MSVC)
-	message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
-	if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-		set(cpu "x86")
-	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
-		set(cpu "x86_64")
-	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM")
-		# at least on RPi 32bit, gcc -dumpmachine outputs "arm-linux-gnueabihf",
-		#  so we'll use "arm" there => use the same for 32bit ARM on MSVC
-		set(cpu "arm")
-	elseif(CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-		set(cpu "arm64")
-	else()
-		message(FATAL_ERROR "Unknown Target CPU/platform ${CMAKE_GENERATOR_PLATFORM}")
-	endif()
-	message(STATUS "  => CPU architecture extracted from that: \"${cpu}\"")
+	# because all this wasn't ugly enough, it turned out that, unlike standalone CMake, Visual Studio's
+	# integrated CMake doesn't set CMAKE_GENERATOR_PLATFORM, so I gave up on guessing the CPU arch here
+	# and moved the CPU detection to MSVC-specific code in neo/sys/platform.h
 else() # not MSVC and not cross-compiling, assume GCC or clang (-compatible), seems to work for MinGW as well
 	execute_process(COMMAND ${CMAKE_C_COMPILER} "-dumpmachine"
 	                RESULT_VARIABLE cc_dumpmachine_res
@@ -127,8 +120,6 @@ elseif(cpu MATCHES "[aA][rR][mM].*") # some kind of arm..
 	endif()
 endif()
 
-add_definitions(-DD3_ARCH="${cpu}" -DD3_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
-
 # target os
 if(APPLE)
 	set(os "macosx")
@@ -136,14 +127,22 @@ else()
 	string(TOLOWER "${CMAKE_SYSTEM_NAME}" os)
 endif()
 
-add_definitions(-DD3_OSTYPE="${os}")
+add_definitions(-DD3_OSTYPE="${os}" -DD3_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
 
-message(STATUS "Setting -DD3_ARCH=\"${cpu}\" -DD3_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P} -DD3_OSTYPE=\"${os}\" ")
+if(MSVC)
+	# for MSVC D3_ARCH is set in code (in neo/sys/platform.h)
+	message(STATUS "Setting -DD3_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P} -DD3_OSTYPE=\"${os}\" - NOT setting D3_ARCH, because we're targeting MSVC (VisualC++)")
+	# make sure ${cpu} isn't (cant't be) used by CMake when building with MSVC
+	unset(cpu)
+else()
+	add_definitions(-DD3_ARCH="${cpu}")
+	message(STATUS "Setting -DD3_ARCH=\"${cpu}\" -DD3_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P} -DD3_OSTYPE=\"${os}\" ")
 
-if(cpu MATCHES ".*64.*" AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-	# tough luck if some CPU architecture has "64" in its name but uses 32bit pointers
-	message(SEND_ERROR "CMake thinks sizeof(void*) == 4, but the target CPU looks like a 64bit CPU!")
-	message(FATAL_ERROR "If you're building in a 32bit chroot on a 64bit host, switch to it with 'linux32 chroot' or at least call cmake with linux32 (or your OSs equivalent)!")
+	if(cpu MATCHES ".*64.*" AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+		# tough luck if some CPU architecture has "64" in its name but uses 32bit pointers
+		message(SEND_ERROR "CMake thinks sizeof(void*) == 4, but the target CPU ${cpu} looks like a 64bit CPU!")
+		message(FATAL_ERROR "If you're building in a 32bit chroot on a 64bit host, switch to it with 'linux32 chroot' or at least call cmake with linux32 (or your OSs equivalent)!")
+	endif()
 endif()
 
 # build type
@@ -155,8 +154,25 @@ endif()
 include(CheckCXXCompilerFlag)
 include(TestBigEndian)
 
+set(D3_COMPILER_IS_CLANG FALSE)
+set(D3_COMPILER_IS_GCC_OR_CLANG FALSE)
+
+if(NOT MSVC)
+	# check if this is some kind of clang (Clang, AppleClang, whatever)
+	# (convert compiler ID to lowercase so we match Clang, clang, AppleClang etc, regardless of case)
+	string(TOLOWER ${CMAKE_CXX_COMPILER_ID} compiler_id_lower)
+	if(compiler_id_lower MATCHES ".*clang.*")
+		message(STATUS "Compiler \"${CMAKE_CXX_COMPILER_ID}\" detected as some kind of clang")
+		set(D3_COMPILER_IS_CLANG TRUE)
+		set(D3_COMPILER_IS_GCC_OR_CLANG TRUE)
+	elseif(CMAKE_COMPILER_IS_GNUCC)
+		set(D3_COMPILER_IS_GCC_OR_CLANG TRUE)
+	endif()
+	unset(compiler_id_lower)
+endif() # NOT MSVC
+
 # compiler specific flags
-if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
+if(D3_COMPILER_IS_GCC_OR_CLANG)
 	add_compile_options(-pipe)
 	add_compile_options(-Wall)
 
@@ -165,6 +181,14 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	elseif(NOT APPLE AND cpu STREQUAL "x86")
 		add_compile_options(-march=pentium3)
 	endif()
+
+	if(FORCE_COLORED_OUTPUT)
+		if(CMAKE_COMPILER_IS_GNUCC)
+		   add_compile_options (-fdiagnostics-color=always)
+		elseif (D3_COMPILER_IS_CLANG)
+		   add_compile_options (-fcolor-diagnostics)
+		endif ()
+	endif ()
 
 	set(CMAKE_C_FLAGS_DEBUG "-g -D_DEBUG -O0")
 	set(CMAKE_C_FLAGS_DEBUGALL "-g -ggdb -D_DEBUG")
@@ -181,6 +205,13 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	# (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=100839)
 	add_compile_options(-ffp-contract=off)
 
+	if(ASAN)
+		# if this doesn't work, ASan might not be available on your platform, don't set ASAN then..
+		add_compile_options(-fsanitize=address)
+		# TODO: do we need to link against libasan or sth? or is it enough if dhewm3 executable does?
+		# set(ldflags ${ldflags} -fsanitize=address)
+	endif()
+
 	if(NOT AROS)
 		CHECK_CXX_COMPILER_FLAG("-fvisibility=hidden" cxx_has_fvisibility)
 		if(NOT cxx_has_fvisibility)
@@ -193,7 +224,6 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_compile_options(-Wno-sign-compare)
 	add_compile_options(-Wno-switch)
 	add_compile_options(-Wno-strict-overflow)
-	add_compile_options(-Wno-format-security)
 	
 	if(CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
 		# ‘void* memset(void*, int, size_t)’ clearing an object of type ‘struct refSound_t’ with no trivial copy-assignment; use assignment or value-initialization instead
@@ -293,7 +323,9 @@ configure_file(
 	"${CMAKE_BINARY_DIR}/config.h"
 )
 
+if(NOT MSVC)
 message(STATUS "Building ${CMAKE_BUILD_TYPE} for ${os}-${cpu}")
+endif()
 
 if(NOT APPLE AND NOT WIN32)
 	message(STATUS "The install target will use the following directories:")
@@ -563,7 +595,7 @@ if (AROS)
 		set(AROS_ARCH ${CMAKE_SYSTEM_PROCESSOR})
 	endif()
 else()
-	if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang" AND NOT MINGW)
+	if(D3_COMPILER_IS_GCC_OR_CLANG AND NOT MINGW)
 		set_target_properties(idlib PROPERTIES COMPILE_FLAGS "-fPIC")
 	endif()
 endif()

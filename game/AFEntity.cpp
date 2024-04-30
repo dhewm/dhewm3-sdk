@@ -377,10 +377,10 @@ Pass damage to body at the bindjoint
 ============
 */
 void idAFAttachment::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir,
-	const char *damageDefName, const float damageScale, const int location ) {
+	const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint ) {
 
 	if ( body ) {
-		body->Damage( inflictor, attacker, dir, damageDefName, damageScale, attachJoint );
+		body->Damage( inflictor, attacker, dir, damageDefName, damageScale, attachJoint, iPoint );
 	}
 }
 
@@ -1087,11 +1087,11 @@ void idAFEntity_Gibbable::Present( void ) {
 idAFEntity_Gibbable::Damage
 ================
 */
-void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location ) {
+void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location, idVec3 &iPoint ) {
 	if ( !fl.takedamage ) {
 		return;
 	}
-	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
+	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location, iPoint );
 	if ( health < -20 && spawnArgs.GetBool( "gib" ) ) {
 		Gib( dir, damageDefName );
 	}

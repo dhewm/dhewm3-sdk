@@ -39,7 +39,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "PlayerIcon.h"
 #include "GameEdit.h"
 
+#include "Moveable.h"
+#include "Mover.h"
+
 class idAI;
+class idProjectile;
 
 /*
 ===============================================================================
@@ -66,12 +70,6 @@ const int	FOCUS_GUI_TIME = 500;
 
 const int MAX_WEAPONS = 16;
 
-const int DEAD_HEARTRATE = 0;			// fall to as you die
-const int LOWHEALTH_HEARTRATE_ADJ = 20; //
-const int DYING_HEARTRATE = 30;			// used for volumen calc when dying/dead
-const int BASE_HEARTRATE = 70;			// default
-const int ZEROSTAMINA_HEARTRATE = 115;  // no stamina
-const int MAX_HEARTRATE = 130;			// maximum
 const int ZERO_VOLUME = -40;			// volume at zero
 const int DMG_VOLUME = 5;				// volume when taking damage
 const int DEATH_VOLUME = 15;			// volume at death
@@ -80,6 +78,10 @@ const int SAVING_THROW_TIME = 5000;		// maximum one "saving throw" every five se
 
 extern const int ASYNC_PLAYER_INV_AMMO_BITS;
 extern const int ASYNC_PLAYER_INV_CLIP_BITS;
+
+const int CLERIC = 0;
+const int MAGE = 1;
+const int FIGHTER = 2;
 
 struct idItemInfo {
 	idStr name;
@@ -123,14 +125,18 @@ enum {
 };
 
 class idInventory {
+// HEXEN : Zeroth
+public:
+	int					Class;
+
 public:
 	int						maxHealth;
 	int						weapons;
 	int						powerups;
 	int						armor;
 	int						maxarmor;
-	int						ammo[ AMMO_NUMTYPES ];
-	int						clip[ MAX_WEAPONS ];
+	float					ammo[ AMMO_NUMTYPES ];
+	float					clip[ MAX_WEAPONS ];
 	int						powerupEndTime[ MAX_POWERUPS ];
 
 	// mp
@@ -179,14 +185,17 @@ public:
 	ammo_t					AmmoIndexForAmmoClass( const char *ammo_classname ) const;
 	int						MaxAmmoForAmmoClass( idPlayer *owner, const char *ammo_classname ) const;
 	int						WeaponIndexForAmmoClass( const idDict & spawnArgs, const char *ammo_classname ) const;
-	ammo_t					AmmoIndexForWeaponClass( const char *weapon_classname, int *ammoRequired );
+	ammo_t					AmmoIndexForWeaponClass( const char *weapon_classname, float *ammoRequired );
 	const char *			AmmoPickupNameForIndex( ammo_t ammonum ) const;
 	void					AddPickupName( const char *name, const char *icon );
 
-	int						HasAmmo( ammo_t type, int amount );
-	bool					UseAmmo( ammo_t type, int amount );
-	int						HasAmmo( const char *weapon_classname );			// looks up the ammo information for the weapon class first
+// HEXEN : Zeroth
+public:
+	void					DoCombinedMana( void );
 
+	float					HasAmmo( ammo_t type, float amount );
+	bool					UseAmmo( ammo_t type, float amount );
+	float					HasAmmo( const char *weapon_classname );			// looks up the ammo information for the weapon class first
 	void					UpdateArmor( void );
 
 	int						nextItemPickup;
@@ -242,6 +251,7 @@ public:
 	idScriptBool			AI_STRAFE_LEFT;
 	idScriptBool			AI_STRAFE_RIGHT;
 	idScriptBool			AI_ATTACK_HELD;
+	idScriptBool			AI_ATTACK2_HELD; // HEXEN : Zeroth
 	idScriptBool			AI_WEAPON_FIRED;
 	idScriptBool			AI_JUMP;
 	idScriptBool			AI_CROUCH;
@@ -264,20 +274,34 @@ public:
 	idUserInterface *		hud;				// MP: is NULL if not local player
 	idUserInterface *		objectiveSystem;
 	bool					objectiveSystemOpen;
+	idUserInterface *		customGui;
+	bool					customGuiOpen;
 
 	int						weapon_soulcube;
 	int						weapon_pda;
 	int						weapon_fists;
 
-	int						heartRate;
-	idInterpolate<float>	heartInfo;
-	int						lastHeartAdjust;
-	int						lastHeartBeat;
 	int						lastDmgTime;
+
+// HEXEN : Zeroth
+public:
+	bool					PowerTome;
+	bool					AutoMapOff;
+	idAngles				SpawnViewAngles;			// player view angles
+	bool					invincible;
+	idVec3					SpawnPos;
+	int						BeltSelection;
+	int						BeltPosition;
+	int						speedMod;
+	bool					FreeMove;
+	int						leftWater;
+	idList<idDict *>		Artifact; // list of artifacts & quantities, and other artifact info
+	void					SetClass( const int classnum );
+	bool					beaten; // whether this eoc release has been beaten
+
 	int						deathClearContentsTime;
 	bool					doingDeathSkin;
 	int						lastArmorPulse;		// lastDmgTime if we had armor at time of hit
-	float					stamina;
 	float					healthPool;			// amount of health to give over time
 	int						nextHealthPulse;
 	bool					healthPulse;
@@ -381,7 +405,7 @@ public:
 	virtual void			DamageFeedback( idEntity *victim, idEntity *inflictor, int &damage );
 	void					CalcDamagePoints(  idEntity *inflictor, idEntity *attacker, const idDict *damageDef,
 							   const float damageScale, const int location, int *health, int *armor );
-	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 
 							// use exitEntityNum to specify a teleport with private camera view and delayed exit
 	virtual void			Teleport( const idVec3 &origin, const idAngles &angles, idEntity *destination );
@@ -410,11 +434,42 @@ public:
 	void					GiveItem( const char *name );
 	void					GiveHealthPool( float amt );
 
-	bool					GiveInventoryItem( idDict *item );
+	bool					GiveInventoryItem( idItem *item );
 	void					RemoveInventoryItem( idDict *item );
 	bool					GiveInventoryItem( const char *name );
 	void					RemoveInventoryItem( const char *name );
 	idDict *				FindInventoryItem( const char *name );
+
+// HEXEN : Zeroth
+public:
+	void					UpdateHudArtifacts( void );
+	void					UpdateHudActiveArtifacts();
+	bool					ArtifactVerify( int art ); // return whetherArtifact[art] is safe to use. Or if the artifact is Qty 0, delete it and return false.
+	void					CleanupArtifactItems(); // deletes allAartifactItem[] elements marked as to be.
+	int						InventoryItemQty( const char *name ) const;
+	int						InventoryItemQty( int belt ); // specifically for artifacts
+	void					SortArtifacts( void ); // sort belt items in ascending order of their "artifact" keys
+	void					ArtifactExec( int belt, char *func, bool remove );
+	void					ArtifactDrop( int belt, bool randomPos );
+	bool					ArtifactRemove( int belt );
+	void					ShowArtifactHud( void );
+	void					UpdateArtifactHudDescription( void );
+	int						FindArtifact( int art ); // returns the index inArtifact[] matching "artifact" spawnArg
+	bool					ActiveArtifact( int art );
+	bool					ActiveArtifact( const char *art );
+	void					ArtifactValidateSelection( void );
+	void					ArtifactScrollRight( int startfrom );
+	void					ArtifactScrollLeft( int startfrom );
+	int						Belt2Index(int belt_index); // translate an artitfacts position on the belt to it'sArtifactItem[] index.
+
+// HEXEN : Zeroth
+	/*virtual*/ bool		StuckToSurface( void );
+	void					SpawnHellions( void );
+	void					UpdateHudAutoMap( void );
+	void					AutoMapChange( idStr mapFloor );
+	void					ShowHudMessage( const char *message );
+	void					ShowHudMessage( idStr message );
+	bool					GetPowerTome( void ) { return PowerTome; };
 
 	void					GivePDA( const char *pdaName, idDict *item );
 	void					GiveVideo( const char *videoName, idDict *item );
@@ -449,9 +504,6 @@ public:
 	void					AddAIKill( void );
 	void					SetSoulCubeProjectile( idProjectile *projectile );
 
-	void					AdjustHeartRate( int target, float timeInSecs, float delay, bool force );
-	void					SetCurrentHeartRate( void );
-	int						GetBaseHeartRate( void );
 	void					UpdateAir( void );
 
 	virtual bool			HandleSingleGuiCommand( idEntity *entityGui, idLexer *src );
@@ -637,10 +689,16 @@ private:
 
 	bool					selfSmooth;
 
+// HEXEN : Zeroth
+private:
+	idVec3					hellion_danger_origin;
+	int						hellion_danger_time;
+
 	void					LookAtKiller( idEntity *inflictor, idEntity *attacker );
 
 	void					StopFiring( void );
 	void					FireWeapon( void );
+	void					FireWeaponAlt( void );
 	void					Weapon_Combat( void );
 	void					Weapon_NPC( void );
 	void					Weapon_GUI( void );
@@ -695,6 +753,44 @@ private:
 	void					Event_LevelTrigger( void );
 	void					Event_Gibbed( void );
 	void					Event_GetIdealWeapon( void );
+
+// HEXEN : Zeroth
+private:
+	void					Event_GiveHealth( const float amount );
+	void					Event_GiveSpeed( const float amount );
+	void					Event_GiveArmor( const float amount );
+	void					Event_GetHealth( void );
+	void					Event_GetFullHealth( void );
+	void					Event_GetArmor( void );
+	void					Event_GetFullArmor( void );
+	void					Event_SetHealth( const float amount );
+	void					Event_SetArmor( const float amount );
+	void					Event_GetClass( void );
+	void					Event_SetAmmo( const char *ammo_classname, const float amount );
+	void					Event_GetAmmo( const char *ammo_classname );
+	void					Event_GetFullAmmo( const char *ammo_classname );
+	void 					Event_SetInvincible( const float number );
+	void 					Event_GetInvincible( void );
+	void					Event_ChaosDevice( void );
+	void					Event_SetFreeMove( const float yesorno );
+	void					Event_SetViewAngles( idVec3 &vec );
+	void					Event_GetEyePos( void );
+	void					Event_SetPowerTome( float val );
+	void					Event_GetPowerTome( void );
+	void					Event_VecForwardP( void );
+	void					Event_VecFacingP( void );
+	void					Event_HudMessage( const char *message );
+	void					Event_ArtifactUseFlash( void );
+
+	//the following are no longer used - perhaps they will be useful for something else, like sticky bombs of some kind
+    void                    Event_StickToSurface( const idVec3 &surfaceNormal );
+    void                    Event_UnstickToSurface( void );
+    void                    Event_StuckToSurface( void );
+
+public:
+	idVec3					VecForwardP( void ) const;
+	idVec3					VecFacingP( void ) const;
+	void					OpenCustomGui( idStr file );
 };
 
 ID_INLINE bool idPlayer::IsReady( void ) {

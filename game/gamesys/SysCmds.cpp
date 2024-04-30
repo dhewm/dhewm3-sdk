@@ -42,6 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 #include "Misc.h"
 
+#include "GameBase.h"
 #include "SysCmds.h"
 
 /*
@@ -235,16 +236,568 @@ void KillEntities( const idCmdArgs &args, const idTypeInfo &superClass ) {
 
 /*
 ==================
+Zeroth
+Cmd_MapRestart_f
+==================
+*/
+void Cmd_MapRestart_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+
+	idStr map = gameLocal.GetMapName();
+	idStr cmd;
+
+	map = map.Right(map.Length() - 4); // get right of the leading "/map" because the 'map' session command tacks it on.
+
+	gameLocal.sessionCommand = "map ";
+	//gameLocal.sessionCommand += map.c_str();
+	//gameLocal.sessionCommand += gameLocal.eoc_MapPath.c_str();
+	gameLocal.sessionCommand += gameLocal.mapNameForCheat;
+}
+
+/*
+==================
+Zeroth
+Cmd_guiUpdateSettings_f
+
+Determine which parts of the settings GUI should be visible and display the proper settings on it.
+==================
+*/
+void Cmd_guiUpdateSettings_f( const idCmdArgs &args ) {
+	int i;
+	int ratio = cvarSystem->GetCVarInteger( "r_aspectRatio" );
+
+	idUserInterface *mainMenuGui = uiManager->FindGui( "guis/mainmenu.gui", true, false, true );
+
+	// HEXEN : Zeroth. determine what mode we're in
+	for ( i = 0; i < EOC_NUM_VMODES; i++ ) {
+		if ( gameLocal.r_vmodes[i].width == cvarSystem->GetCVarInteger( "r_customWidth" ) && 
+			gameLocal.r_vmodes[i].height == cvarSystem->GetCVarInteger( "r_customHeight" ) && 
+			gameLocal.r_vmodes[i].ratio == cvarSystem->GetCVarInteger( "r_aspectRatio" ) )
+		{
+			r_vmode.SetInteger( i );
+			break;
+		}
+	}
+
+	if ( i == EOC_NUM_VMODES ) {
+		r_vmode.SetInteger( -1 );
+		mainMenuGui->SetStateBool( "modeCustom", true );
+		mainMenuGui->SetStateBool( "modeSetCustom", true );
+	} else {
+		mainMenuGui->SetStateBool( "modeCustom", false );
+		mainMenuGui->SetStateBool( "modeSetCustom", false );
+		if ( ratio == 0 ) {
+			mainMenuGui->SetStateBool( "modeSet0", true );
+			mainMenuGui->SetStateBool( "modeChoices0", true );
+		} else {
+			mainMenuGui->SetStateBool( "modeSet0", false );
+			mainMenuGui->SetStateBool( "modeChoices0", false );
+		}
+
+		if ( ratio == 1 ) {
+			mainMenuGui->SetStateBool( "modeSet1", true );
+			mainMenuGui->SetStateBool( "modeChoices1", true );
+		} else {
+			mainMenuGui->SetStateBool( "modeSet1", false );
+			mainMenuGui->SetStateBool( "modeChoices1", false );
+		}
+
+		if ( ratio == 2 ) {
+			mainMenuGui->SetStateBool( "modeSet2", true );
+			mainMenuGui->SetStateBool( "modeChoices2", true );
+		} else {
+			mainMenuGui->SetStateBool( "modeSet2", false );
+			mainMenuGui->SetStateBool( "modeChoices2", false );
+		}
+	}
+
+	mainMenuGui->SetStateInt( "r_aspectRatio", ratio );
+	mainMenuGui->SetStateInt( "r_customWidth", cvarSystem->GetCVarInteger( "r_customWidth" ) );
+	mainMenuGui->SetStateInt( "r_customHeight", cvarSystem->GetCVarInteger( "r_customHeight" ) );
+
+	switch ( ratio ) {
+		case 0: mainMenuGui->SetStateString( "r_aspectRatioString", "3:4" ); break;
+		case 1: mainMenuGui->SetStateString( "r_aspectRatioString", "16:9" ); break;
+		case 2: mainMenuGui->SetStateString( "r_aspectRatioString", "16:10" ); break;
+	}
+
+	// set up font color for video graphics options on settings menu (so much easier than doing it in gui)
+	idStr str;
+	char key[ 50 ];
+	for ( int n = 0; n < 4; n++ ) {
+		if ( cvarSystem->GetCVarInteger( "com_machineSpec" ) == n ) {
+			str = "1,.66,.15,1";
+		} else {
+			str = "1, 0.8, 0.5, 1";
+		}
+		sprintf( key, "video_%i_fcolor", n );
+		mainMenuGui->SetStateString( key, str );
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_UpdateFog_f
+==================
+*/
+void Cmd_UpdateFog_f( const idCmdArgs &args ) {
+	gameLocal.UpdateFog();
+}
+
+/*
+==================
+Zeroth
+Cmd_SetClass_f
+==================
+*/
+void Cmd_SetClass_f( const idCmdArgs &args ) {
+	idStr clas = args.Argv( 1 );
+	gameLocal.GetLocalPlayer()->SetClass( atoi(clas.c_str()) );
+}
+
+/*
+==================
+Zeroth
+Cmd_ClearPLI_f
+==================
+*/
+void Cmd_ClearPLI_f( const idCmdArgs &args ) {
+	gameLocal.persistentLevelInfo.Clear();
+	idEntity* ent;
+	idStr name;
+
+	for (int i = 0; i < MAX_GENTITIES; i++ ) {
+		ent = gameLocal.entities[i];
+		if (ent) {
+
+			name = ent->GetEntityDefName();
+
+			// find moveables locations
+			if ( name.Left(9) == "moveable_" ) {
+				// z.todo: crash on moveables which inherit from "moveable_item_default" via def.
+				// (SVN 2889, check moveable_book_1 in moveable.def)
+
+				static_cast<idMoveable *>( ent )->savePersistentInfo = false;
+			}
+		}
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_VidRestart_f
+
+Set up video mode.
+==================
+*/
+void Cmd_VidRestart_f( const idCmdArgs &args ) {
+	bool doit = false;
+
+	int ratio;
+	int width;
+	int height;
+
+	int eoc_cvarmode = r_vmode.GetInteger();
+
+	idPlayer *localplayer = gameLocal.GetLocalPlayer();
+
+	/// if you click too fast, doom3 doesnt register that you've unclicked when it resets video. let's try to find the best way to go about this...
+	//float wait=gameLocal.time+500;
+	//while ( gameLocal.time < wait ) {
+	//	sys.wait(
+	//}
+	//if ( localplayer != NULL ) {
+	//	localplayer->usercmd.buttons = 1;
+	//	localplayer->weapon.GetEntity()->eoc_UnstickAllButtons();
+	//}
+
+	// figure out what resolution to use
+	if ( eoc_cvarmode >= 0 && eoc_cvarmode < EOC_NUM_VMODES ) { // preset resolution/ratio
+		height = gameLocal.r_vmodes[eoc_cvarmode].height;
+		width = gameLocal.r_vmodes[eoc_cvarmode].width;
+		ratio = gameLocal.r_vmodes[eoc_cvarmode].ratio;
+	} else if ( eoc_cvarmode == -1 ) { // custom resoultion/ratio
+		height = cvarSystem->GetCVarInteger( "r_customHeight" );
+		width = cvarSystem->GetCVarInteger( "r_customWidth" );
+		ratio = cvarSystem->GetCVarInteger( "r_aspectRatio" );
+	}
+
+	cvarSystem->SetCVarInteger( "r_aspectRatio", ratio );
+
+	cvarSystem->SetCVarInteger( "r_mode", -1 );
+	cvarSystem->SetCVarInteger( "r_customHeight", height );
+	cvarSystem->SetCVarInteger( "r_customWidth", width );
+
+	cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	const idCmdArgs nil;
+
+	Cmd_guiUpdateSettings_f( nil );
+
+	gameLocal.UpdateFog();
+}
+
+/*
+==================
+Zeroth
+Cmd_NewGame_f
+
+Clear persistent info and start newgame.
+==================
+*/
+void Cmd_NewGame_f( const idCmdArgs &args ) {
+	const idCmdArgs nil;
+
+	if ( args.Argc() == 0 ) {
+		gameLocal.Printf( "no map specified" );
+		return;
+	}
+
+	Cmd_ClearPLI_f( nil );
+
+	idStr cmd;
+	cmd = "map ";
+	cmd += args.Argv( 1 );
+
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, cmd.c_str() );
+}
+
+/*
+==================
+Zeroth
+Cmd_SpawnAt_f
+==================
+*/
+void Cmd_SpawnAt_f( const idCmdArgs &args ) {
+	idStr point = "info_player_start_";
+	point.Append( args.Args() );
+	gameLocal.SetLocalPlayerSpawnPoint( point );
+	gameLocal.Printf( "Spawn point set to %s", point.c_str() );
+}
+
+/*
+==================
+Zeroth
+Cmd_Visit_f
+==================
+*/
+void Cmd_Visit_f( const idCmdArgs &args ) {
+	idStr cmd = args.Args();
+
+	if ( cmd.Length() != 6 ) {
+		gameLocal.Printf( "Usage: visit e#h#m#" );
+		return;
+	}
+
+	idStr episode;
+	idStr map;
+	idStr path = "map hexen/ep";
+
+	cmd.Mid( 1, 1, episode );
+	path.Append( episode );
+	path.Append( "/" );
+	cmd.Right( 4, map );
+	path.Append( map );
+
+	gameLocal.Printf( "Changing map to: %s", path.c_str() );
+	cmdSystem->BufferCommandText( CMD_EXEC_NOW, path.c_str() );
+}
+
+/*
+==================
+Zeroth
+Cmd_Where_f
+==================
+*/
+void Cmd_Where_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+	idVec3 origin = gameLocal.GetLocalPlayer()->GetPhysics()->GetOrigin();
+	gameLocal.Printf( "You are here -> %f, %f, %f", origin.x, origin.y, origin.z );
+}
+
+/*
+==================
+Zeroth
+Cmd_Ticker_f
+==================
+*/
+void Cmd_Ticker_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+	if (cvarSystem->GetCVarBool( "com_showFPS" ) ) {
+		cvarSystem->SetCVarBool( "com_showFPS", false );
+	} else {
+		cvarSystem->SetCVarBool( "com_showFPS", true );
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_iddqd_f
+==================
+*/
+void Cmd_iddqd_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+
+	idPlayer	*player;
+
+	if ( gameLocal.isMultiplayer ) {
+		if ( gameLocal.isClient ) {
+			idBitMsg	outMsg;
+			byte		msgBuf[ MAX_GAME_MESSAGE_SIZE ];
+			outMsg.Init( msgBuf, sizeof( msgBuf ) );
+			outMsg.WriteByte( GAME_RELIABLE_MESSAGE_KILL );
+			networkSystem->ClientSendReliableMessage( outMsg );
+		} else {
+			player = gameLocal.GetClientByCmdArgs( args );
+			if ( !player ) {
+				common->Printf( "kill <client nickname> or kill <client index>\n" );
+				return;
+			}
+			player->Kill( false, false );
+			cmdSystem->BufferCommandText( CMD_EXEC_NOW, va( "say killed client %d '%s^0'\n", player->entityNumber, gameLocal.userInfo[ player->entityNumber ].GetString( "ui_name" ) ) );
+		}
+	} else {
+		player = gameLocal.GetLocalPlayer();
+		if ( !player ) {
+			return;
+		}
+		gameLocal.Printf( "Trying to cheat, eh? Now you die!" );
+		player->hud->SetStateString( "eoc_message", "Trying to cheat, eh? Now you die!" );
+		player->hud->HandleNamedEvent( "eoc_MessageShow" );
+		player->Kill( false, false );
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_Conan_f
+==================
+*/
+void Cmd_Conan_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	player->inventory.weapons = 1;
+	player->PerformImpulse( 0 );
+
+	gameLocal.Printf( "Conan-Mode!" );
+}
+
+/*
+==================
+Zeroth
+Cmd_FullHealth_f
+==================
+*/
+void Cmd_FullHealth_f( const idCmdArgs &args ) {
+	idPlayer	*player;
+
+	player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	player->health = player->inventory.maxHealth;
+	gameLocal.Printf( "Health Restored\n" );
+}
+
+/*
+==================
+Zeroth
+Cmd_idkfa_f
+==================
+*/
+void Cmd_idkfa_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	gameLocal.Printf( "Trying to cheat, eh? You don't deserve items!" );
+	player->hud->SetStateString( "eoc_message", "Trying to cheat, eh? You don't deserve items!" );
+	player->hud->HandleNamedEvent( "eoc_MessageShow" );
+
+	int i;
+	for ( i = NUM_UNIQUE_ARTIFACTS - 1; i >= 0; i-- ) {
+		player->ArtifactRemove( i );
+	}
+
+	player->UpdateHudArtifacts();
+	player->UpdateArtifactHudDescription();
+	player->ShowArtifactHud();
+
+	player->inventory.weapons = 1;
+	player->PerformImpulse( 0 );
+	player->inventory.powerups = 0;
+	player->inventory.armor = 0;
+
+	player->inventory.items.Clear();
+
+	for ( i = 0; i < AMMO_NUMTYPES; i++ )
+		player->inventory.ammo[ i ] = 0;
+	for ( i = 0; i < MAX_WEAPONS; i++ )
+		player->inventory.clip[ i ] = 0;
+}
+
+/*
+==================
+Zeroth
+Cmd_WallWalk_f
+==================
+*/
+void Cmd_WallWalk_f( const idCmdArgs &args ) {
+	char		*msg;
+	idPlayer	*player;
+	idPhysics	*phys;
+
+	player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	if ( player->gravityMod ) {
+		player->gravityMod = false;
+		//player->GetPhysics()->SetGravity( idVec3( 0, 0, -1066 ) );
+		//phys = static_cast<idPhysics_Player *>( player->GetPlayerPhysics() );
+		phys = player->GetPhysics();
+		phys->TransitionToGravity = idVec3( 0, 0, -1 );
+		phys->TransitionFromGravity = phys->GetGravityNormal();
+		phys->curTransition = 0;
+		msg = "OFF";
+	} else {
+		player->gravityMod = true;
+		msg = "ON - try walking up a slope somewhere";
+	}
+
+	gameLocal.Printf( "wall walking %s", msg );
+}
+
+/*
+==================
+Zeroth
+Cmd_Beaten_f
+==================
+*/
+void Cmd_Beaten_f( const idCmdArgs &args ) {
+	idPlayer *player=gameLocal.GetLocalPlayer();
+
+	if ( player ) {
+		if ( player->beaten ) {
+			player->beaten = false;
+			gameLocal.Printf( "set: beaten." );
+		} else {
+			player->beaten = true;
+			gameLocal.Printf( "set: not beaten." );
+		}
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_Hexinfo_f
+==================
+*/
+void Cmd_Hexinfo_f( const idCmdArgs &args ) {
+	int i;
+	char str[ 1024 ];
+	FILE *fsvn = NULL;
+	fsvn = fopen( "eoc/.svn/entries", "r" );
+	if ( !fsvn ) {
+		fsvn = fopen( "trunk/.svn/entries", "r" );
+	}
+	if ( !fsvn ) {
+		fsvn = fopen( "hexen/.svn/entries", "r" );
+	}
+
+	// print time
+	time_t rawtime;
+	time( &rawtime );
+	gameLocal.Printf( "Date: %s", ctime( &rawtime ) );
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	gameLocal.Printf( "one: %s", player->spawnArgs.GetString( "one" ) );
+	gameLocal.Printf( "two: %s", player->spawnArgs.GetString( "two" ) );
+	gameLocal.Printf( "beaten: %s", player->spawnArgs.GetString( "beaten" ) );
+
+
+	// print svn revision
+	if ( fsvn ) {
+		// skip 3 lines (lines in this svn file are pretty short)
+		for ( i = 0; i < 3; i++ ) {
+			fgets( str, sizeof( str ), fsvn );
+		}
+		fgets( str, sizeof( str ), fsvn );
+
+		gameLocal.Printf( "SVN: %s", str );
+
+		fclose( fsvn );
+	}
+
+	gameLocal.Printf( "Release: %i", EOC_RELEASE );
+}
+
+/*
+==================
+Zeroth
+Cmd_ToggleFog_f
+==================
+*/
+void Cmd_ToggleFog_f( const idCmdArgs &args ) {
+	if ( r_fog.GetBool() ) {
+		r_fog.SetBool( false );
+	} else {
+		r_fog.SetBool( true );
+	}
+
+	gameLocal.UpdateFog();
+}
+
+
+/*
+==================
 Cmd_KillMonsters_f
 
 Kills all the monsters in a level.
 ==================
 */
 void Cmd_KillMonsters_f( const idCmdArgs &args ) {
-	KillEntities( args, idAI::Type );
+	idEntity	*ent;
+
+	if ( !gameLocal.GetLocalPlayer() || !gameLocal.CheatsOk( false ) ) {
+		return;
+	}
+
+	for ( ent = gameLocal.spawnedEntities.Next(); ent != NULL; ent = ent->spawnNode.Next() ) {
+		if ( ent->IsType( idAI::Type ) ) {
+			static_cast< idAI* >( ent )->Kill();
+		}
+	}
 
 	// kill any projectiles as well since they have pointers to the monster that created them
 	KillEntities( args, idProjectile::Type );
+
+	gameLocal.Printf( "Butchered All Monsters\n" );
 }
 
 /*
@@ -274,6 +827,52 @@ void Cmd_KillRagdolls_f( const idCmdArgs &args ) {
 	}
 	KillEntities( args, idAFEntity_Generic::Type );
 	KillEntities( args, idAFEntity_WithAttachedHead::Type );
+}
+
+/*
+==================
+Zeroth
+Cmd_Indiana_f
+==================
+*/
+void Cmd_Indiana_f( const idCmdArgs &args ) {
+	idStr		art[ 15 ];
+	int 		i = 0;
+	idDict		iargs;
+
+	idPlayer * player = gameLocal.GetLocalPlayer();
+	if ( !player ) {
+		return;
+	}
+
+	art[ i++ ] = "artifact_banish" ;
+	art[ i++ ] = "artifact_boots" ;
+	art[ i++ ] = "artifact_bracers" ;
+	art[ i++ ] = "artifact_chaos" ;
+	art[ i++ ] = "artifact_defender" ;
+	art[ i++ ] = "artifact_disc" ;
+	art[ i++ ] = "artifact_flask" ;
+	art[ i++ ] = "artifact_flechette" ;
+	art[ i++ ] = "artifact_krater" ;
+//notineocalpha	art[ i++ ] = "artifact_pork" ;
+//notineocalpha	art[ i++ ] = "artifact_servant" ;
+	art[ i++ ] = "artifact_tome" ;
+	art[ i++ ] = "artifact_torch" ;
+	art[ i++ ] = "artifact_urn" ;
+
+	for ( int a = 0; a < 15; a++ ) {
+		idDict artifact( *gameLocal.FindEntityDefDict( art[a] ) );
+		int max = gameLocal.FindEntityDefDict( art[a] )->GetInt( "max_inventory" );
+		max -= gameLocal.GetLocalPlayer()->InventoryItemQty( artifact.GetString( "inv_name" ) );
+
+		for ( i = 0; i < max; i++ ) {
+			iargs.Set( "classname", art[a] );
+			iargs.Set( "owner", gameLocal.GetLocalPlayer()->GetName() );
+			iargs.Set( "snd_acquire", "" );
+			iargs.Set( "dontNotifyOnPickup", "1" );
+			gameLocal.SpawnEntityDef( iargs );
+		}
+	}
 }
 
 /*
@@ -313,9 +912,16 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		}
 	}
 
-	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
+	// HEXEN : Zeroth
+	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || idStr::Cmpn( name, "artifact_", 9 ) == 0 || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
 		player->GiveItem( name );
 		return;
+	}
+
+	// HEXEN : Zeroth
+	if ( give_all ) {
+		const idCmdArgs blah;
+		Cmd_Indiana_f( blah );
 	}
 
 	if ( give_all || idStr::Icmp( name, "health" ) == 0 )	{
@@ -377,6 +983,66 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 
 /*
 ==================
+Zeroth
+Cmd_Shazam_f
+==================
+*/
+void Cmd_Shazam_f( const idCmdArgs &args ) {
+	if ( gameLocal.GetLocalPlayer()->PowerTome ) {
+		gameLocal.GetLocalPlayer()->PowerTome = false;
+	} else {
+		gameLocal.GetLocalPlayer()->PowerTome = true;
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_Rambo_f
+==================
+*/
+void Cmd_Rambo_f( const idCmdArgs &args ) {
+	idPlayer	*player;
+
+	player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+	player->CacheWeapons();
+
+	for ( int i = 0 ; i < AMMO_NUMTYPES; i++ ) {
+		player->inventory.ammo[ i ] = player->inventory.MaxAmmoForAmmoClass( player, idWeapon::GetAmmoNameForNum( ( ammo_t )i ) );
+	}
+}
+
+/*
+==================
+Zeroth
+Cmd_NRA_f
+==================
+*/
+void Cmd_NRA_f( const idCmdArgs &args ) {
+	idPlayer	*player;
+
+	player = gameLocal.GetLocalPlayer();
+	if ( !player || !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+	player->CacheWeapons();
+
+	for ( int i = 0 ; i < AMMO_NUMTYPES; i++ ) {
+		player->inventory.ammo[ i ] = player->inventory.MaxAmmoForAmmoClass( player, idWeapon::GetAmmoNameForNum( ( ammo_t )i ) );
+	}
+
+	player->inventory.armor = player->inventory.maxarmor;
+}
+
+/*
+==================
 Cmd_CenterView_f
 
 Centers the players pitch
@@ -416,13 +1082,13 @@ void Cmd_God_f( const idCmdArgs &args ) {
 
 	if ( player->godmode ) {
 		player->godmode = false;
-		msg = "godmode OFF\n";
+		msg = "OFF\n";
 	} else {
 		player->godmode = true;
-		msg = "godmode ON\n";
+		msg = "ON\n";
 	}
 
-	gameLocal.Printf( "%s", msg );
+	gameLocal.Printf( "Satan-Mode %s", msg );
 }
 
 /*
@@ -487,6 +1153,7 @@ Cmd_Kill_f
 */
 void Cmd_Kill_f( const idCmdArgs &args ) {
 	idPlayer	*player;
+	static int	times = 0;
 
 	if ( gameLocal.isMultiplayer ) {
 		if ( gameLocal.isClient ) {
@@ -505,11 +1172,16 @@ void Cmd_Kill_f( const idCmdArgs &args ) {
 			cmdSystem->BufferCommandText( CMD_EXEC_NOW, va( "say killed client %d '%s^0'\n", player->entityNumber, gameLocal.userInfo[ player->entityNumber ].GetString( "ui_name" ) ) );
 		}
 	} else {
+		times++;
+		if ( times != 3 ) {
+			return;
+		}
 		player = gameLocal.GetLocalPlayer();
 		if ( !player ) {
 			return;
 		}
 		player->Kill( false, false );
+		gameLocal.Printf( "Butchered Self." );
 	}
 }
 
@@ -841,7 +1513,7 @@ void Cmd_Damage_f( const idCmdArgs &args ) {
 		return;
 	}
 
-	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", atoi( args.Argv( 2 ) ), INVALID_JOINT );
+	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", atoi( args.Argv( 2 ) ), INVALID_JOINT, idVec3( 0, 0, 0 ) );
 }
 
 
@@ -1509,7 +2181,7 @@ static void Cmd_TestDamage_f( const idCmdArgs &args ) {
 	// give the player full health before and after
 	// running the damage
 	player->health = player->inventory.maxHealth;
-	player->Damage( NULL, NULL, dir, damageDefName, 1.0f, INVALID_JOINT );
+	player->Damage( NULL, NULL, dir, damageDefName, 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	player->health = player->inventory.maxHealth;
 }
 
@@ -1556,7 +2228,7 @@ static void Cmd_TestDeath_f( const idCmdArgs &args ) {
 	dir[2] = 0;
 
 	g_testDeath.SetBool( 1 );
-	player->Damage( NULL, NULL, dir, "damage_triggerhurt_1000", 1.0f, INVALID_JOINT );
+	player->Damage( NULL, NULL, dir, "damage_triggerhurt_1000", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	if ( args.Argc() >= 2) {
 		player->SpawnGibs( dir, "damage_triggerhurt_1000" );
 	}
@@ -2304,6 +2976,66 @@ so it can perform tab completion
 =================
 */
 void idGameLocal::InitConsoleCommands( void ) {
+	// HEXEN : Zeroth - hexen / heretic / modified cheats
+	cmdSystem->AddCommand( "satan",					Cmd_God_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"enables god mode" );
+	cmdSystem->AddCommand( "quicken",				Cmd_God_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"enables god mode" );
+	cmdSystem->AddCommand( "indiana",				Cmd_Indiana_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"give max of each artifact" );
+	cmdSystem->AddCommand( "gimme",					Cmd_Give_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"gives one or more items" );
+	cmdSystem->AddCommand( "rambo",					Cmd_Rambo_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"give all weapons, full mana" );
+	cmdSystem->AddCommand( "nra",					Cmd_NRA_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"give all weapons, full mana, full armor" );
+	cmdSystem->AddCommand( "clubmed",				Cmd_FullHealth_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"gives full health" );
+	cmdSystem->AddCommand( "ponce",					Cmd_FullHealth_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"gives full health" );
+	cmdSystem->AddCommand( "conan",					Cmd_Conan_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"remove all but main weapon" );
+	cmdSystem->AddCommand( "casper",				Cmd_Noclip_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"disables collision detection for the player" );
+	cmdSystem->AddCommand( "kitty",					Cmd_Noclip_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"disables collision detection for the player" );
+	cmdSystem->AddCommand( "butcher",				Cmd_KillMonsters_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"kills all monsters" );
+	cmdSystem->AddCommand( "massacre",				Cmd_KillMonsters_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"kills all monsters" );
+//notineocalpha	cmdSystem->AddCommand( "init",					Cmd_MapRestart_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"restart local map (MIGHT CRASH!)" );
+	cmdSystem->AddCommand( "visit",					Cmd_Visit_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"change map e#h#m#" );
+	cmdSystem->AddCommand( "engage",				Cmd_Visit_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"change map e#h#m#" );
+	cmdSystem->AddCommand( "shazam",				Cmd_Shazam_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"toggle power mode" );
+	cmdSystem->AddCommand( "spawnat",				Cmd_SpawnAt_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"set spawn point" );
+	cmdSystem->AddCommand( "where",					Cmd_Where_f,				CMD_FL_GAME,				"Display coordinates" );
+//notineocalpha	cmdSystem->AddCommand( "ticker",				Cmd_Ticker_f,				CMD_FL_GAME,				"Display frame rate" );
+
+	// naughty things
+	cmdSystem->AddCommand( "martek",				Cmd_Kill_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"kills you" );
+	cmdSystem->AddCommand( "iddqd",					Cmd_iddqd_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"kills you" );
+	cmdSystem->AddCommand( "god",					Cmd_iddqd_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"kills you" );
+	cmdSystem->AddCommand( "idkfa",					Cmd_idkfa_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"removes all weapons and items" );
+	cmdSystem->AddCommand( "give",					Cmd_idkfa_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"removes all weapons and items" );
+
+	// what?
+	//cmdSystem->AddCommand( "albouy",				Cmd_Albouy_f,				CMD_FL_GAME,				"Answer" );
+	//cmdSystem->AddCommand( "arnold",				Cmd_Arnold_f,				CMD_FL_GAME,				"Proposal" );
+
+	// do later
+	//cmdSystem->AddCommand( "shadowcaster",		Cmd_Class_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"Change character: shadowcaster #" );
+	//cmdSystem->AddCommand( "deliverance",			Cmd_Deliverance_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"pig mode" );
+	//cmdSystem->AddCommand( "locksmith",			Cmd_Locksmith_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"All keys" );
+	//cmdSystem->AddCommand( "mapsco",				Cmd_Mapsco_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"full map" );
+	//cmdSystem->AddCommand( "ravskel",				Cmd_RavSkel_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"obtain all skeleton keys" );
+	//cmdSystem->AddCommand( "cockadoodledoo",		Cmd_Chicken_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"chicken mode" );
+	//cmdSystem->AddCommand( "engage41",			Cmd_Engage41_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"deathmatch level" );
+	//cmdSystem->AddCommand( "idmus",				Cmd_idMus_f,				CMD_FL_GAME,				"Select music track: idmus<01-31>" );
+	//cmdSystem->AddCommand( "sherlock",				Cmd_Sherlock_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"All puzzle pieces" );
+
+// ORBIT : Zeroth
+	cmdSystem->AddCommand( "tommy",					Cmd_WallWalk_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"is it easter?" );
+
+// HEXEN : Zeroth: EoC Settings Menu
+	cmdSystem->AddCommand( "eoc_vid_restart",			Cmd_VidRestart_f,				CMD_FL_RENDERER,				"" );
+	cmdSystem->AddCommand( "eoc_guiUpdateSettings",			Cmd_guiUpdateSettings_f,				CMD_FL_SYSTEM,					"used by the mainmenu GUI. determine which parts of the settings GUI should be visible and display the proper settings on it." );
+
+// HEXEN : Zeroth
+	cmdSystem->AddCommand( "eoc_beaten",			Cmd_Beaten_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"used by the game to signify that you have completed this game release." );
+	cmdSystem->AddCommand( "hexinfo",				Cmd_Hexinfo_f,				CMD_FL_SYSTEM,				"print information about this release." );
+	cmdSystem->AddCommand( "toggleFog",				Cmd_ToggleFog_f,			CMD_FL_GAME,				"toggles fog." );
+	cmdSystem->AddCommand( "updateFog",				Cmd_UpdateFog_f,			CMD_FL_GAME,				"toggles fog." );
+//notineocalpha	cmdSystem->AddCommand( "setClass",				Cmd_SetClass_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"set class, 0=cleric, 1=mage, 2=fighter." );
+	cmdSystem->AddCommand( "clearPersistentLevelInfo",	Cmd_ClearPLI_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"clear info about levels already visited." );
+	cmdSystem->AddCommand( "newGame",				Cmd_NewGame_f,				CMD_FL_GAME,	"clear info about levels already visited." );
+
 	cmdSystem->AddCommand( "listTypeInfo",			ListTypeInfo_f,				CMD_FL_GAME,				"list type info" );
 	cmdSystem->AddCommand( "writeGameState",		WriteGameState_f,			CMD_FL_GAME,				"write game state" );
 	cmdSystem->AddCommand( "testSaveGame",			TestSaveGame_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"test a save game for a level" );
@@ -2318,12 +3050,8 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "sayTeam",				Cmd_SayTeam_f,				CMD_FL_GAME,				"team text chat" );
 	cmdSystem->AddCommand( "addChatLine",			Cmd_AddChatLine_f,			CMD_FL_GAME,				"internal use - core to game chat lines" );
 	cmdSystem->AddCommand( "gameKick",				Cmd_Kick_f,					CMD_FL_GAME,				"same as kick, but recognizes player names" );
-	cmdSystem->AddCommand( "give",					Cmd_Give_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"gives one or more items" );
 	cmdSystem->AddCommand( "centerview",			Cmd_CenterView_f,			CMD_FL_GAME,				"centers the view" );
-	cmdSystem->AddCommand( "god",					Cmd_God_f,					CMD_FL_GAME|CMD_FL_CHEAT,	"enables god mode" );
 	cmdSystem->AddCommand( "notarget",				Cmd_Notarget_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"disables the player as a target" );
-	cmdSystem->AddCommand( "noclip",				Cmd_Noclip_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"disables collision detection for the player" );
-	cmdSystem->AddCommand( "kill",					Cmd_Kill_f,					CMD_FL_GAME,				"kills the player" );
 	cmdSystem->AddCommand( "where",					Cmd_GetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"prints the current view position" );
 	cmdSystem->AddCommand( "getviewpos",			Cmd_GetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"prints the current view position" );
 	cmdSystem->AddCommand( "setviewpos",			Cmd_SetViewpos_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"sets the current view position" );
@@ -2332,7 +3060,6 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "spawn",					Cmd_Spawn_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"spawns a game entity", idCmdSystem::ArgCompletion_Decl<DECL_ENTITYDEF> );
 	cmdSystem->AddCommand( "damage",				Cmd_Damage_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"apply damage to an entity", idGameLocal::ArgCompletion_EntityName );
 	cmdSystem->AddCommand( "remove",				Cmd_Remove_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"removes an entity", idGameLocal::ArgCompletion_EntityName );
-	cmdSystem->AddCommand( "killMonsters",			Cmd_KillMonsters_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all monsters" );
 	cmdSystem->AddCommand( "killMoveables",			Cmd_KillMovables_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all moveables" );
 	cmdSystem->AddCommand( "killRagdolls",			Cmd_KillRagdolls_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all ragdolls" );
 	cmdSystem->AddCommand( "addline",				Cmd_AddDebugLine_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"adds a debug line" );

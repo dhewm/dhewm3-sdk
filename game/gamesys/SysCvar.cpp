@@ -123,8 +123,8 @@ idCVar g_debugTriggers(				"g_debugTriggers",			"0",			CVAR_GAME | CVAR_BOOL, ""
 idCVar g_debugCinematic(			"g_debugCinematic",			"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_stopTime(					"g_stopTime",				"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_damageScale(				"g_damageScale",			"1",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "scale final damage on player by this factor" );
-idCVar g_armorProtection(			"g_armorProtection",		"0.3",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage" );
-idCVar g_armorProtectionMP(			"g_armorProtectionMP",		"0.6",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage in mp" );
+idCVar g_armorProtection(			"g_armorProtection",		"1",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage" ); // HEXEN : Zeroth - 0.3 to 1
+idCVar g_armorProtectionMP(			"g_armorProtectionMP",		"1",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage in mp" ); // HEXEN : Zeroth - 0.6 to 1
 idCVar g_useDynamicProtection(		"g_useDynamicProtection",	"1",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "scale damage and armor dynamically to keep the player alive more often" );
 idCVar g_healthTakeTime(			"g_healthTakeTime",			"5",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "how often to take health in nightmare mode" );
 idCVar g_healthTakeAmt(				"g_healthTakeAmt",			"5",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "how much health to take in nightmare mode" );
@@ -149,6 +149,7 @@ idCVar g_showEnemies(				"g_showEnemies",			"0",			CVAR_GAME | CVAR_BOOL, "draws
 idCVar g_frametime(					"g_frametime",				"0",			CVAR_GAME | CVAR_BOOL, "displays timing information for each game frame" );
 idCVar g_timeentities(				"g_timeEntities",			"0",			CVAR_GAME | CVAR_FLOAT, "when non-zero, shows entities whose think functions exceeded the # of milliseconds specified" );
 
+idCVar g_enablePortalSky(			"g_enablePortalSky",		"1",			CVAR_GAME | CVAR_BOOL, "enables the portal sky" ); // HEXEN : Zeroth
 idCVar ai_debugScript(				"ai_debugScript",			"-1",			CVAR_GAME | CVAR_INTEGER, "displays script calls for the specified monster entity number" );
 idCVar ai_debugMove(				"ai_debugMove",				"0",			CVAR_GAME | CVAR_BOOL, "draws movement information for monsters" );
 idCVar ai_debugTrajectory(			"ai_debugTrajectory",		"0",			CVAR_GAME | CVAR_BOOL, "draws trajectory tests for monsters" );
@@ -279,7 +280,7 @@ idCVar g_gun_y(						"g_gunY",					"0",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_gun_z(						"g_gunZ",					"0",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_viewNodalX(				"g_viewNodalX",				"0",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_viewNodalZ(				"g_viewNodalZ",				"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_fov(						"g_fov",					"90",			CVAR_GAME | CVAR_INTEGER | CVAR_NOCHEAT, "" );
+idCVar g_fov(						"g_fov",					"90",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NOCHEAT, "" );
 idCVar g_skipViewEffects(			"g_skipViewEffects",		"0",			CVAR_GAME | CVAR_BOOL, "skip damage and other view effects" );
 idCVar g_mpWeaponAngleScale(		"g_mpWeaponAngleScale",		"0",			CVAR_GAME | CVAR_FLOAT, "Control the weapon sway in MP" );
 
@@ -335,3 +336,21 @@ idCVar mod_validSkins(				"mod_validSkins",			"skins/characters/player/marine_mp
 idCVar net_serverDownload(			"net_serverDownload",		"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "enable server download redirects. 0: off 1: redirect to si_serverURL 2: use builtin download. see net_serverDl cvars for configuration" );
 idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_ARCHIVE, "base URL for the download redirection" );
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
+
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+idCVar s_music_vol(                 "s_music_vol",              "0",            CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE , "the volume in dB of all speakers with the s_music key set" );
+// ******
+
+// HEXEN : Zeroth
+idCVar pm_flybob(					"pm_flybob",				"0.1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT| CVAR_NOCHEAT, "bob much slower when flying" );
+idCVar g_noHudAutoHide(				"g_noHudAutohide",			"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE| CVAR_NOCHEAT, "don't auto-hide hud" );
+idCVar g_noArtifactDescriptions(	"g_noArtifactDescriptions",	"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE| CVAR_NOCHEAT, "when set, shows breif descriptions on hud of artifact when selected." );
+idCVar r_vmode(						"r_vmode",					"0",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE| CVAR_NOCHEAT, "resolution and fov presets" );
+idCVar r_dofDelay(					"r_dofDelay",				"0.1",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE| CVAR_NOCHEAT, "How long it takes before stuff comes into focus. The higher the number, the quicker dof responds, 0 = instantaneous, 5 = very slow." );
+idCVar r_dofRange(					"r_dofRange",				"10000",		CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE| CVAR_NOCHEAT, "How far the scan range is for dof." );
+idCVar r_dof(						"r_dof",					"0",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE| CVAR_NOCHEAT, "whether Depth of Field is on or not." );
+idCVar r_fog(						"r_fog",					"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE| CVAR_NOCHEAT, "whether Fog is on or not." );
+idCVar g_hellions(					"g_hellions",				"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "whether hellions spawn if player camps." );
+idCVar g_crosshairVis(				"g_crosshairVis",			"1",			CVAR_ARCHIVE | CVAR_GAME | CVAR_BOOL | CVAR_NOCHEAT, "whether crosshair is visible." );
+idCVar g_noPickupNotification(		"g_noPickupNotification",	"0",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "Set to 1 to disable artifact pickup messages and sounds." );

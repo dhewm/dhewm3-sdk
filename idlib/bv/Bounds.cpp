@@ -34,6 +34,26 @@ idBounds bounds_zero( vec3_zero, vec3_zero );
 
 /*
 ============
+Zeroth
+idBounds::GetMaxs
+============
+*/
+idVec3 idBounds::GetMaxs( void ) const {
+	return idVec3( b[1] );
+}
+
+/*
+============
+Zeroth
+idBounds::GetMins
+============
+*/
+idVec3 idBounds::GetMins( void ) const {
+	return idVec3( b[0] );
+}
+
+/*
+============
 idBounds::GetRadius
 ============
 */

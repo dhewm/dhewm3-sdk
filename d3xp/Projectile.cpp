@@ -632,7 +632,7 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 		}
 
 		if ( damageDefName[0] != '\0' ) {
-			ent->Damage( this, owner.GetEntity(), dir, damageDefName, damageScale, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) );
+			ent->Damage( this, owner.GetEntity(), dir, damageDefName, damageScale, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ), idVec3( collision.c.point ) );
 			ignore = ent;
 		}
 	}
@@ -1727,7 +1727,7 @@ void idSoulCubeMissile::KillTarget( const idVec3 &dir ) {
 		if ( ( act->health > 0 ) && ownerEnt && ownerEnt->IsType( idPlayer::Type ) && ( ownerEnt->health > 0 ) && !act->spawnArgs.GetBool( "boss" ) ) {
 			static_cast<idPlayer *>( ownerEnt )->GiveHealthPool( act->health );
 		}
-		act->Damage( this, owner.GetEntity(), dir,  spawnArgs.GetString( "def_damage" ), 1.0f, INVALID_JOINT );
+		act->Damage( this, owner.GetEntity(), dir,  spawnArgs.GetString( "def_damage" ), 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 		act->GetAFPhysics()->SetTimeScale( 0.25 );
 		StartSound( "snd_explode", SND_CHANNEL_BODY, 0, false, NULL );
 	}
@@ -2034,7 +2034,7 @@ void idBFGProjectile::Think( void ) {
 #endif
 					org = beamTargets[i].target.GetEntity()->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 					org.Normalize();
-					beamTargets[i].target.GetEntity()->Damage( this, owner.GetEntity(), org, damageFreq, ( damagePower ) ? damagePower : 1.0f, INVALID_JOINT );
+					beamTargets[i].target.GetEntity()->Damage( this, owner.GetEntity(), org, damageFreq, ( damagePower ) ? damagePower : 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 				} else {
 					beamTargets[i].renderEntity.shaderParms[ SHADERPARM_RED ] =
 					beamTargets[i].renderEntity.shaderParms[ SHADERPARM_GREEN ] =
@@ -2277,7 +2277,7 @@ void idBFGProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 		if ( damage[0] && ( beamTargets[i].target.GetEntity()->entityNumber > gameLocal.numClients - 1 ) ) {
 			dir = beamTargets[i].target.GetEntity()->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 			dir.Normalize();
-			beamTargets[i].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale, ( collision.c.id < 0 ) ? CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) : INVALID_JOINT );
+			beamTargets[i].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale, ( collision.c.id < 0 ) ? CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) : INVALID_JOINT, idVec3( collision.c.point ) );
 		}
 	}
 

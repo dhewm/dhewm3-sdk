@@ -97,6 +97,8 @@ public:
 	void				ReadPVS( const pvsHandle_t handle, const idBitMsg &msg );
 #endif
 
+	bool				CheckAreasForPortalSky( const pvsHandle_t handle, const idVec3 &origin );	// sikk - Portal Sky Box
+
 private:
 	int					numAreas;
 	int					numPortals;

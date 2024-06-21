@@ -300,6 +300,13 @@ void idLight::Restore( idRestoreGame *savefile ) {
 
 	lightDefHandle = -1;
 
+// sikk---> Soft Shadows PostProcess
+	// only put lights that cast shadows into the list
+	if ( spawnArgs.GetInt( "noshadows" ) == 0  ) {
+		gameLocal.currentLights.Append( entityNumber );
+	}
+// <---sikk
+
 	SetLightLevel();
 }
 
@@ -416,6 +423,13 @@ void idLight::Spawn( void ) {
 	}
 
 	PostEventMS( &EV_PostSpawn, 0 );
+
+// sikk---> Soft Shadows PostProcess
+	// only put lights that cast shadows into the list
+	if ( spawnArgs.GetInt( "noshadows" ) == 0  ) {
+		gameLocal.currentLights.Append( entityNumber );
+	}
+// <---sikk
 
 	UpdateVisuals();
 }
@@ -673,7 +687,7 @@ void idLight::BecomeBroken( idEntity *activator ) {
 
 	}
 
-		ActivateTargets( activator );
+	ActivateTargets( activator );
 
 	// offset the start time of the shader to sync it to the game time
 	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
@@ -1156,3 +1170,19 @@ bool idLight::ClientReceiveEvent( int event, int time, const idBitMsg &msg ) {
 
 	return idEntity::ClientReceiveEvent( event, time, msg );
 }
+
+// sikk---> Soft Shadows PostProcess
+/*
+================
+idLight::UpdateShadowState
+================
+*/
+void idLight::UpdateShadowState( void ) {
+	// let the renderer apply it to the world
+	if ( ( lightDefHandle != -1 ) ) {
+		gameRenderWorld->UpdateLightDef( lightDefHandle, &renderLight );
+	} else {
+		lightDefHandle = gameRenderWorld->AddLightDef( &renderLight );
+	}
+}
+// <---sikk

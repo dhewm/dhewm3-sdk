@@ -384,6 +384,11 @@ idAI::idAI() {
 	eyeFocusRate		= 0.0f;
 	headFocusRate		= 0.0f;
 	focusAlignTime		= 0;
+
+// sikk---> Random Encounters System
+	dormantTime			= 0;
+	isRandom			= false;
+// <---sikk
 }
 
 /*
@@ -531,6 +536,8 @@ void idAI::Save( idSaveGame *savefile ) const {
 	savefile->WriteJoint( flyTiltJoint );
 
 	savefile->WriteBool( GetPhysics() == static_cast<const idPhysics *>(&physicsObj) );
+
+	savefile->WriteBool( isRandom );	// sikk - Random Encounters System
 }
 
 /*
@@ -680,6 +687,8 @@ void idAI::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadBool( restorePhysics );
 
+	savefile->ReadBool( isRandom );	// sikk - Random Encounters System
+
 	// Set the AAS if the character has the correct gravity vector
 	idVec3 gravity = spawnArgs.GetVector( "gravityDir", "0 0 -1" );
 	gravity *= g_gravity.GetFloat();
@@ -718,6 +727,8 @@ void idAI::Spawn( void ) {
 		PostEventMS( &EV_Remove, 0 );
 		return;
 	}
+
+	spawnArgs.GetBool( "isRandom", "0", isRandom );	// sikk - Random Encounters System
 
 	spawnArgs.GetInt(	"team",					"1",		team );
 	spawnArgs.GetInt(	"rank",					"0",		rank );
@@ -915,6 +926,20 @@ void idAI::Spawn( void ) {
 		StartSound( "snd_ambient", SND_CHANNEL_AMBIENT, 0, false, NULL );
 	}
 
+// sikk - Monster Burn Away Delay (this doesn't effect zombies or other non-burning monsters)
+	if ( g_burnAwayDelay.GetFloat() > 0.0 && spawnArgs.GetFloat( "burnaway" ) > 0.0 )
+		spawnArgs.SetFloat( "burnaway", g_burnAwayDelay.GetFloat() );
+// <---sikk
+
+// sikk---> Enemy Health Management (also modifies friendlies but it doesn't make any difference)
+	health *= g_enemyHealthScale.GetFloat();
+
+	if ( g_enemyHealthType.GetBool() )
+		health = ( health * 0.5f ) + ( health * gameLocal.random.RandomFloat() );
+
+	health = ( health <= 0 ) ? 1 : health;
+// <---sikk
+
 	if ( health <= 0 ) {
 		gameLocal.Warning( "entity '%s' doesn't have health set", name.c_str() );
 		health = 1;
@@ -1018,6 +1043,13 @@ void idAI::DormantBegin( void ) {
 		// remove ourselves from the enemy's enemylist
 		enemyNode.Remove();
 	}
+
+
+// sikk---> Random Encounters System
+	if ( isRandom )
+		dormantTime = gameLocal.time;
+// <---sikk
+
 	idActor::DormantBegin();
 }
 
@@ -1039,6 +1071,11 @@ void idAI::DormantEnd( void ) {
 			particles[i].time = gameLocal.time;
 		}
 	}
+
+// sikk---> Random Encounters System
+	if ( spawnArgs.GetInt( "isRandom" ) )
+		dormantTime = 0;
+// <---sikk
 
 	idActor::DormantEnd();
 }
@@ -1153,6 +1190,11 @@ void idAI::Think( void ) {
 	Present();
 	UpdateDamageEffects();
 	LinkCombat();
+
+// sikk---> Random Encounters System
+	if ( isRandom && ( AI_DEST_UNREACHABLE || ( dormantTime && gameLocal.time > ( dormantTime + g_randomEncountersDormantTime.GetInteger() * 1000 ) ) ) ) 
+		Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", 999999, INVALID_JOINT );
+// <---sikk
 }
 
 /***********************************************************************
@@ -3189,7 +3231,7 @@ int idAI::ReactionTo( const idEntity *ent ) {
 	}
 
 	// monsters will fight when attacked by lower ranked monsters.  rank 0 never fights back.
-	if ( rank && ( actor->rank < rank ) ) {
+	if ( rank && ( actor->rank < rank + g_interRankAggression.GetInteger() ) ) {	// sikk - Inter Rank Aggression
 		return ATTACK_ON_DAMAGE;
 	}
 
@@ -3327,6 +3369,18 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 		AI_DAMAGE = true;
 		return;
 	}
+
+// sikk---> Random Encounters System
+	int i = gameLocal.GetEnemyNumFromName( spawnArgs.GetString( "classname" ) );
+	if ( i ) {
+		if ( isRandom ) {
+			gameLocal.randomEnemyTally--;
+			gameLocal.randomEnemyTally = ( gameLocal.randomEnemyTally < 0 ) ? 0 : gameLocal.randomEnemyTally;
+		} else {
+			gameLocal.randomEnemyList.Append( i );
+		}
+	}
+// <---sikk
 
 	// stop all voice sounds
 	StopSound( SND_CHANNEL_VOICE, false );

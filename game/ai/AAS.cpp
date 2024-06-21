@@ -274,3 +274,17 @@ void idAASLocal::GetEdge( int edgeNum, idVec3 &start, idVec3 &end ) const {
 	start = file->GetVertex( v[INTSIGNBITSET(edgeNum)] );
 	end = file->GetVertex( v[INTSIGNBITNOTSET(edgeNum)] );
 }
+
+// sikk---> Random Encounters System
+/*
+============
+idAASLocal::GetNumAreas
+============
+*/
+int idAASLocal::GetNumAreas( int aasNum ) const {
+	if ( !file ) {
+		return -1;
+	}
+	return file->GetNumAreas();
+}
+// <---sikk

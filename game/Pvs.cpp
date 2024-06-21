@@ -1386,7 +1386,6 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3 &source ) con
 }
 
 #if ASYNC_WRITE_PVS
-
 /*
 ===================
 idPVS::WritePVS
@@ -1419,5 +1418,32 @@ void idPVS::ReadPVS( const pvsHandle_t handle, const idBitMsg &msg ) {
 		common->Printf( "\n" );
 	}
 }
-
 #endif
+
+// sikk---> Portal Sky Box
+/*
+================
+idPVS::CheckAreasForPortalSky
+================
+*/
+bool idPVS::CheckAreasForPortalSky( const pvsHandle_t handle, const idVec3 &origin ) {
+	int sourceArea;
+
+	if ( handle.i < 0 || handle.i >= MAX_CURRENT_PVS || handle.h != currentPVS[ handle.i ].handle.h )
+		return false;
+
+	sourceArea = gameRenderWorld->PointInArea( origin );
+
+	if ( sourceArea == -1 )
+		return false;
+
+	for ( int i = 0; i < numAreas; i++ ) {
+		if ( !( currentPVS[ handle.i ].pvs[ i >> 3 ] & ( 1 << ( i & 7 ) ) ) )
+			continue;
+		if ( gameRenderWorld->CheckAreaForPortalSky( i ) )
+			return true;
+	}
+
+	return false;
+}
+// <---sikk

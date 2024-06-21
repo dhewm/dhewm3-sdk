@@ -91,12 +91,16 @@ public:
 		EVENT_BECOMEBROKEN = idEntity::EVENT_MAXEVENTS,
 		EVENT_MAXEVENTS
 	};
-
 	virtual void	ClientPredictionThink( void );
 	virtual void	WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void	ReadFromSnapshot( const idBitMsgDelta &msg );
 	virtual bool	ClientReceiveEvent( int event, int time, const idBitMsg &msg );
 
+// sikk---> Soft Shadows PostProcess
+	renderLight_t*	GetRenderLight( void ) { return &renderLight; };
+	void			UpdateShadowState( void );
+// <---sikk
+	
 private:
 	renderLight_t	renderLight;				// light presented to the renderer
 	idVec3			localLightOrigin;			// light origin relative to the physics origin

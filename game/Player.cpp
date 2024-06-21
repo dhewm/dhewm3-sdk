@@ -178,6 +178,9 @@ void idInventory::Clear( void ) {
 	ammoPulse	= false;
 	weaponPulse	= false;
 	armorPulse	= false;
+
+	healthPackAmount = 0;	// sikk - Health Management System (Health Pack)
+	adrenalineAmount = 0;	// sikk - Adrenaline Pack System
 }
 
 /*
@@ -513,6 +516,9 @@ void idInventory::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( armorPulse );
 
 	savefile->WriteInt( lastGiveTime );
+
+	savefile->WriteInt( healthPackAmount );	// sikk - Health Management System (Health Pack)
+	savefile->WriteInt( adrenalineAmount );	// sikk - Adrenaline Pack System
 }
 
 /*
@@ -633,6 +639,9 @@ void idInventory::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( armorPulse );
 
 	savefile->ReadInt( lastGiveTime );
+
+	savefile->ReadInt( healthPackAmount );	// sikk - Health Management System (Health Pack)
+	savefile->ReadInt( adrenalineAmount );	// sikk - Adrenaline Pack System
 }
 
 /*
@@ -650,6 +659,11 @@ idInventory::AmmoIndexForAmmoClass
 ==============
 */
 int idInventory::MaxAmmoForAmmoClass( idPlayer *owner, const char *ammo_classname ) const {
+// sikk---> Ammo Capacity Type
+	if ( g_ammoCapacityType.GetBool() )
+		return owner->spawnArgs.GetInt( va( "custom_max_%s", ammo_classname ), "0" );
+// <---sikk
+
 	return owner->spawnArgs.GetInt( va( "max_%s", ammo_classname ), "0" );
 }
 
@@ -746,13 +760,27 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 	if ( !idStr::Icmpn( statname, "ammo_", 5 ) ) {
 		i = AmmoIndexForAmmoClass( statname );
 		max = MaxAmmoForAmmoClass( owner, statname );
+
+// sikk---> Ammo Management: Ammo Usage Type/Capacity Type
+		if ( g_ammoUsageType.GetBool() ) {
+			int j = WeaponIndexForAmmoClass( spawnArgs, statname );
+			const char *weapon_classname = spawnArgs.GetString( va( "def_weapon%d", j ) );
+			if ( weapon_classname ) {
+				const idDeclEntityDef *decl = gameLocal.FindEntityDef( weapon_classname, false );
+				if ( decl )
+					max -= atoi( g_ammoCapacityType.GetBool() ? decl->dict.GetString( "custom_clipSize" ) : decl->dict.GetString( "clipSize" ) ) - clip[ j ];
+			}
+		}
+// <---sikk
+
 		if ( ammo[ i ] >= max ) {
 			return false;
 		}
 		amount = atoi( value );
 		if ( amount ) {
 			ammo[ i ] += amount;
-			if ( ( max > 0 ) && ( ammo[ i ] > max ) ) {
+
+			if ( ( max > 0 ) && ( ammo[ i ] > max  ) ) {
 				ammo[ i ] = max;
 			}
 			ammoPulse = true;
@@ -1133,6 +1161,40 @@ idPlayer::idPlayer() {
 	isChatting				= false;
 
 	selfSmooth				= false;
+
+// sikk---> Health Management System
+	healthPackAmount		= 0;
+	healthPackTimer			= 0;
+	nextHealthRegen			= 0;
+	prevHeatlh				= health;
+// <---sikk
+
+	focusMoveableTimer		= 0;		// sikk - Object Manipulation
+
+	focusItem				= NULL;		// sikk - Manual Item Pickup
+
+	searchTimer				= 0;		// sikk - Searchable Corpses
+
+	adrenalineAmount		= 0;		// sikk - Adrenaline Pack System
+
+	bViewModelsModified		= false;	// sikk - Depth Render
+	
+	v3CrosshairPos.Zero();				// sikk - Crosshair Positioning
+
+	bIsZoomed				= false;	// sikk - Depth of Field PostProcess
+
+	bAmbientLightOn			= false;	// sikk - Global Ambient Light
+
+	nScreenFrostAlpha		= 0;		// sikk - Screen Frost
+
+// sikk--> Infrared Goggles/Headlight Mod
+	bIRGogglesOn			= false;
+	bHeadlightOn			= false;
+	nIRGogglesTime			= 0;
+	nHeadlightTime			= 0;
+	nBattery				= 100;
+	fIntensity				= 1.0f;
+// <---sikk
 }
 
 /*
@@ -1247,6 +1309,42 @@ void idPlayer::Init( void ) {
 	talkCursor				= 0;
 	focusVehicle			= NULL;
 
+	focusMoveableTimer		= 0;		// sikk - Object Manipulation
+
+	focusItem				= NULL;		// sikk - Manual Item Pickup
+
+	searchTimer				= 0;		// sikk - Searchable Corpses
+
+	adrenalineAmount		= 0;		// sikk - Adrenaline Pack System
+
+	bViewModelsModified		= false;	// sikk - Depth Render
+
+	v3CrosshairPos.Zero();				// sikk - Crosshair Positioning
+
+	bIsZoomed				= false;	// sikk - Depth of Field PostProcess
+
+	bAmbientLightOn			= false;	// sikk - Global Ambient Light
+
+	nScreenFrostAlpha		= 0;		// sikk - Screen Frost
+
+// sikk---> Health Management System
+	healthPackAmount		= 0;
+	healthPackTimer			= 0;
+	nextHealthRegen			= 0;
+	prevHeatlh				= health;
+// <---sikk
+
+// sikk--> Infrared Goggles/Headlight PostProcess
+	bIRGogglesOn			= false;
+	bHeadlightOn			= false;
+	nIRGogglesTime			= 0;
+	nHeadlightTime			= 0;
+	nBattery				= 100;
+	fIntensity				= 1.0f;
+// <---sikk
+
+	gameLocal.randomEnemyTime = gameLocal.time + g_randomEncountersMinTime.GetInteger() * 1000;	// sikk - Random Encounters System
+
 	// remove any damage effects
 	playerView.ClearEffects();
 
@@ -1264,7 +1362,7 @@ void idPlayer::Init( void ) {
 	healthPulse		= false;
 	nextHealthTake	= 0;
 	healthTake		= false;
-
+	
 	SetupWeaponEntity();
 	currentWeapon = -1;
 	previousWeapon = -1;
@@ -1476,7 +1574,7 @@ void idPlayer::Spawn( void ) {
 	// load the armor sound feedback
 	declManager->FindSound( "player_sounds_hitArmor" );
 
-	// set up conditions for animation
+		// set up conditions for animation
 	LinkScriptVariables();
 
 	animator.RemoveOriginOffset( true );
@@ -1528,6 +1626,26 @@ void idPlayer::Spawn( void ) {
 		idEntity *ent = gameLocal.FindEntity( "devmap" );
 		if ( ent ) {
 			ent->ActivateTargets( this );
+
+// sikk---> Random Encounters System
+			// sikk - this alows the list to be filled with a preset list for when a map is loaded by "map" or "devmap"
+			if ( g_useRandomEncounters.GetBool() ) {
+				gameLocal.randomEnemyList.Clear();
+				const char* mapname = gameLocal.GetLevelMap()->GetName();
+				const idDeclEntityDef *decl = gameLocal.FindEntityDef( mapname, false );
+				if ( decl ) {
+					const idKeyValue *kv = decl->dict.MatchPrefix( "re_" );
+					if ( kv ) {
+						while( kv ) {
+							int n = gameLocal.GetEnemyNumFromName( kv->GetValue() );
+							gameLocal.randomEnemyList.Append( n );
+							kv = decl->dict.MatchPrefix( "re_", kv );
+						}
+					}
+				}
+			}
+// <---sikk
+
 		}
 	}
 	if ( hud ) {
@@ -1584,7 +1702,9 @@ void idPlayer::Spawn( void ) {
 			}
 		} else {
 			g_damageScale.SetFloat( 1.0f );
-			g_armorProtection.SetFloat( ( g_skill.GetInteger() < 2 ) ? 0.4f : 0.2f );
+
+// sikk - Commented to allow this to be set by the user
+//			g_armorProtection.SetFloat( ( g_skill.GetInteger() < 2 ) ? 0.4f : 0.2f );
 
 			if ( g_skill.GetInteger() == 3 ) {
 				healthTake = true;
@@ -1592,6 +1712,57 @@ void idPlayer::Spawn( void ) {
 			}
 		}
 	}
+
+// sikk---> Random Encounters System
+	// preload monster defs to avoid hitching during play
+	if ( g_useRandomEncounters.GetBool() ) {
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_boney" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_bernie" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_fat" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_fat2" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_fat_wrench" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_jumpsuit" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_labcoat_limb" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_labcoat_neckstump" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_labcoat_pipe" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_labcoat_skinny" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint2" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_bald" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_fast" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_flashlight" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_no_jaw" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_nojaw" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_skinny" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_maint_wrench" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_morgue" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_suit_bloodymouth" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_suit_neckstump" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_suit_skinny" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_tshirt_bald" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_tshirt_blown" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_sawyer" );
+
+		// ZSecs
+		declManager->FindType( DECL_ENTITYDEF, "monster_zsec_pistol" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zsec_machinegun" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zsec_shotgun" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zsec_shield" );
+
+		// Demons (aas48)
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_imp" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_maggot" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_wraith" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_cherub" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_revenant" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_commando" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_zombie_commando_cgun" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_archvile" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_pinky" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_mancubus" );
+		declManager->FindType( DECL_ENTITYDEF, "monster_demon_hellknight" );
+	}
+// <---sikk
 }
 
 /*
@@ -1810,6 +1981,24 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( lastTeleFX );
 
 	savefile->WriteFloat( pm_stamina.GetFloat() );
+
+	savefile->WriteInt( nScreenFrostAlpha );	// sikk - Screen Frost
+
+	savefile->WriteInt( adrenalineAmount );		// sikk - Adrenaline Pack System
+
+// sikk---> Health Management System
+	savefile->WriteInt( healthPackAmount );
+	savefile->WriteInt( nextHealthRegen );
+	savefile->WriteInt( prevHeatlh );
+// <---sikk
+
+// sikk--> Infrared Goggles/Headlight/Global Ambient light
+	savefile->WriteBool( bAmbientLightOn );
+	savefile->WriteBool( bIRGogglesOn );
+	savefile->WriteBool( bHeadlightOn );
+	savefile->WriteFloat( fIntensity );	
+	savefile->WriteInt( nBattery );	
+// <---sikk
 
 	if ( hud ) {
 		hud->SetStateString( "message", common->GetLanguageDict()->GetString( "#str_02916" ) );
@@ -2061,6 +2250,26 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadFloat( set );
 	pm_stamina.SetFloat( set );
 
+	savefile->ReadInt( nScreenFrostAlpha );	// sikk - Screen Frost
+
+	savefile->ReadInt( adrenalineAmount );	// sikk - Adrenaline Pack System
+
+// sikk---> Health Management System
+	savefile->ReadInt( healthPackAmount );
+	savefile->ReadInt( nextHealthRegen );
+	savefile->ReadInt( prevHeatlh );
+// <---sikk
+
+// sikk--> Infrared Goggles/Headlight Mod/Global Ambient Light
+	savefile->ReadBool( bAmbientLightOn );
+	savefile->ReadBool( bIRGogglesOn );
+	savefile->ReadBool( bHeadlightOn );
+	savefile->ReadFloat( fIntensity );
+	savefile->ReadInt( nBattery );	
+// <---sikk
+
+	grabEntity.Clear();	// sikk - Object Manipulation
+
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
 
@@ -2300,6 +2509,9 @@ void idPlayer::SavePersistantInfo( void ) {
 	inventory.GetPersistantData( playerInfo );
 	playerInfo.SetInt( "health", health );
 	playerInfo.SetInt( "current_weapon", currentWeapon );
+
+	playerInfo.SetInt( "healthPackAmount", healthPackAmount );	// sikk - Health Management System (Health Pack)
+	playerInfo.SetInt( "adrenalineAmount", adrenalineAmount );	// sikk - Adrenaline Pack System
 }
 
 /*
@@ -2321,6 +2533,9 @@ void idPlayer::RestorePersistantInfo( void ) {
 	if ( !gameLocal.isClient ) {
 		idealWeapon = spawnArgs.GetInt( "current_weapon", "1" );
 	}
+
+	healthPackAmount = spawnArgs.GetInt( "healthPackAmount", "0" );	// sikk - Health Management System (Health Pack)
+	adrenalineAmount = spawnArgs.GetInt( "adrenalineAmount", "0" );	// sikk - Health Management System (Health Pack)
 }
 
 /*
@@ -2484,6 +2699,8 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	int inclip;
 	int ammoamount;
 
+	bool bStatsChanged = false;	// sikk - Dynamic hud System
+
 	assert( weapon.GetEntity() );
 	assert( _hud );
 
@@ -2494,6 +2711,13 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 		_hud->SetStateString( "player_ammo", "" );
 		_hud->SetStateString( "player_totalammo", "" );
 	} else {
+// sikk---> Dynamic Hud System
+		if ( atoi( _hud->GetStateString( "player_ammo" ) ) != inclip ||
+			 atoi( _hud->GetStateString( "player_totalammo" ) ) != ( ammoamount - inclip ) ) {
+			bStatsChanged = true;
+		}
+// <---sikk
+
 		// show remaining ammo
 		_hud->SetStateString( "player_totalammo", va( "%i", ammoamount - inclip ) );
 		_hud->SetStateString( "player_ammo", weapon.GetEntity()->ClipSize() ? va( "%i", inclip ) : "--" );		// how much in the current clip
@@ -2506,6 +2730,18 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	_hud->SetStateBool( "player_clip_low", ( weapon.GetEntity()->ClipSize() ? inclip <= weapon.GetEntity()->LowAmmo() : false ) );
 
 	_hud->HandleNamedEvent( "updateAmmo" );
+
+// sikk---> Dynamic Hud System
+	if ( bStatsChanged )
+		nShowHudTimer = gameLocal.time + g_dynamicHudTime.GetInteger() * 1000;
+
+	if ( g_useDynamicHud.GetBool() ) {
+		float f = idMath::ClampInt( 0, 1000, ( nShowHudTimer - gameLocal.time ) );
+		_hud->SetStateFloat( "hud_alpha", f * 0.001f );
+	} else {
+		_hud->SetStateFloat( "hud_alpha", 1.0f );
+	}
+// <---sikk
 }
 
 /*
@@ -2517,6 +2753,8 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	int staminapercentage;
 	float max_stamina;
 
+	bool bStatsChanged = false;	// sikk - Dynamic hud System
+
 	assert( _hud );
 
 	max_stamina = pm_stamina.GetFloat();
@@ -2526,6 +2764,13 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	} else {
 		staminapercentage = idMath::FtoiFast( 100.0f * stamina / max_stamina );
 	}
+
+// sikk---> Dynamic Hud System
+	if ( _hud->GetStateInt( "player_health" ) != health ||
+		 _hud->GetStateInt( "player_armor" ) != inventory.armor	) {
+		bStatsChanged = true;
+	}
+// <---sikk
 
 	_hud->SetStateInt( "player_health", health );
 	_hud->SetStateInt( "player_stamina", staminapercentage );
@@ -2565,6 +2810,35 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	}
 
 	UpdateHudAmmo( _hud );
+
+// sikk---> Health Management System (Health Pack)
+	if ( g_healthManagementType.GetInteger() == 1 ) {
+		if (  _hud->GetStateInt( "player_healthpack" ) != healthPackAmount )
+			bStatsChanged = true;
+		_hud->SetStateInt( "player_healthpack", healthPackAmount );
+	} else
+		_hud->SetStateInt( "player_healthpack", 0 );
+	_hud->HandleNamedEvent( "UpdateHealhPack" );
+// <---sikk
+
+// sikk---> Adrenaline Pack System
+	if ( _hud->GetStateInt( "player_adrenaline" ) != adrenalineAmount )
+		bStatsChanged = true;
+	_hud->SetStateInt( "player_adrenaline", adrenalineAmount );
+	_hud->HandleNamedEvent( "UpdateAdrenaline" );
+// <---sikk
+
+// sikk---> Dynamic Hud System
+	if ( bStatsChanged )
+		nShowHudTimer = gameLocal.time + g_dynamicHudTime.GetInteger() * 1000;
+
+	if ( g_useDynamicHud.GetBool() ) {
+		float f = idMath::ClampInt( 0, 1000, ( nShowHudTimer - gameLocal.time ) );
+		_hud->SetStateFloat( "hud_alpha", f * 0.001f );
+	} else {
+		_hud->SetStateFloat( "hud_alpha", 1.0f );
+	}
+// <---sikk
 }
 
 /*
@@ -2859,20 +3133,34 @@ bool idPlayer::Give( const char *statname, const char *value ) {
 	}
 
 	if ( !idStr::Icmp( statname, "health" ) ) {
-		if ( health >= inventory.maxHealth ) {
-			return false;
-		}
-		amount = atoi( value );
-		if ( amount ) {
-			health += amount;
-			if ( health > inventory.maxHealth ) {
-				health = inventory.maxHealth;
+// sikk---> Health Management System (Health Pack)
+		if ( g_healthManagementType.GetInteger() == 1 ) {
+			if ( healthPackAmount >= g_healthPackTotal.GetInteger() ) {
+				return false;
 			}
-			if ( hud ) {
-				hud->HandleNamedEvent( "healthPulse" );
+			amount = atoi( value );
+			if ( amount ) {
+				healthPackAmount += amount;
+				if ( healthPackAmount > g_healthPackTotal.GetInteger() ) {
+					healthPackAmount = g_healthPackTotal.GetInteger();
+				}
+			}
+		} else {
+// <---sikk
+			if ( health >= inventory.maxHealth ) {
+				return false;
+			}
+			amount = atoi( value );
+			if ( amount ) {
+				health += amount;
+				if ( health > inventory.maxHealth ) {
+					health = inventory.maxHealth;
+				}
+				if ( hud ) {
+					hud->HandleNamedEvent( "healthPulse" );
+				}
 			}
 		}
-
 	} else if ( !idStr::Icmp( statname, "stamina" ) ) {
 		if ( stamina >= 100 ) {
 			return false;
@@ -3033,6 +3321,11 @@ bool idPlayer::GivePowerUp( int powerup, int time ) {
 
 	if ( powerup >= 0 && powerup < MAX_POWERUPS ) {
 
+// sikk---> Adrenaline Pack System
+		if ( powerup == ADRENALINE  && adrenalineAmount )
+			return false;
+// <---sikk
+
 		if ( gameLocal.isServer ) {
 			idBitMsg	msg;
 			byte		msgBuf[MAX_EVENT_PARAM_SIZE];
@@ -3043,7 +3336,7 @@ bool idPlayer::GivePowerUp( int powerup, int time ) {
 			ServerSendEvent( EVENT_POWERUP, &msg, false, -1 );
 		}
 
-		if ( powerup != MEGAHEALTH ) {
+		if ( powerup != MEGAHEALTH && powerup != ADRENALINE ) {	// sikk---> Adrenaline Pack System
 			inventory.GivePowerUp( this, powerup, time );
 		}
 
@@ -3078,7 +3371,14 @@ bool idPlayer::GivePowerUp( int powerup, int time ) {
 				break;
 			}
 			case ADRENALINE: {
-				stamina = 100.0f;
+// sikk---> Adrenaline Pack System
+				if ( adrenalineAmount >= 1 )
+					return false;
+				adrenalineAmount += 1;
+				if ( adrenalineAmount > 1 )
+					adrenalineAmount = 1;
+// <---sikk
+//				stamina = 100.0f;
 				break;
 			 }
 			case MEGAHEALTH: {
@@ -3185,6 +3485,39 @@ void idPlayer::UpdatePowerUps( void ) {
 		nextHealthTake = gameLocal.time + g_healthTakeTime.GetInteger() * 1000;
 		healthTake = true;
 	}
+
+// sikk---> Health Management System (Health Regen)
+	if ( g_healthManagementType.GetInteger() == 2 && 
+		 !gameLocal.inCinematic && 
+		 !influenceActive && 
+		 g_skill.GetInteger() != 3 && 
+		 gameLocal.time > nextHealthRegen && 
+		 gameLocal.time > ( lastDmgTime + ( g_healthRegenDelay.GetInteger() * 1000 ) ) && 
+		 health < g_healthRegenLimit.GetInteger() && 
+		 health < prevHeatlh &&
+		 !AI_DEAD ) {
+
+		int currentRegenStep;
+		
+		if ( g_healthRegenSteps.GetInteger() > 1 ) {
+			currentRegenStep = g_healthRegenLimit.GetInteger() / g_healthRegenSteps.GetInteger();
+			for ( int i = 0; i < g_healthRegenSteps.GetInteger(); i++ )
+				if ( health > currentRegenStep )
+					currentRegenStep += ( g_healthRegenLimit.GetInteger() / g_healthRegenSteps.GetInteger() );
+		}
+		
+		assert( !gameLocal.isClient );	// healthPool never be set on client
+		health += g_healthRegenAmt.GetInteger();
+
+		if ( g_healthRegenSteps.GetInteger() > 1 && health > currentRegenStep ) {
+			health = currentRegenStep;
+		}
+		if ( health > g_healthRegenLimit.GetInteger() ) {
+			health = g_healthRegenLimit.GetInteger();
+		}
+		nextHealthRegen = gameLocal.time + g_healthRegenTime.GetInteger() * 1000;
+	}
+// <---sikk
 }
 
 /*
@@ -4057,8 +4390,21 @@ void idPlayer::UpdateWeapon( void ) {
 	} else if ( ActiveGui() ) {
 		// gui handling overrides weapon use
 		Weapon_GUI();
-	} else	if ( focusCharacter && ( focusCharacter->health > 0 ) ) {
+	} else if ( focusCharacter && ( focusCharacter->health > 0 ) ) {
 		Weapon_NPC();
+// sikk---> Health Management System (Health Pack)|Manual Item Pickup|Searchable Corpses|Object Manipulation
+	} else if ( ( g_weaponHandlingType.GetBool() && ( healthPackTimer > gameLocal.time ) || ( searchTimer > gameLocal.time ) ) || 
+				( g_grabMode.GetBool() && ( grabEntity.GetGrabEntity() || grabEntity.GetThrownTime() > gameLocal.time ) ) ) {
+		StopFiring();
+		weapon.GetEntity()->LowerWeapon();
+// <---sikk
+// sikk---> Weapon Handling System
+	} else if ( GetWeaponHandling() ) {
+		if ( idealWeapon != currentWeapon )
+			Weapon_Combat();
+		StopFiring();
+		weapon.GetEntity()->LowerWeapon();
+// <---sikk
 	} else {
 		Weapon_Combat();
 	}
@@ -4069,6 +4415,12 @@ void idPlayer::UpdateWeapon( void ) {
 
 	// update weapon state, particles, dlights, etc
 	weapon.GetEntity()->PresentWeapon( showWeaponViewModel );
+
+// sikk---> Object Manipulation
+	if ( g_grabMode.GetBool() && !g_dragEntity.GetBool() ) {
+		grabEntity.Update( this );
+	}
+// <---sikk
 }
 
 /*
@@ -4186,6 +4538,9 @@ bool idPlayer::HandleSingleGuiCommand( idEntity *entityGui, idLexer *src ) {
 				entityGui->GetRenderEntity()->gui[ 0 ]->SetStateInt( "gui_parm1", _health );
 			}
 			health += amt;
+
+			prevHeatlh = health;	// sikk - Health Management System (Health Regen)
+
 			if ( health > 100 ) {
 				health = 100;
 			}
@@ -4325,6 +4680,10 @@ void idPlayer::ClearFocus( void ) {
 	focusUI			= NULL;
 	focusVehicle	= NULL;
 	talkCursor		= 0;
+	focusItem		= NULL;	// sikk - Manual Item Pickup
+	focusCorpse		= NULL;	// sikk - Searchable Corpses
+	focusMoveable	= NULL;	// sikk - Object Manipulation
+	focusMoveableId	= 0;	// sikk - Object Manipulation
 }
 
 /*
@@ -4542,6 +4901,47 @@ void idPlayer::UpdateFocus( void ) {
 			break;
 		}
 	}
+
+// sikk---> Use Function
+	gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_RENDERMODEL | CONTENTS_BODY, this );
+	if ( trace.fraction < 1.0f ) {
+		ent = gameLocal.entities[ trace.c.entityNum ];
+// sikk---> Object Manipulation
+		if ( ent && ent->IsType( idMoveable::Type ) && g_grabMode.GetBool() ) {
+			ClearFocus();
+			focusMoveable = ent;
+			focusMoveableId = trace.c.id;
+			focusTime = gameLocal.time + FOCUS_TIME;
+			focusMoveableTimer = gameLocal.time + 1000;
+		}
+// <---sikk
+// sikk---> Searchable Corpses
+		if ( ent && ent->IsType( idAFEntity_Gibbable::Type ) && g_itemSearchFactor.GetFloat() ) {
+			if ( static_cast<idAFEntity_Gibbable *>( ent )->searchable && !static_cast<idAFEntity_Gibbable *>( ent )->IsGibbed() ) {
+				if ( ent->IsType( idAI::Type ) ) {
+					if ( static_cast<idAI *>( ent )->IsDead() ) {
+						ClearFocus();
+						focusCorpse = static_cast<idAFEntity_Gibbable *>( ent );
+						focusTime = gameLocal.time + FOCUS_TIME;
+					}
+				} else if ( static_cast<idAFEntity_Gibbable *>( ent )->IsAtRest() ) {
+					ClearFocus();
+					focusCorpse = static_cast<idAFEntity_Gibbable *>( ent );
+					focusTime = gameLocal.time + FOCUS_TIME;
+				}
+			}
+		}
+// <---sikk
+// sikk---> Item Management: Pickup Type
+		if ( ent && ent->IsType( idItem::Type ) && g_itemPickupType.GetBool() && !ent->spawnArgs.GetBool( "nopickup" ) ) {
+			ClearFocus();
+			focusItem = static_cast<idItem *>( ent );
+			focusMoveableId = trace.c.id;
+			focusTime = gameLocal.time + FOCUS_TIME;
+		}
+// <---sikk
+	}
+// <---sikk
 
 	if ( focusGUIent && focusUI ) {
 		if ( !oldFocus || oldFocus != focusGUIent ) {
@@ -4999,8 +5399,12 @@ void idPlayer::SetCurrentHeartRate( void ) {
 
 	int base = idMath::FtoiFast( ( BASE_HEARTRATE + LOWHEALTH_HEARTRATE_ADJ ) - ( (float) health / 100.0f ) * LOWHEALTH_HEARTRATE_ADJ );
 
-	if ( PowerUpActive( ADRENALINE )) {
+	if ( PowerUpActive( ADRENALINE ) ) {
 		heartRate = 135;
+// sikk---> Health Management System (Health Regen)
+	} else if ( g_healthManagementType.GetInteger() == 2 && health < g_healthRegenLimit.GetInteger() && health > 0 ) {
+		heartRate = 130 - health;
+// <---sikk
 	} else {
 		heartRate = idMath::FtoiFast( heartInfo.GetCurrentValue( gameLocal.time ) );
 		int currentRate = GetBaseHeartRate();
@@ -5031,6 +5435,13 @@ void idPlayer::SetCurrentHeartRate( void ) {
 		pct += (float)zeroVol;
 
 		if ( pct != zeroVol ) {
+// sikk---> Health Management System (Health Regen)
+			if ( g_healthManagementType.GetInteger() == 2 && health < g_healthRegenLimit.GetInteger() && health > 0 ) {
+				float f = 40 * ( 1.0f - (float)health / g_healthRegenLimit.GetInteger() ) - 10;
+				if ( pct < f )
+					pct = f;
+			}
+// <---sikk
 			StartSound( "snd_heartbeat", SND_CHANNEL_HEART, SSF_PRIVATE_SOUND, false, NULL );
 			// modify just this channel to a custom volume
 			soundShaderParms_t	parms;
@@ -5054,7 +5465,7 @@ void idPlayer::UpdateAir( void ) {
 	}
 
 	// see if the player is connected to the info_vacuum
-	bool	newAirless = false;
+	bool newAirless = false;
 
 	if ( gameLocal.vacuumAreaNum != -1 ) {
 		int	num = GetNumPVSAreas();
@@ -5064,7 +5475,7 @@ void idPlayer::UpdateAir( void ) {
 			// if the player box spans multiple areas, get the area from the origin point instead,
 			// otherwise a rotating player box may poke into an outside area
 			if ( num == 1 ) {
-				const int	*pvsAreas = GetPVSAreas();
+				const int *pvsAreas = GetPVSAreas();
 				areaNum = pvsAreas[0];
 			} else {
 				areaNum = gameRenderWorld->PointInArea( this->GetPhysics()->GetOrigin() );
@@ -5093,6 +5504,14 @@ void idPlayer::UpdateAir( void ) {
 			}
 		}
 
+// sikk---> Screen Frost
+		if ( g_screenFrostTime.GetInteger() ) {
+			int n = g_screenFrostTime.GetInteger() * 60;
+			nScreenFrostAlpha++;
+			nScreenFrostAlpha = ( nScreenFrostAlpha > n ) ? n : nScreenFrostAlpha;
+		}
+// <---sikk
+
 	} else {
 		if ( airless ) {
 			StartSound( "snd_recompress", SND_CHANNEL_ANY, SSF_GLOBAL, false, NULL );
@@ -5105,6 +5524,14 @@ void idPlayer::UpdateAir( void ) {
 		if ( airTics > pm_airTics.GetInteger() ) {
 			airTics = pm_airTics.GetInteger();
 		}
+
+// sikk---> Screen Frost
+		if ( g_screenFrostTime.GetInteger() ) {
+			nScreenFrostAlpha -= 2;
+			nScreenFrostAlpha = ( nScreenFrostAlpha < 0 ) ? 0 : nScreenFrostAlpha;
+		}
+// <---sikk
+
 	}
 
 	airless = newAirless;
@@ -5521,25 +5948,13 @@ void idPlayer::SetClipModel( void ) {
 idPlayer::UseVehicle
 ==============
 */
-void idPlayer::UseVehicle( void ) {
-	trace_t	trace;
-	idVec3 start, end;
-	idEntity *ent;
-
-	if ( GetBindMaster() && GetBindMaster()->IsType( idAFEntity_Vehicle::Type ) ) {
-		Show();
-		static_cast<idAFEntity_Vehicle*>(GetBindMaster())->Use( this );
+void idPlayer::UseVehicle( bool drive ) {
+	if ( drive ) {
+		Hide();
+		focusVehicle->Use( this );
 	} else {
-		start = GetEyePosition();
-		end = start + viewAngles.ToForward() * 80.0f;
-		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_RENDERMODEL, this );
-		if ( trace.fraction < 1.0f ) {
-			ent = gameLocal.entities[ trace.c.entityNum ];
-			if ( ent && ent->IsType( idAFEntity_Vehicle::Type ) ) {
-				Hide();
-				static_cast<idAFEntity_Vehicle*>(ent)->Use( this );
-			}
-		}
+		Show();
+		static_cast<idAFEntity_Vehicle*>( GetBindMaster() )->Use( this );
 	}
 }
 
@@ -5568,6 +5983,7 @@ void idPlayer::PerformImpulse( int impulse ) {
 
 	switch( impulse ) {
 		case IMPULSE_13: {
+			nShowHudTimer = gameLocal.time + g_dynamicHudTime.GetInteger() * 1000;	// sikk - Dynamic Hud System
 			Reload();
 			break;
 		}
@@ -5625,10 +6041,73 @@ void idPlayer::PerformImpulse( int impulse ) {
 			}
 			break;
 		}
-		case IMPULSE_40: {
-			UseVehicle();
+
+// sikk---> Headlight Mod
+		case IMPULSE_23: {
+			if ( GetCurrentWeapon() < 11 && !gameLocal.inCinematic )
+				ToggleHeadlight();
 			break;
 		}
+// <---sikk
+// sikk---> Infrared Goggles PostProcess
+		case IMPULSE_24: {
+			if ( GetCurrentWeapon() != 12 && !gameLocal.inCinematic && ( !GetInfluenceMaterial() && GetInfluenceEntity() == NULL ) )
+				ToggleIRGoggles();
+			break;
+		}
+// <---sikk
+// sikk---> Health Management System (Health Pack)
+		case IMPULSE_25: {
+			if ( g_healthManagementType.GetInteger() == 1 )
+				UseHealthPack();
+			break;
+		}
+// <---sikk
+// sikk---> Arenaline Pack System
+		case IMPULSE_26: {
+			if ( !PowerUpActive( ADRENALINE ) )
+				UseAdrenaline();
+			break;
+		}
+// <---sikk
+// sikk---> Random Encounters System - Print info
+		case IMPULSE_27: {
+			gameLocal.Printf( "randomEnemyTally = %d	list size = %d\n", gameLocal.randomEnemyTally, gameLocal.randomEnemyList.Num() );
+			break;
+		}
+// <---sikk
+// sikk---> Use Function: Overriding the default UseVehicle() call but still allowing a vehicle to be used
+		case IMPULSE_40: {
+			bool valid = false;
+			if ( grabEntity.GetGrabEntity() ) {
+				grabEntity.StopDrag( this, true );
+				valid = true;
+			} else {
+				if ( GetBindMaster() && GetBindMaster()->IsType( idAFEntity_Vehicle::Type ) ) {
+					UseVehicle( false );
+					valid = true;
+				} else if ( focusVehicle ) {
+					UseVehicle( true );
+					valid = true;
+				} else if ( focusItem ) {
+					if ( !focusItem->Pickup( this ) && grabEntity.GetThrownTime() < gameLocal.time )
+						grabEntity.StartDrag( this, focusItem, focusMoveableId );
+					valid = true;
+				} else if ( focusCorpse ) {
+					SearchCorpse( focusCorpse );
+					valid = true;
+				} else if ( focusMoveable && grabEntity.GetThrownTime() < gameLocal.time ) {
+					grabEntity.StartDrag( this, focusMoveable, focusMoveableId );
+					valid = true;
+				}
+			}
+			
+			if ( !valid )
+				StartSoundShader( declManager->FindSound( "use_fail" ), SND_CHANNEL_VOICE, 0, false, NULL );
+
+			break;
+		}
+// <---sikk
 	}
 }
 
@@ -5715,6 +6194,7 @@ void idPlayer::AdjustSpeed( void ) {
 			bobFrac = stamina / pm_staminathreshold.GetFloat();
 		}
 		speed = pm_walkspeed.GetFloat() * ( 1.0f - bobFrac ) + pm_runspeed.GetFloat() * bobFrac;
+		speed *= ( !g_weaponHandlingType.GetBool() && bIsZoomed ? 0.75f : 1.0f );	// sikk - Decreased movement speed when zoomed
 	} else {
 		rate = pm_staminarate.GetFloat();
 
@@ -5727,7 +6207,7 @@ void idPlayer::AdjustSpeed( void ) {
 		if ( stamina > pm_stamina.GetFloat() ) {
 			stamina = pm_stamina.GetFloat();
 		}
-		speed = pm_walkspeed.GetFloat();
+		speed = pm_walkspeed.GetFloat() * ( bIsZoomed ? 0.75f : 1.0f );	// sikk - Decreased movement speed when zoomed
 		bobFrac = 0.0f;
 	}
 
@@ -6125,6 +6605,73 @@ void idPlayer::UpdateHud( void ) {
 	} else {
 		hud->SetStateString( "hudLag", "0" );
 	}
+
+// sikk---> Crosshair Positioning
+	idStr buf;
+	if ( g_crosshairType.GetBool() && !GetTalkCursor() && !( focusItem || focusCorpse ) ) {
+		trace_t	tr;
+		idVec3	ndc;
+		idVec3	muzzleOrigin;
+		idMat3	muzzleAxis;
+
+		// detemine the point at which the weapon is aiming
+		if ( weapon.GetEntity()->GetBarrelJointView() != INVALID_JOINT &&
+			 weapon.GetEntity()->GetProjectileDict().GetBool( "launchFromBarrel" ) &&
+			 ( GetCurrentWeapon() < 6 || GetCurrentWeapon() > 8 ) ) {
+			// there is an explicit joint for the muzzle
+			weapon.GetEntity()->GetGlobalJointTransform( true, weapon.GetEntity()->GetBarrelJointView(), muzzleOrigin, muzzleAxis );
+		} else {
+			// go straight out of the view
+			muzzleOrigin = firstPersonViewOrigin;
+			muzzleAxis = firstPersonViewAxis;
+		}
+		idVec3 endPos = muzzleOrigin + ( muzzleAxis.ToAngles().ToForward() * 65536.0f );
+		gameLocal.clip.TracePoint( tr, muzzleOrigin, endPos, MASK_SHOT_RENDERMODEL, this );
+		endPos = tr.endpos;
+		v3CrosshairPos.Lerp( endPos, v3CrosshairPos, g_crosshairLerp.GetFloat() );
+		renderSystem->GlobalToNormalizedDeviceCoordinates( v3CrosshairPos, ndc );
+		ndc.x = ( ( ndc.x * 0.5 + 0.5 ) * SCREEN_WIDTH );
+		ndc.y = ( ( 1.0f - ( ndc.y * 0.5 + 0.5 ) ) * SCREEN_HEIGHT );
+		sprintf( buf, "%d %d 100 32", (int)ndc.x - 16, (int)ndc.y - 16);
+	} else { 
+		sprintf( buf, "%d %d 100 32", 304, 224 );
+	}
+// <---sikk
+
+// sikk---> Crosshair Cvar
+	int crosshairType = g_crosshair.GetInteger();
+	if ( crosshairType == 0 ) {
+		cursor->SetStateString( "combatcursor", "0" );
+	} else if ( crosshairType == 1 ) {
+		if ( !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) ) {
+			cursor->SetStateString( "combatcursor", "0" );
+			cursor->SetStateString( "pickupcursor", "1" );
+		} else {
+			cursor->SetStateString( "combatcursor", "1" );
+			cursor->SetStateString( "pickupcursor", "0" );
+		}
+		cursor->SetStateString( "cursorposition", buf );
+	} else if ( crosshairType == 2 ) {
+		cursor->SetStateString( "cursorposition", buf );
+		if ( ( bIsZoomed || GetTalkCursor() ) &&
+			!( g_weaponHandlingType.GetBool() && ( bWATrace || bWAIsSprinting || OnLadder() ) ) &&
+			( GetCurrentWeapon() > 0 && GetCurrentWeapon() < 9 ) ) {
+			if ( !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) ) {
+				cursor->SetStateString( "combatcursor", "0" );
+				cursor->SetStateString( "pickupcursor", "1" );
+			} else {
+				cursor->SetStateString( "combatcursor", "1" );
+				cursor->SetStateString( "pickupcursor", "0" );
+			}
+		} else {
+			cursor->SetStateString( "combatcursor", "0" );
+			if ( !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) )
+				cursor->SetStateString( "pickupcursor", "1" );
+			else
+				cursor->SetStateString( "pickupcursor", "0" );
+		}
+	}
+// <---sikk
 }
 
 /*
@@ -6256,10 +6803,20 @@ void idPlayer::Think( void ) {
 	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_ZOOM ) {
 		if ( ( usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ) {
 			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
+			bIsZoomed = true;	// sikk - Depth of Field PostProcess
 		} else {
 			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
+			bIsZoomed = false;	// sikk - Depth of Field PostProcess
 		}
 	}
+
+// sikk---> Weapon Handling System
+	if ( g_weaponHandlingType.GetBool() && !weapon.GetEntity()->IsReady() && bIsZoomed ) {
+		zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
+		usercmd.buttons ^= BUTTON_ZOOM;
+		bIsZoomed = false;
+	}
+// <---sikk
 
 	// if we have an active gui, we will unrotate the view angles as
 	// we turn the mouse movements into gui events
@@ -6337,6 +6894,15 @@ void idPlayer::Think( void ) {
 		UpdateWeapon();
 	}
 
+// sikk---> Global Ambient Light
+	if ( g_useAmbientLight.GetBool() )
+		ToggleAmbientLight( true );
+	else
+		ToggleAmbientLight( false );
+// <---sikk
+
+	UpdateBattery();	// sikk--> Infrared Goggles/Headlight Mod
+
 	UpdateAir();
 
 	UpdateHud();
@@ -6362,6 +6928,25 @@ void idPlayer::Think( void ) {
 			headRenderEnt->customSkin = NULL;
 		}
 	}
+
+// sikk---> First Person Body
+	idStr skinname = spawnArgs.GetString( "spawn_skin" );
+	if ( g_showFirstPersonBody.GetBool() && !pm_thirdPerson.GetBool() && !gameLocal.inCinematic ) {
+		if ( skinname == "skins/characters/player/tshirt_mp" ) {
+			SetSkin( declManager->FindSkin( "skins/characters/player/tshirt_mp_fpb" ) );
+			head.GetEntity()->SetModel( "head_player" );
+		} else {
+			SetSkin( declManager->FindSkin( "skins/characters/player/greenmarine_fpb" ) );
+		}
+	} else {
+		if ( skinname == "skins/characters/player/tshirt_mp" ) {
+			SetSkin( declManager->FindSkin( "skins/characters/player/tshirt_mp" ) );
+			head.GetEntity()->SetModel( "head_player" );
+		} else {
+			SetSkin( declManager->FindSkin( "skins/characters/player/greenmarine" ) );
+		}
+	}
+// <---sikk
 
 	if ( gameLocal.isMultiplayer || g_showPlayerShadow.GetBool() ) {
 		renderEntity.suppressShadowInViewID	= 0;
@@ -6406,6 +6991,21 @@ void idPlayer::Think( void ) {
 		}
 		gameLocal.Printf( "%d: enemies\n", num );
 	}
+
+// sikk---> Portal Sky Box
+	// determine if portal sky is in pvs
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( gameLocal.GetPlayerPVS(), GetPhysics()->GetOrigin() );
+// <---sikk
+
+// sikk---> Random Encounters System
+	if ( g_useRandomEncounters.GetBool() && !gameLocal.inCinematic && gameLocal.randomEnemyTime <= gameLocal.time ) {
+		if ( gameLocal.SpawnRandomEnemy() ) {
+			gameLocal.randomEnemyTally++;
+			int randTime = gameLocal.random.RandomInt( g_randomEncountersMaxTime.GetInteger() - g_randomEncountersMinTime.GetInteger() );
+			gameLocal.randomEnemyTime = gameLocal.time + ( randTime + g_randomEncountersMinTime.GetInteger() ) * 1000;
+		}
+	}
+// <---sikk
 }
 
 /*
@@ -6630,7 +7230,7 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 		}
 	}
 
-	damage *= damageScale;
+	damage *= damageScale * ( PowerUpActive( ADRENALINE ) ? 0.5f : 1.0f );	
 
 	// always give half damage if hurting self
 	if ( attacker == this ) {
@@ -7167,9 +7767,10 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 	angles = viewAngles;
 	GetViewPos( origin, axis );
 
-	if ( angle ) {
-		angles.pitch = 0.0f;
-	}
+//	sikk - commented out to allow camera to follow pitch when "pm_thirdPersonAngle" != 0
+//	if ( angle ) {
+//		angles.pitch = 0.0f;
+//	}
 
 	if ( angles.pitch > 45.0f ) {
 		angles.pitch = 45.0f;		// don't go too far overhead
@@ -7185,7 +7786,11 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 
 	idMath::SinCos( DEG2RAD( angle ), sideScale, forwardScale );
 	view -= range * forwardScale * renderView->viewaxis[ 0 ];
-	view += range * sideScale * renderView->viewaxis[ 1 ];
+
+// sikk---> Thirdpesron Camera - adjustable horizontal position
+//	view += range * sideScale * renderView->viewaxis[ 1 ];
+	view += range * ( sideScale - ( pm_thirdPersonOffest.GetFloat() * 0.01 ) ) * renderView->viewaxis[ 1 ];
+// <---sikk
 
 	if ( clip ) {
 		// trace a ray from the origin to the viewpoint to make sure the view isn't
@@ -7270,7 +7875,6 @@ idPlayer::CalculateFirstPersonView
 void idPlayer::CalculateFirstPersonView( void ) {
 	if ( ( pm_modelView.GetInteger() == 1 ) || ( ( pm_modelView.GetInteger() == 2 ) && ( health <= 0 ) ) ) {
 		//	Displays the view from the point of view of the "camera" joint in the player model
-
 		idMat3 axis;
 		idVec3 origin;
 		idAngles ang;
@@ -7278,10 +7882,12 @@ void idPlayer::CalculateFirstPersonView( void ) {
 		ang = viewBobAngles + playerView.AngleOffset();
 		ang.yaw += viewAxis[ 0 ].ToYaw();
 
-		jointHandle_t joint = animator.GetJointHandle( "camera" );
-		animator.GetJointTransform( joint, gameLocal.time, origin, axis );
-		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
-		firstPersonViewAxis = axis * ang.ToMat3() * physicsObj.GetGravityAxis();
+		jointHandle_t joint = animator.GetJointHandle( "camera" );	// sikk - Modified - "pm_modelView" Fix
+//		jointHandle_t joint = head.GetEntity()->GetAnimator()->GetJointHandle( "mouth12" );	// sikk - Added -"pm_modelView" Fix
+		GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );	// sikk - Added -"pm_modelView" Fix
+		animator.GetJointTransform( joint, gameLocal.time, origin, axis );	// sikk - Commented - "pm_modelView" Fix
+		firstPersonViewOrigin = ( origin ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
+//		firstPersonViewAxis = axis * ang.ToMat3() * physicsObj.GetGravityAxis();	// sikk - Commented - "pm_modelView" Fix
 	} else {
 		// offset for local bobbing and kicks
 		GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );
@@ -7362,7 +7968,15 @@ void idPlayer::CalculateRenderView( void ) {
 
 			// set the viewID to the clientNum + 1, so we can suppress the right player bodies and
 			// allow the right player view weapons
-			renderView->viewID = entityNumber + 1;
+			if ( pm_modelView.GetInteger() == 0 ) {
+				renderView->viewID = entityNumber + 1;
+// sikk---> First Person Body
+				if ( g_showFirstPersonBody.GetBool() )
+					renderEntity.suppressSurfaceInViewID = 0;
+				else
+					renderEntity.suppressSurfaceInViewID = entityNumber + 1;
+// <---sikk
+			}
 		}
 
 		// field of view
@@ -7424,7 +8038,7 @@ void idPlayer::AddProjectilesFired( int count ) {
 
 /*
 =============
-idPlayer::AddProjectileHites
+idPlayer::AddProjectileHits
 =============
 */
 void idPlayer::AddProjectileHits( int count ) {
@@ -7907,11 +8521,12 @@ void idPlayer::ClientPredictionThink( void ) {
 			headRenderEnt->suppressShadowInViewID = 0;
 		}
 	} else {
-		renderEntity.suppressShadowInViewID	= entityNumber+1;
+		renderEntity.suppressShadowInViewID	= entityNumber + 1;
 		if ( headRenderEnt ) {
-			headRenderEnt->suppressShadowInViewID = entityNumber+1;
+			headRenderEnt->suppressShadowInViewID = entityNumber + 1;
 		}
 	}
+
 	// never cast shadows from our first-person muzzle flashes
 	renderEntity.suppressShadowInLightID = LIGHTID_VIEW_MUZZLE_FLASH + entityNumber;
 	if ( headRenderEnt ) {
@@ -7935,6 +8550,13 @@ void idPlayer::ClientPredictionThink( void ) {
 	if ( gameLocal.isNewFrame && entityNumber == gameLocal.localClientNum ) {
 		playerView.CalculateShake();
 	}
+
+// sikk---> Portal Sky Box
+	// determine if portal sky is in pvs
+	pvsHandle_t	clientPVS = gameLocal.pvs.SetupCurrentPVS( GetPVSAreas(), GetNumPVSAreas() );
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( clientPVS, GetPhysics()->GetOrigin() );
+	gameLocal.pvs.FreeCurrentPVS( clientPVS );
+// <---sikk
 }
 
 /*
@@ -8532,3 +9154,439 @@ bool idPlayer::NeedsIcon( void ) {
 	// local clients don't render their own icons... they're only info for other clients
 	return entityNumber != gameLocal.localClientNum && ( isLagged || isChatting );
 }
+
+// sikk---> Depth Render
+/*
+==================
+idPlayer::ToggleSuppression
+==================
+*/
+void idPlayer::ToggleSuppression( bool bSuppress ) {
+	int headHandle							= head.GetEntity()->GetModelDefHandle();
+	int weaponHandle						= weapon.GetEntity()->GetModelDefHandle();
+	int weaponWorldHandle					= weapon.GetEntity()->GetWorldModel()->GetEntity()->GetModelDefHandle();
+	renderEntity_t *headRenderEntity		= head.GetEntity()->GetRenderEntity();
+	renderEntity_t *weaponRenderEntity		= weapon.GetEntity()->GetRenderEntity();
+	renderEntity_t *weaponWorldRenderEntity	= weapon.GetEntity()->GetWorldModel()->GetEntity()->GetRenderEntity();
+
+	if ( bSuppress ) {
+		if ( modelDefHandle != -1 ) {
+// sikk---> First Person Body
+			if ( !g_showFirstPersonBody.GetBool() ) {
+				// suppress body in DoF render view
+				renderEntity.suppressSurfaceInViewID = -8;
+				gameRenderWorld->UpdateEntityDef( modelDefHandle, &renderEntity );
+			}
+// <---sikk
+			if ( head.GetEntity() && headHandle != -1 ) {
+				// suppress head in DoF render view
+				headRenderEntity->suppressSurfaceInViewID = -8;
+				gameRenderWorld->UpdateEntityDef( headHandle, headRenderEntity );
+			}
+
+			if ( weaponEnabled && weapon.GetEntity() && weaponHandle != -1 ) {
+				// allow weapon view model in DoF render view
+				weaponRenderEntity->allowSurfaceInViewID = -8;
+				gameRenderWorld->UpdateEntityDef( weaponHandle, weaponRenderEntity );
+
+				if ( weaponWorldHandle != -1 ) {
+					// suppress weapon world model in DoF render view
+					weaponWorldRenderEntity->suppressSurfaceInViewID = -8;
+					gameRenderWorld->UpdateEntityDef( weaponWorldHandle, weaponWorldRenderEntity );
+				}
+			}
+		}
+
+		bViewModelsModified = true;
+	} else {
+		if ( modelDefHandle != -1 ) {
+			// restore suppression of body
+			renderEntity.suppressSurfaceInViewID = entityNumber + 1;
+			gameRenderWorld->UpdateEntityDef( modelDefHandle, &renderEntity );
+
+			if ( head.GetEntity() && headHandle != -1 ) {
+				// restore suppression of head
+				headRenderEntity->suppressSurfaceInViewID = entityNumber + 1;
+				gameRenderWorld->UpdateEntityDef( headHandle, headRenderEntity );
+			}
+
+			if ( weaponEnabled && weapon.GetEntity() && weaponHandle != -1  ) {
+				// restore allowance of weapon view model
+				weaponRenderEntity->allowSurfaceInViewID = entityNumber + 1;
+				gameRenderWorld->UpdateEntityDef( weaponHandle, weaponRenderEntity );
+				
+				if ( weaponWorldHandle != -1 ) {
+					// restore suppression of weapon world model
+					weaponWorldRenderEntity->suppressSurfaceInViewID = entityNumber + 1;
+					gameRenderWorld->UpdateEntityDef( weaponWorldHandle, weaponWorldRenderEntity );
+				}
+			}
+		}
+
+		bViewModelsModified = false;
+	}
+}
+// <---sikk
+
+// sikk---> Infrared Goggles/Headlight/Ambient light Mod
+/*
+==================
+idPlayer::UpdateBattery
+==================
+*/
+void idPlayer::UpdateBattery() {
+	// update ir goggle's battery usage
+	if ( bIRGogglesOn ) {
+		if ( nIRGogglesTime <= gameLocal.time ) {
+			nBattery--;
+			nIRGogglesTime = ( g_batteryLife.GetInteger() * 10 ) + gameLocal.time;
+		}
+		if ( nBattery <= 0 ) {
+			nBattery = 0;
+			ToggleIRGoggles();
+		} else if ( GetCurrentWeapon() == 12 || gameLocal.inCinematic || PowerUpActive( BERSERK ) || ( GetInfluenceMaterial() || GetInfluenceEntity() ) ) {
+			ToggleIRGoggles();
+		}
+	}
+
+	// update headlight's battery usage
+	if ( bHeadlightOn ) {
+		idEntity *ent = gameLocal.FindEntity( name + "_headlight" );
+
+		if ( nHeadlightTime <= gameLocal.time ) {
+			nHeadlightTime = ( g_batteryLife.GetInteger() * 10 ) + gameLocal.time;
+			nBattery--;
+		}
+
+		// update headlight angle and intensity
+		if ( ent ) {
+			ent->SetAngles( viewAngles );
+
+			if ( nBattery > 5 )
+				fIntensity = 1.0f;
+			else {
+				fIntensity = fIntensity * 0.95 + ( nBattery * 0.2 ) * 0.05;
+			}
+
+			static_cast<idLight*>( ent )->SetLightParms( 1.0f, 1.0f, 1.0f, fIntensity );
+		}
+
+		if ( nBattery <= 0 ) {
+			nBattery = 0;
+			ToggleHeadlight();
+		} else if ( GetCurrentWeapon() >= 11 || gameLocal.inCinematic ) {
+			ToggleHeadlight();
+		}
+	} 
+	
+	if ( nBattery < 100 && !bIRGogglesOn && !bHeadlightOn ) {
+		if ( nHeadlightTime <= gameLocal.time && nIRGogglesTime <= gameLocal.time ) {
+			nHeadlightTime = nIRGogglesTime = ( g_batteryRechargeRate.GetInteger() * 10 ) + gameLocal.time;
+			nBattery++;
+		}
+		if ( nBattery >= 100 )
+			nBattery = 100;
+	}
+
+	// update hud element
+	if ( hud ) {
+		hud->SetStateInt( "player_battery", nBattery );
+		hud->HandleNamedEvent( "UpdateBattery" );
+	}
+}
+
+/*
+==================
+idPlayer::ToggleIRGoggles
+==================
+*/
+void idPlayer::ToggleIRGoggles() {
+	if ( !gameLocal.GetLocalPlayer() )
+		return;
+
+	bIRGogglesOn = !bIRGogglesOn;
+
+	if ( bIRGogglesOn ) {
+		idEntity *ent;
+		idDict args;
+
+		// play sound
+		StartSoundShader( declManager->FindSound( "player_sounds_irgoggles_on" ), SND_CHANNEL_VOICE, 0, false, NULL );
+
+		if ( !g_goggleType.GetBool() ) {
+			// spawn ir ambient light
+			args.Set( "classname", "light" );
+			args.Set( "name", name + "_irlight" );					// light name
+			args.Set( "texture", "lights/ambientLight" );			// light texture
+			args.Set( "_color", "0.0625 0.0625 0.0625" );			// light color
+			args.Set( "light_radius", "512 512 512" );				// light radius
+			args.Set( "light_center", "-256 0 0" );					// light center
+			gameLocal.SpawnEntityDef( args, &ent );
+			ent->Bind( this, true );								// light bind parent
+			ent->SetOrigin( idVec3( 256, 0, 48 ) );					// light origin
+		}
+
+		// save current bloom parms
+		fIRBloomParms[ 0 ] = r_useBloom.GetBool();
+		fIRBloomParms[ 1 ] = r_bloomBufferSize.GetInteger();
+		fIRBloomParms[ 2 ] = r_bloomBlurIterations.GetInteger();
+		fIRBloomParms[ 3 ] = r_bloomBlurScaleX.GetFloat();
+		fIRBloomParms[ 4 ] = r_bloomBlurScaleY.GetFloat();
+		fIRBloomParms[ 5 ] = r_bloomScale.GetFloat();
+		fIRBloomParms[ 6 ] = r_bloomGamma.GetFloat();
+
+		if ( !g_goggleType.GetBool() ) {
+			// set specific bloom parms for ir
+			r_useBloom.SetBool( true );
+			r_bloomBufferSize.SetInteger( 2 );
+			r_bloomBlurIterations.SetInteger( 1 );
+			r_bloomBlurScaleX.SetFloat( 1.0f );
+			r_bloomBlurScaleY.SetFloat( 1.0f );
+			r_bloomScale.SetFloat( 1.25f );
+			r_bloomGamma.SetFloat( 1.25f );
+		}
+	} else {
+		// play sound
+		StartSoundShader( declManager->FindSound( "player_sounds_irgoggles_off" ), SND_CHANNEL_VOICE, 0, false, NULL );
+
+		// reset bloom parms
+		r_useBloom.SetBool( (bool)fIRBloomParms[ 0 ] );
+		r_bloomBufferSize.SetInteger( (int)fIRBloomParms[ 1 ] );
+		r_bloomBlurIterations.SetInteger( (int)fIRBloomParms[ 2 ] );
+		r_bloomBlurScaleX.SetFloat( (int)fIRBloomParms[ 3 ] );
+		r_bloomBlurScaleY.SetFloat( fIRBloomParms[ 4 ] );
+		r_bloomScale.SetFloat( fIRBloomParms[ 5 ] );
+		r_bloomGamma.SetFloat( fIRBloomParms[ 6 ] );
+
+		// find and remove ir ambient light
+		idEntity *ent = gameLocal.FindEntity( name + "_irlight" );
+		if ( !ent )
+			return;
+		delete ent;
+	}
+}
+
+/*
+==================
+idPlayer::ToggleHeadlight
+==================
+*/
+void idPlayer::ToggleHeadlight() {
+	if ( !gameLocal.GetLocalPlayer() )
+		return;
+
+	bHeadlightOn = !bHeadlightOn;
+
+	if ( bHeadlightOn ) {
+		idEntity *ent;
+		idDict args;
+
+		// play sound
+		StartSoundShader( declManager->FindSound( "player_sounds_headlight_on" ), SND_CHANNEL_VOICE, 0, false, NULL );
+
+		// spawn headlight light
+		args.Set( "classname", "light" );
+		args.Set( "name", name + "_headlight" );	// light name
+		args.Set( "texture", "lights/headlight" );	// light texture
+		args.Set( "light_target", "768 0 0" );		// light cone direction
+ 		args.Set( "light_up", "0 0 192" );			// light cone height
+ 		args.Set( "light_right", "0 -192 0" );		// light cone width
+		gameLocal.SpawnEntityDef( args, &ent );
+		ent->BindToJoint( this, "head", 0.0f );		// light bind parent joint
+		ent->SetOrigin( idVec3( 8, -12, 4 ) );		// light origin
+		ent->SetAngles( viewAngles );				// light angle
+	} else {
+		// play sound
+		StartSoundShader( declManager->FindSound( "player_sounds_headlight_off" ), SND_CHANNEL_VOICE, 0, false, NULL );
+
+		// find and remove headlight light
+		idEntity *ent = gameLocal.FindEntity( name + "_headlight" );
+		if ( !ent )
+			return;
+		delete ent;
+	}
+}
+
+/*
+==================
+idPlayer::ToggleAmbientLight
+==================
+*/
+void idPlayer::ToggleAmbientLight( bool bOn ) {
+	if ( !gameLocal.GetLocalPlayer() )
+		return;
+
+	idEntity *ent;
+	renderView_t *rv = GetRenderView();
+
+	// this is so we update on any changes to color or radius
+	if ( bOn && bAmbientLightOn ) {
+		ent = gameLocal.FindEntity( name + "_ambientlight" );
+		if ( !ent ) {
+			bAmbientLightOn = false;
+			return;
+		}
+
+		// update light origin & angle
+		ent->SetOrigin( rv->vieworg + ( rv->viewaxis.ToAngles().ToForward() * 256.0f ) );	// light origin
+//		ent->SetAngles( rv->viewaxis.ToAngles() );				// light angle
+
+		// this is so we update on any changes to color or radius
+		// we remove it and spawn it again below
+		if ( szAmbientLightColor != g_ambientLightColor.GetString() ||
+			 szAmbientLightRadius != g_ambientLightRadius.GetString() ) {
+			// remove ambient light
+			delete ent;
+			bAmbientLightOn = false;
+		}
+	}
+
+	szAmbientLightColor = g_ambientLightColor.GetString();
+	szAmbientLightRadius = g_ambientLightRadius.GetString();
+
+	if ( bOn && !bAmbientLightOn ) {
+		idEntity *ent;
+		idDict args;
+
+		// spawn ambient light
+		args.Set( "classname", "light" );
+		args.Set( "name", name + "_ambientlight" );				// light name
+		args.Set( "texture", "lights/ambientLight" );			// light texture
+		args.Set( "_color", szAmbientLightColor );				// light color
+		args.Set( "light_radius", szAmbientLightRadius );		// light radius
+		gameLocal.SpawnEntityDef( args, &ent );
+
+		ent->SetOrigin( rv->vieworg + ( rv->viewaxis.ToAngles().ToForward() * 256.0f ) );	// light origin
+
+		bAmbientLightOn = true;
+	} else if ( !bOn && bAmbientLightOn ) {
+		// find and remove ambient light
+		idEntity *ent = gameLocal.FindEntity( name + "_ambientlight" );
+		if ( !ent ) {
+			bAmbientLightOn = false;
+			return;
+		}
+		delete ent;
+		bAmbientLightOn = false;
+	}
+}
+// <---sikk
+
+// sikk---> Health Management System (Health Pack)
+/*
+==================
+idPlayer::UseHealthPack
+==================
+*/
+void idPlayer::UseHealthPack() {
+	if ( ( health > 0 ) && ( health < inventory.maxHealth ) && healthPackAmount ) {
+		int oldhealth = health;
+		int oldhealthPackAmount = healthPackAmount;
+
+		healthPackAmount -= g_healthPackTotal.GetInteger() / g_healthPackUses.GetInteger();
+		healthPackAmount = ( healthPackAmount < 0 ) ? 0 : healthPackAmount;
+
+		health += ( oldhealthPackAmount - healthPackAmount );
+		if ( health > inventory.maxHealth )
+			health = inventory.maxHealth;
+		if ( hud )
+			hud->HandleNamedEvent( "healthPulse" );
+
+		int time = ( health - oldhealth ) * g_healthPackTime.GetInteger() * 10;
+		time = ( time < 1000 ) ? 1000 : time;
+		healthPackTimer = gameLocal.time + time;
+		StartSoundShader( declManager->FindSound( "pack_pickup" ), SND_CHANNEL_ITEM, 0, false, NULL );
+	}
+}
+// <---sikk
+
+// sikk---> Adrenaline Pack System
+/*
+==================
+idPlayer::UseAdrenaline
+==================
+*/
+void idPlayer::UseAdrenaline() {
+	if ( adrenalineAmount ) {
+		inventory.GivePowerUp( this, ADRENALINE, 0 );
+		StartSoundShader( declManager->FindSound( "pickup_adrenaline" ), SND_CHANNEL_ITEM, 0, false, NULL );
+		stamina = 100.0f;
+		adrenalineAmount = 0;
+	}
+}
+// <---sikk
+
+// sikk---> Searchable Corpses
+/*
+==================
+idPlayer::SearchCorpse
+==================
+*/
+void idPlayer::SearchCorpse( idAFEntity_Gibbable* corpse ) {
+	StartSoundShader( declManager->FindSound( "use_search" ), SND_CHANNEL_VOICE, 0, false, NULL );
+	searchTimer = gameLocal.time + 1500;
+	corpse->searchable = false;
+
+	if ( g_itemSearchFactor.GetFloat() >= gameLocal.random.RandomFloat() ) {
+		idEntity *ent;
+		idDict args;
+		idVec3 itemOrg = GetEyePosition() + viewAngles.ToForward() * 32.0f;
+
+		float random = gameLocal.random.RandomFloat();
+		const char* defItem = corpse->spawnArgs.GetString( "def_searchItem" );
+		if ( defItem == "" ) {
+			if ( random <= 0.1 )
+				defItem = "powerup_adrenaline";
+			else if ( random <= 0.5 )
+				defItem = "item_medkit_small";
+			else
+				defItem = "item_armor_shard";
+		} else {
+			if ( random <= 0.05 )
+				defItem = "powerup_adrenaline";
+			else if ( random <= 0.33333333 )
+				defItem = "item_medkit_small";
+			else if ( random <= 0.66666666 )
+				defItem = "item_armor_shard";
+		}
+
+		args.Set( "classname", defItem );
+		args.Set( "removeable", "0" );
+		args.SetVector( "origin", itemOrg );
+		gameLocal.SpawnEntityDef( args, &ent );
+	}
+}
+// <---sikk
+
+// sikk---> Weapon Handling System
+/*
+==================
+idPlayer::GetWeaponHandling
+==================
+*/
+bool idPlayer::GetWeaponHandling() {
+	if ( g_weaponHandlingType.GetBool() ) {
+		idEntity *ent;
+		trace_t trace;
+		idVec3 start = GetEyePosition();
+		idVec3 end = start + viewAngles.ToForward() * 32.0f;
+		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_RENDERMODEL, this );
+		bWATrace = false;
+		
+		if ( ( trace.fraction < 1.0f ) && ( GetCurrentWeapon() > 0 && GetCurrentWeapon() < 9 ) ) {
+			ent = gameLocal.entities[ trace.c.entityNum ];
+			if ( ent && !ent->IsType( idAI::Type ) ) 
+				bWATrace = true;
+			if ( ent->GetBindMaster() && ent->GetBindMaster()->IsType( idAI::Type ) )
+				bWATrace = false;
+		}
+
+		bWAIsSprinting = ( ( GetCurrentWeapon() > 0 ) && AI_RUN && ( AI_FORWARD || AI_BACKWARD || AI_STRAFE_LEFT || AI_STRAFE_RIGHT ) );
+
+		if ( bWATrace || bWAIsSprinting || OnLadder() )
+			return true;
+	}
+
+	return false;
+}
+// <---sikk

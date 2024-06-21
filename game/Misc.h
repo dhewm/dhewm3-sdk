@@ -765,4 +765,25 @@ private:
 	idList<idVec3>		lastTargetPos;
 };
 
+// sikk---> Portal Sky Box
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+class idPortalSky : public idEntity {
+public:
+	CLASS_PROTOTYPE( idPortalSky );
+
+	idPortalSky();
+	~idPortalSky();
+
+	void				Spawn( void );
+	void				Event_PostSpawn();
+	void				Event_Activate( idEntity *activator );
+};
+// <---sikk
+
 #endif /* !__GAME_MISC_H__ */

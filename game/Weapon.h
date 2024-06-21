@@ -158,6 +158,24 @@ public:
 
 	virtual void			ClientPredictionThink( void );
 
+	float					wh_hide_distance;	// sikk - Weapon Handling System
+
+	idEntityPtr<idAnimatedEntity>*	GetWorldModel( void ) { return &worldModel; };	// sikk - Depth Render
+
+// sikk---> Crosshair Positioning
+	idVec3					GetMuzzleOrigin( void ) { return muzzleOrigin; };
+	idMat3					GetMuzzleAxis( void ) { return muzzleAxis; };
+	jointHandle_t			GetBarrelJointView( void ) { return barrelJointView; };
+	idDict					GetProjectileDict( void ) { return projectileDict; };
+// <---sikk
+	
+// sikk---> Soft Shadows PostProcess
+	renderLight_t*			GetMuzzleFlash( void ) { return &muzzleFlash; };
+	renderLight_t*			GetWorldMuzzleFlash( void ) { return &worldMuzzleFlash; };
+	int						GetMuzzleFlashHandle( void ) { return muzzleFlashHandle; };
+	int						GetWorldMuzzleFlashHandle( void ) { return worldMuzzleFlashHandle; };
+// <---sikk
+
 private:
 	// script control
 	idScriptBool			WEAPON_ATTACK;
@@ -288,7 +306,7 @@ private:
 
 	// nozzle effects
 	bool					nozzleFx;			// does this use nozzle effects ( parm5 at rest, parm6 firing )
-										// this also assumes a nozzle light atm
+												// this also assumes a nozzle light atm
 	int						nozzleFxFade;		// time it takes to fade between the effects
 	int						lastAttack;			// last time an attack occured
 	renderLight_t			nozzleGlow;			// nozzle light

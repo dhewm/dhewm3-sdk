@@ -71,9 +71,10 @@ public:
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 
+// sikk---> Item Management: Random Item Value/Manual Item Pickup
 	int						GetRandomValue( const char* invName );	// sikk - Item Management: Random Item Value
-	bool					removeable;	// sikk - Item Management: Random Item Removal
-	bool					noPickup;	// sikk - Item Management: Manual Item Pickup
+	bool					noPickup;								// sikk - Item Management: Manual Item Pickup
+// <---sikk
 
 private:
 	idVec3					orgOrigin;
@@ -166,6 +167,9 @@ public:
 
 	void					Spawn( void );
 	virtual void			Think( void );
+
+	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity );	// sikk - Moveable Items Collision Sound
+
 	virtual bool			Pickup( idPlayer *player );
 
 	static void				DropItems( idAnimatedEntity *ent, const char *type, idList<idEntity *> *list );
@@ -179,6 +183,8 @@ private:
 	idClipModel *			trigger;
 	const idDeclParticle *	smoke;
 	int						smokeTime;
+
+	int						nextSoundTime;	// sikk - Moveable Items Collision Sound
 
 	void					Gib( const idVec3 &dir, const char *damageDefName );
 

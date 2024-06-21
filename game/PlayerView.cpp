@@ -103,8 +103,6 @@ idPlayerView::idPlayerView() {
 	adrenalineMaterial		= declManager->FindMaterial( "postProcess/adrenaline" );
 	bSoftShadows			= false;
 	bDepthRendered			= false;
-	bDitherRendered			= false;
-	focusDistance			= 0.0f;
 	prevViewAngles.Zero();
 // <---sikk
 
@@ -430,11 +428,25 @@ Called when a weapon fires, generates head twitches, etc
 void idPlayerView::WeaponFireFeedback( const idDict *weaponDef ) {
 	int recoilTime = weaponDef->GetInt( "recoilTime" );
 
+
 	// don't shorten a damage kick in progress
 	if ( recoilTime && kickFinishTime < gameLocal.time ) {
 		idAngles angles;
 		weaponDef->GetAngles( "recoilAngles", "5 0 0", angles );
 		kickAngles = angles;
+
+// sikk---> Weapon Management: Handling/Awareness
+		if ( g_weaponHandlingType.GetInteger() > 1 ) {
+			float mod = ( ( player->GetCurrentWeapon() == 2 ) ? 1.0f : weaponDef->GetFloat( "spread" ) + 1.0f ) * player->fSpreadModifier;
+
+			idVec2 vec = idVec2( -gameLocal.random.RandomFloat(), gameLocal.random.CRandomFloat() );
+			vec.NormalizeFast();
+			vec *= gameLocal.random.RandomFloat() * mod;
+			kickAngles.pitch	+= vec.x;
+			kickAngles.yaw		+= vec.y;
+		}
+// <---sikk
+
 		int	finish = gameLocal.time + g_kickTime.GetFloat() * recoilTime;
 		kickFinishTime = finish;
 	}
@@ -483,10 +495,7 @@ idAngles idPlayerView::AngleOffset() const {
 		float offset = kickFinishTime - gameLocal.time;
 		ang = kickAngles * offset * offset * g_kickAmplitude.GetFloat();
 		for ( int i = 0; i < 3; i++ ) {
-			if ( ang[i] > 70.0f )
-				ang[i] = 70.0f;
-			else if ( ang[i] < -70.0f )
-				ang[i] = -70.0f;
+			ang[i] = idMath::ClampFloat( -70.0f, 70.0f, ang[i] );
 		}
 	}
 	return ang;
@@ -776,37 +785,35 @@ void idPlayerView::RenderDepth( bool bCrop ) {
 		int	nWidth = renderSystem->GetScreenWidth() / 2;
 		int	nHeight = renderSystem->GetScreenHeight() / 2;
 
-		renderSystem->CropRenderSize( nWidth, nHeight, true );
+		//float fWidthPoT = (float)renderSystem->GetScreenWidth() / (float)( MakePowerOfTwo( nWidth ) * 1 );
+		//float fHeightPoT = (float)renderSystem->GetScreenHeight() / (float)( MakePowerOfTwo( nHeight ) * 1 );
 
-//		if ( r_useSoftShadows.GetBool() ) {
-//			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, shiftScale.y, shiftScale.x, 0.0f, declManager->FindMaterial( "crop/depth", false ) );
-//			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0, 1.0, 0.0f, declManager->FindMaterial( "crop/depth", false ) );
-//			renderSystem->CaptureRenderToImage( "_depth" );
-//		} else {
+		renderSystem->CropRenderSize( nWidth, nHeight, true );
+		//if ( r_useSoftShadows.GetBool() ) {
+		//	renderSystem->SetColor4( fWidthPoT, fHeightPoT, 1.0f, 1.0f );
+		//	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0, 1.0, declManager->FindMaterial( "crop/depth", false ) );
+		//	renderSystem->CaptureRenderToImage( "_depth" );
+		//} else {
 			// set our depthView parms
 			renderView_t depthView = hackedView;
 			depthView.viewID = -8;
-//			depthView.globalMaterial = depthMaterial;
-			cvarSystem->SetCVarString( "r_materialOverride", "render/depth" );
+			depthView.globalMaterial = depthMaterial;
 			// render scene
 			gameRenderWorld->RenderScene( &depthView );
 			// capture image for our depth buffer
 			renderSystem->CaptureRenderToImage( "_depth" );
-			cvarSystem->SetCVarString( "r_materialOverride", "" );
-//		}
+		//}
 		renderSystem->UnCrop();
 		bDepthRendered = true;
 	} else if ( !bCrop ) {	// uncropped depth is used specifically for soft shadows
 		// set our depthView parms
 		renderView_t depthView = hackedView;
 		depthView.viewID = -8;
-//		depthView.globalMaterial = depthMaterial;
-		cvarSystem->SetCVarString( "r_materialOverride", "render/depth" );
+		depthView.globalMaterial = depthMaterial;
 		// render scene
 		gameRenderWorld->RenderScene( &depthView );
 		// capture image for our depth buffer
 		renderSystem->CaptureRenderToImage( "_ssDepth" );
-		cvarSystem->SetCVarString( "r_materialOverride", "" );
 	}
 
 	// Restore player models
@@ -826,7 +833,7 @@ void idPlayerView::RenderNormals( bool bFace ) {
 	if ( bFace ) {
 		renderSystem->CropRenderSize( nWidth, nHeight, true );
 		renderSystem->SetColor4( g_fov.GetFloat(), 1.0f, 1.0f, bFace );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, normalsMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, normalsMaterial );
 		renderSystem->CaptureRenderToImage( "_normals" );
 		renderSystem->UnCrop();
 	} else {
@@ -865,21 +872,21 @@ void idPlayerView::PostFX_SoftShadows() {
 
 	// create shadow mask texture
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 0.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, softShadowsMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, softShadowsMaterial );
 	renderSystem->CaptureRenderToImage( "_ssMask" );
 
 	// blur shadow mask texture	and modulate scene in the same pass
 	if ( r_softShadowsBlurFilter.GetInteger() && r_softShadowsBlurFilter.GetInteger() < 4 ) {
 		renderSystem->SetColor4( r_softShadowsBlurScale.GetFloat(), r_softShadowsBlurEpsilon.GetFloat(), g_fov.GetFloat(), r_softShadowsBlurFilter.GetFloat() );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, softShadowsMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, softShadowsMaterial );
 		if ( r_softShadowsBlurFilter.GetInteger() == 3 ) {
 			renderSystem->CaptureRenderToImage( "_ssMask" );
 			renderSystem->SetColor4( r_softShadowsBlurScale.GetFloat(), r_softShadowsBlurEpsilon.GetFloat(), g_fov.GetFloat(), ( r_softShadowsBlurFilter.GetFloat() + 1.0f ) );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, softShadowsMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, softShadowsMaterial );
 		}
 	} else {
 		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 5.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, softShadowsMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, softShadowsMaterial );
 	}
 }
 
@@ -985,8 +992,8 @@ idPlayerView::PostFX_EdgeAA
 */
 void idPlayerView::PostFX_EdgeAA() {
 	renderSystem->CaptureRenderToImage( "_currentRender" );
-	renderSystem->SetColor4( r_edgeAASampleScale.GetFloat(), r_edgeAAFilterScale.GetFloat(), 1.0f, 1.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, edgeAAMaterial );
+	renderSystem->SetColor4( r_edgeAASampleScale.GetFloat(), r_edgeAAFilterScale.GetFloat(), 1.0f, r_useEdgeAA.GetFloat() );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, edgeAAMaterial );
 }
 
 /*
@@ -998,7 +1005,7 @@ void idPlayerView::PostFX_CelShading() {
 	renderSystem->CaptureRenderToImage( "_currentRender" );
 	RenderDepth( true );
 	renderSystem->SetColor4( r_celShadingScale.GetFloat(), r_celShadingThreshold.GetFloat(), 1.0f, r_celShadingMethod.GetInteger() );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, celShadingMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, celShadingMaterial );
 }
 
 /*
@@ -1020,7 +1027,7 @@ void idPlayerView::PostFX_HDR() {
 	renderSystem->CropRenderSize( 256, 256, true, true );
 	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, shiftScale.y, shiftScale.x, 0.0f, currentRenderMaterial );
 	renderSystem->CaptureRenderToImage( "_hdrLum" );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrLumBaseMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrLumBaseMaterial );
 	renderSystem->CaptureRenderToImage( "_hdrLum" );
 	renderSystem->CaptureRenderToImage( "_hdrLumAvg" );
 	renderSystem->UnCrop();
@@ -1029,7 +1036,7 @@ void idPlayerView::PostFX_HDR() {
 	// Output will be a 1x1 pixel of the average luminance
 	for ( int i = 256; i > 1; i *= 0.5 ) {
 		renderSystem->CropRenderSize( i, i, true, true );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrLumAverageMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrLumAverageMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrLumAvg" );
 		renderSystem->UnCrop();
 	}
@@ -1037,7 +1044,7 @@ void idPlayerView::PostFX_HDR() {
 	// create adapted luminance map based on current average luminance and previous adapted luminance maps
 	renderSystem->CropRenderSize( 2, 2, true, true );
 	renderSystem->SetColor4( r_hdrAdaptationRate.GetFloat(), fElapsedTime, r_hdrLumThresholdMin.GetFloat(), r_hdrLumThresholdMax.GetFloat() );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrLumAdaptedMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrLumAdaptedMaterial );
 	renderSystem->CaptureRenderToImage( "_hdrLumAdpt" );
 	renderSystem->UnCrop();
 
@@ -1048,15 +1055,15 @@ void idPlayerView::PostFX_HDR() {
 		renderSystem->CaptureRenderToImage( "_hdrBloom" );
 		renderSystem->SetColor4( r_hdrBloomMiddleGray.GetFloat(), r_hdrBloomWhitePoint.GetFloat(), r_hdrBloomThreshold.GetFloat(), r_hdrBloomOffset.GetFloat() );
 		if ( r_hdrBloomToneMapper.GetInteger() == 0 )
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBrightPass1Material );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBrightPass1Material );
 		else if	 ( r_hdrBloomToneMapper.GetInteger() == 1 )
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBrightPass2Material );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBrightPass2Material );
 		else if	 ( r_hdrBloomToneMapper.GetInteger() == 2 )
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBrightPass3Material );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBrightPass3Material );
 		else if	 ( r_hdrBloomToneMapper.GetInteger() == 3 )
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBrightPass4Material );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBrightPass4Material );
 		else if	 ( r_hdrBloomToneMapper.GetInteger() == 4 )
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBrightPass5Material );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBrightPass5Material );
 		renderSystem->CaptureRenderToImage( "_hdrBloom" );
 		renderSystem->CaptureRenderToImage( "_hdrFlare" );
 		renderSystem->UnCrop();
@@ -1065,10 +1072,10 @@ void idPlayerView::PostFX_HDR() {
 		for ( int i = 0; i < 2; i++ ) {
 			renderSystem->CropRenderSize( nBloomWidth, nBloomHeight, true, true );
 			renderSystem->SetColor4( r_hdrBloomSize.GetFloat(), 0.0f, 1.0f, 1.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBloomMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBloomMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrBloom" );
 			renderSystem->SetColor4( 0.0f, r_hdrBloomSize.GetFloat(), r_hdrBloomScale.GetFloat(), 1.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrBloomMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrBloomMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrBloom" );
 			renderSystem->UnCrop();
 		}
@@ -1079,16 +1086,16 @@ void idPlayerView::PostFX_HDR() {
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 1.0f, 0.0f, 0.0f, 1.0f, declManager->FindMaterial( "_hdrFlare" ) );
 			renderSystem->CaptureRenderToImage( "_hdrFlare" );
 			renderSystem->SetColor4( r_hdrFlareGamma.GetFloat(), 1.0f, 1.0f, 0.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFlareMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFlareMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrFlare" );
 			renderSystem->SetColor4( r_hdrFlareSize.GetFloat(), 1.0f, 1.0f, 1.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFlareMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFlareMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrFlare" );
 			renderSystem->SetColor4( DEG2RAD( r_hdrFlareSize.GetFloat() ), 1.0f, 1.0f, 2.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFlareMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFlareMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrFlare" );
 			renderSystem->SetColor4( DEG2RAD( r_hdrFlareSize.GetFloat() ), r_hdrFlareScale.GetFloat(), 1.0f, 2.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFlareMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFlareMaterial );
 			renderSystem->CaptureRenderToImage( "_hdrFlare" );
 			renderSystem->UnCrop();
 		}
@@ -1098,7 +1105,7 @@ void idPlayerView::PostFX_HDR() {
 	if ( r_hdrGlareStyle.GetInteger() == 0 ) {
 		// bloom off (clear textures)
 		renderSystem->CropRenderSize( 1, 1, true, true );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, blackMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, blackMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrBloom" );
 		renderSystem->CaptureRenderToImage( "_hdrFlare" );
 		renderSystem->CaptureRenderToImage( "_hdrGlare" );
@@ -1106,11 +1113,13 @@ void idPlayerView::PostFX_HDR() {
 	} else if ( r_hdrGlareStyle.GetInteger() == 1 ) {
 		// natural bloom (clear just _hdrGlare)
 		renderSystem->CropRenderSize( 1, 1, true, true );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, blackMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, blackMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrGlare" );
 		renderSystem->UnCrop();
 	} else if ( r_hdrGlareStyle.GetInteger() > 1 ) {
-		int nGlareBlend;
+		int nGlareBlend = 0;
+		idVec3 v3GlareParm;
+		v3GlareParm.Zero();
 
 		// crop _hdrBloom1 for glare textures
 		renderSystem->CropRenderSize( nGlareWidth, nGlareHeight, true, true );
@@ -1119,138 +1128,79 @@ void idPlayerView::PostFX_HDR() {
 		renderSystem->CaptureRenderToImage( "_hdrGlareY" );
 		renderSystem->CaptureRenderToImage( "_hdrGlareZ" );
 
-		switch ( r_hdrGlareStyle.GetInteger() ) {
-		case 2:	// star glare
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 0.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 1.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		if ( r_hdrGlareStyle.GetInteger() == 2 ) {			// star glare
+			v3GlareParm = idVec3( 0.0f, 1.0, -1.0f );
 			nGlareBlend = 2;
-			break;
-		case 3:	// cross glare
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 2.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 3.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 3 ) {	// cross glare
+			v3GlareParm = idVec3( 2.0f, 3.0, -1.0f );
 			nGlareBlend = 2;
-			break;
-		case 4:	// snow cross glare
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 4.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 5.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 6.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareZ" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 4 ) {	// snow cross glare
+			v3GlareParm = idVec3( 4.0f, 5.0, 6.0f );
 			nGlareBlend = 3;
-			break;
-		case 5:	// horizontal glare
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 7.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 5 ) {	// horizontal glare
+			v3GlareParm = idVec3( 7.0f, -1.0, -1.0f );
 			nGlareBlend = 0;
-			break;
-		case 6:	// vertical glare
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 8.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 6 ) {	// vertical glare
+			v3GlareParm = idVec3( -1.0f, 8.0, -1.0f );
 			nGlareBlend = 1;
-			break;
-		case 7:	// star glare with chromatic abberation
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 9.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 10.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 7 ) {	// star glare with chromatic abberation
+			v3GlareParm = idVec3( 9.0f, 10.0, -1.0f );
 			nGlareBlend = 2;
-			break;
-		case 8:	// cross glare with chromatic abberation
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 11.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 12.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 8 ) {	// cross glare with chromatic abberation
+			v3GlareParm = idVec3( 11.0f, 12.0, -1.0f );
 			nGlareBlend = 2;
-			break;
-		case 9:	// snow cross glare with chromatic abberation
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 13.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 14.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 15.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareZ" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 9 ) {	// snow cross glare with chromatic abberation
+			v3GlareParm = idVec3( 13.0f, 14.0, 15.0f );
 			nGlareBlend = 3;
-			break;
-		case 10:	// horizontal glare with chromatic abberation
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 16.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 10 ) {	// horizontal glare with chromatic abberation
+			v3GlareParm = idVec3( 16.0f, -1.0, -1.0f );
 			nGlareBlend = 0;
-			break;
-		case 11:	// vertical glare with chromatic abberation
-			for ( int i = 1; i <= 3; i++ ) {
-				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, 17.0f );
-				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
-				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
-			}
+		} else if ( r_hdrGlareStyle.GetInteger() == 11 ) {	// vertical glare with chromatic abberation
+			v3GlareParm = idVec3( -1.0f, 17.0, -1.0f );
 			nGlareBlend = 1;
-			break;
 		}
+
+		for ( int i = 1; i <= 3; i++ ) {
+			if ( v3GlareParm.x >= 0.0f ) {
+				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, v3GlareParm.x );
+				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrGlareMaterial );
+				renderSystem->CaptureRenderToImage( "_hdrGlareX" );
+			}
+			if ( v3GlareParm.y >= 0.0f ) {
+				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, v3GlareParm.y );
+				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrGlareMaterial );
+				renderSystem->CaptureRenderToImage( "_hdrGlareY" );
+			}
+			if ( v3GlareParm.z >= 0.0f ) {
+				renderSystem->SetColor4( r_hdrGlareSize.GetFloat(), i, 1.0f, v3GlareParm.z );
+				renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrGlareMaterial );
+				renderSystem->CaptureRenderToImage( "_hdrGlareZ" );
+			}
+		}
+
 		// blend glare textures and capture to a single texture
 		renderSystem->SetColor4( r_hdrGlareScale.GetFloat(), 1.0f, nGlareBlend, 18.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrGlareMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrGlareMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrGlare" );
 		renderSystem->UnCrop();
 	}
 
-	if ( r_hdrDither.GetBool() && ( !bDitherRendered || ( fDitherSize != r_hdrDitherSize.GetFloat() ) ) ) {
+	if ( r_hdrDither.GetBool() ) {
 		float size = 16.0f * r_hdrDitherSize.GetFloat();
 		renderSystem->SetColor4( renderSystem->GetScreenWidth() / size, renderSystem->GetScreenHeight() / size, 1.0f, -1.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFinalMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFinalMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrDither" );
-		bDitherRendered = true;
-	} else if ( !r_hdrDither.GetBool() && bDitherRendered ) {
+	} else {
 		renderSystem->CropRenderSize( 1, 1, true, true );
 		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, -2.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFinalMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFinalMaterial );
 		renderSystem->CaptureRenderToImage( "_hdrDither" );
 		renderSystem->UnCrop();
-		bDitherRendered = false;
 	}
-	fDitherSize = r_hdrDitherSize.GetFloat();
 
 	// perform final tone mapping
 	renderSystem->SetColor4( r_hdrMiddleGray.GetFloat(), r_hdrWhitePoint.GetFloat(), r_hdrBlueShiftFactor.GetFloat(), r_hdrToneMapper.GetInteger() + 5 * r_useVignetting.GetBool() );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, hdrFinalMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, hdrFinalMaterial );
 }
 
 /*
@@ -1271,22 +1221,22 @@ void idPlayerView::PostFX_Bloom() {
 	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, shiftScale.y, shiftScale.x, 0.0f, currentRenderMaterial );
 	renderSystem->CaptureRenderToImage( "_bloom" );
 	renderSystem->SetColor4( r_bloomGamma.GetFloat(), 1.0f, 1.0f, 0.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, bloomMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, bloomMaterial );
 	renderSystem->CaptureRenderToImage( "_bloom" );
 
 	for ( int i = 0; i < r_bloomBlurIterations.GetInteger(); i++ ) {
 		renderSystem->SetColor4( r_bloomBlurScaleX.GetFloat(), 1.0f, 1.0f, 1.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, bloomMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, bloomMaterial );
 		renderSystem->CaptureRenderToImage( "_bloom" );
 		renderSystem->SetColor4( r_bloomBlurScaleY.GetFloat(), 1.0f, 1.0f, 2.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, bloomMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, bloomMaterial );
 		renderSystem->CaptureRenderToImage( "_bloom" );
 	}
 	renderSystem->UnCrop();
 
 	// blend original and bloom textures
 	renderSystem->SetColor4( r_bloomScale.GetFloat(), 1.0f, 1.0f, 3.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, bloomMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, bloomMaterial );
 }
 
 /*
@@ -1308,22 +1258,22 @@ void idPlayerView::PostFX_SSIL() {
 	renderSystem->CaptureRenderToImage( "_ssil" );
 
 	renderSystem->SetColor4( r_ssilRadius.GetFloat(), r_ssilAmount.GetFloat(), 1.0f, 0.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssilMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssilMaterial );
 	renderSystem->CaptureRenderToImage( "_ssil" );
 	// blur ssil buffer
 	for ( int i = 0; i < r_ssilBlurQuality.GetInteger(); i++ ) {
 		renderSystem->SetColor4( r_ssilBlurScale.GetFloat(), 0.0f, r_ssilBlurEpsilon.GetFloat(), ( r_ssilBlurMethod.GetFloat() + 1.0f ) );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssilMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssilMaterial );
 		renderSystem->CaptureRenderToImage( "_ssil" );
 		renderSystem->SetColor4( 0.0f, r_ssilBlurScale.GetFloat(), r_ssilBlurEpsilon.GetFloat(), ( r_ssilBlurMethod.GetFloat() + 1.0f ) );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssilMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssilMaterial );
 		renderSystem->CaptureRenderToImage( "_ssil" );
 	}
 	renderSystem->UnCrop();
 
 	// blend scene with ssil buffer
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 3.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssilMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssilMaterial );
 }
 
 /*
@@ -1343,16 +1293,16 @@ void idPlayerView::PostFX_SSAO() {
 	
 	// sample occlusion using our depth buffer
 	renderSystem->SetColor4( r_ssaoRadius.GetFloat(), r_ssaoBias.GetFloat(), r_ssaoAmount.GetFloat(), ( r_ssaoMethod.GetFloat() < 0.0f ? 0.0f : r_ssaoMethod.GetFloat() ) );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssaoMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssaoMaterial );
 	renderSystem->CaptureRenderToImage( "_ssao" );
 	// blur ssao buffer
 	for ( int i = 0; i < r_ssaoBlurQuality.GetInteger(); i++ ) {
 		renderSystem->SetColor4( r_ssaoBlurScale.GetFloat(), 0.0f, r_ssaoBlurEpsilon.GetFloat(), -( r_ssaoBlurMethod.GetFloat() + 1.0f ) );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssaoMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssaoMaterial );
 		renderSystem->CaptureRenderToImage( "_ssao" );
 		if ( r_ssaoBlurMethod.GetInteger() >= 2 ) {
 			renderSystem->SetColor4( 0.0f, r_ssaoBlurScale.GetFloat(), r_ssaoBlurEpsilon.GetFloat(), -( r_ssaoBlurMethod.GetFloat() + 1.0f ) );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssaoMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssaoMaterial );
 			renderSystem->CaptureRenderToImage( "_ssao" );
 		}
 	}
@@ -1360,7 +1310,7 @@ void idPlayerView::PostFX_SSAO() {
 
 	// modulate scene with ssao buffer
 	renderSystem->SetColor4( r_ssaoBlendPower.GetFloat(), r_ssaoBlendScale.GetFloat(), 1.0f, -5.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, ssaoMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, ssaoMaterial );
 }
 
 /*
@@ -1402,27 +1352,27 @@ void idPlayerView::PostFX_SunShafts() {
 	renderSystem->CaptureRenderToImage( "_sunShafts" );
 
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, sunShaftsMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, sunShaftsMaterial );
 	renderSystem->CaptureRenderToImage( "_sunShafts" );
 
 	renderSystem->SetColor4( VdotS[0], 1.0f, 1.0f, 2.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, sunShaftsMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, sunShaftsMaterial );
 	renderSystem->CaptureRenderToImage( "_sunShaftsMask" );
 
 	// blur textures
 	for ( int i = 0; i < r_sunShaftsQuality.GetInteger(); i++ ) {
 		renderSystem->SetColor4( r_sunShaftsSize.GetFloat(), ndc.x, ndc.y, 3.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, sunShaftsMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, sunShaftsMaterial );
 		renderSystem->CaptureRenderToImage( "_sunShafts" );
 		renderSystem->SetColor4( r_sunShaftsSize.GetFloat(), ndc.x, ndc.y, 4.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, sunShaftsMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, sunShaftsMaterial );
 		renderSystem->CaptureRenderToImage( "_sunShaftsMask" );
 	}
 	renderSystem->UnCrop();
 
 	// add mask to scene
 	renderSystem->SetColor4( r_sunShaftsStrength.GetFloat(), r_sunShaftsMaskStrength.GetFloat(), 1.0f, 5.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, sunShaftsMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, sunShaftsMaterial );
 }
 
 /*
@@ -1533,14 +1483,6 @@ idPlayerView::PostFX_DoF
 ===================
 */
 void idPlayerView::PostFX_DoF() {
-	if ( r_useDepthOfField.GetInteger() == 1 && !gameLocal.inCinematic ) {
-		trace_t trace;
-		idVec3 start = hackedView.vieworg;
-		idVec3 end = start + hackedView.viewaxis.ToAngles().ToForward() * 8192.0f;
-		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_RENDERMODEL, player );
-		focusDistance = focusDistance * 0.9 + trace.fraction * 0.1;
-	}
-
 	if ( DoFConditionCheck() ) {
 		int	nWidth	= renderSystem->GetScreenWidth() / 2.0f;
 		int	nHeight	= renderSystem->GetScreenHeight() / 2.0f;
@@ -1556,20 +1498,20 @@ void idPlayerView::PostFX_DoF() {
 		else if ( player->weapon.GetEntity()->IsReloading() )
 			renderSystem->SetColor4( -1.0f, 0.5f, 64.0f, 2.0f );	// use specific settings for reloading dof
 		else if ( player->bIsZoomed )
-			renderSystem->SetColor4( focusDistance, 1.0f, 1.0f, 1.0f );	// zoom uses a mask texture
+			renderSystem->SetColor4( player->focusDistance, 1.0f, 1.0f, 1.0f );	// zoom uses a mask texture
 		else
-			renderSystem->SetColor4( focusDistance, 1.0f, 1.0f, 0.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, dofMaterial );
+			renderSystem->SetColor4( player->focusDistance, 1.0f, 1.0f, 0.0f );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, dofMaterial );
 		renderSystem->CaptureRenderToImage( "_dof" );
 		renderSystem->UnCrop();
 
 		// blur scene using our depth of field mask
 		renderSystem->SetColor4( r_dofBlurScale.GetFloat(), r_dofBlurQuality.GetInteger(), 1.0f, 3.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, dofMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, dofMaterial );
 		if ( r_dofBlurQuality.GetInteger() == 2 ) {
 			renderSystem->CaptureRenderToImage( "_currentRender" );
 			renderSystem->SetColor4( r_dofBlurScale.GetFloat(), r_dofBlurQuality.GetInteger() + 2.0f, 1.0f, 3.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, dofMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, dofMaterial );
 		}
 	}
 }
@@ -1642,16 +1584,16 @@ void idPlayerView::PostFX_MotionBlur() {
 		renderSystem->CaptureRenderToImage( "_mbZ" );
 		for ( int i = 0; i < nQuality; i++ ) {
 			renderSystem->SetColor4( parm[0], parm[1], r_motionBlurMaskDistance.GetFloat(), 1.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, motionBlurMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, motionBlurMaterial );
 			renderSystem->CaptureRenderToImage( "_mbXY" );
 			renderSystem->SetColor4( parm[0], parm[2], r_motionBlurMaskDistance.GetFloat(), 2.0f );
-			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, motionBlurMaterial );
+			renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, motionBlurMaterial );
 			renderSystem->CaptureRenderToImage( "_mbZ" );
 		}
 		renderSystem->UnCrop();
 		
 		renderSystem->SetColor4( parm[3], parm[4], r_motionBlurMaskDistance.GetFloat(), 3.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, motionBlurMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, motionBlurMaterial );
 	}
 
 	float fLerp = 0.5f;//idMath::ClampFloat( 0.0f, 0.99f, r_motionBlurLerp.GetFloat() );
@@ -1694,15 +1636,15 @@ void idPlayerView::PostFX_ColorGrading() {
 	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, shiftScale.y, shiftScale.x, 0.0f, currentRenderMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 0.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, colorGradingMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, colorGradingMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, colorGradingMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, colorGradingMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->UnCrop();
 
 	renderSystem->SetColor4( r_colorGradingParm.GetInteger(), r_colorGradingSharpness.GetFloat(), 1.0f, ( r_colorGradingType.GetFloat() + 2.0f ) );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, colorGradingMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, colorGradingMaterial );
 }
 
 /*
@@ -1715,32 +1657,28 @@ void idPlayerView::PostFX_ExplosionFX() {
 		idMat3 axis;
 		idVec3 origin;
 		idVec3 viewVector[3];
+
 		player->GetViewPos( origin, axis );
-		player->viewAngles.ToVectors( &viewVector[0], &viewVector[1], &viewVector[2] );
-
-		idVec3 expOrigin	= gameLocal.explosionOrigin;
-		idVec3 dist			= origin - expOrigin;
-		float length		= dist.Length();
-		idVec3 expVector	= dist / length;
-
-		float VdotE = idMath::ClampFloat( 0.0f, 1.0f, viewVector[ 0 ] * -expVector );
+		player->viewAngles.ToVectors( &viewVector[ 0 ], &viewVector[ 1 ], &viewVector[ 2 ] );
+		idVec3 expVector	= origin - gameLocal.explosionOrigin;
+		float length		= expVector.Normalize();
 
 		idVec3 ndc;
 		renderSystem->GlobalToNormalizedDeviceCoordinates( gameLocal.explosionOrigin, ndc );
-
-		renderSystem->CaptureRenderToImage( "_currentRender" );
 		ndc.x = ndc.x * 0.5 + 0.5;
 		ndc.y = ndc.y * 0.5 + 0.5;
 
-		float time = (float)gameLocal.explosionTime - (float)gameLocal.time;
-		float radius = idMath::ClampFloat( 0.0f, 1.0f, gameLocal.explosionRadius / 200.0f );
-		float damage = idMath::ClampFloat( 0.0f, 1.0f, gameLocal.explosionDamage / 250.0f );
+		float time		= (float)gameLocal.explosionTime - (float)gameLocal.time;
+		float radius	= idMath::ClampFloat( 0.0f, 1.0f, gameLocal.explosionRadius / 200.0f );
+		float damage	= idMath::ClampFloat( 0.0f, 1.0f, gameLocal.explosionDamage / 250.0f );
 		float distance	= 1.0f - idMath::ClampFloat( 0.0f, 1.0f, length / 1024.0f );
-		float atten	= idMath::ClampFloat( 0.0f, 1.0f, time / ( g_explosionFXTime.GetFloat() * 1000 ) );
-		float scale = radius * damage * distance * atten * VdotE * g_explosionFXScale.GetFloat();
+		float atten		= idMath::ClampFloat( 0.0f, 1.0f, time / ( g_explosionFXTime.GetFloat() * 1000 ) );
+		float VdotE		= idMath::ClampFloat( 0.0f, 1.0f, viewVector[ 0 ] * -expVector );
+		float scale		= radius * damage * distance * atten * VdotE * g_explosionFXScale.GetFloat();
 
+		renderSystem->CaptureRenderToImage( "_currentRender" );
 		renderSystem->SetColor4( ndc.x, ndc.y, scale, 1.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, explosionFXMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, explosionFXMaterial );
 	}
 }
 
@@ -1753,7 +1691,7 @@ void idPlayerView::PostFX_IRGoggles() {
 	if ( player->bIRGogglesOn && !player->PowerUpActive( BERSERK ) ) {
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 		renderSystem->SetColor4( renderSystem->GetScreenWidth() / 256.0f, renderSystem->GetScreenHeight() / 256.0f, 1.0f, g_goggleType.GetFloat() );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, irGogglesMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, irGogglesMaterial );
 	}
 }
 
@@ -1767,7 +1705,7 @@ void idPlayerView::PostFX_ScreenFrost() {
 	if ( alpha ) {
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 		renderSystem->SetColor4( alpha, 1.0f, 1.0f, 1.0f );
-		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, screenFrostMaterial );
+		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, screenFrostMaterial );
 	}
 }
 
@@ -1808,10 +1746,10 @@ void idPlayerView::PostFX_AdrenalineVision() {
 	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, shiftScale.y, shiftScale.x, 0.0f, currentRenderMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 0.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, adrenalineMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, adrenalineMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, adrenalineMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, adrenalineMaterial );
 	renderSystem->CaptureRenderToImage( "_blurRender" );
 	renderSystem->UnCrop();
 
@@ -1820,7 +1758,7 @@ void idPlayerView::PostFX_AdrenalineVision() {
 	alpha = ( alpha < 0.0f ) ? 0.0f : alpha;
 
 	renderSystem->SetColor4( alpha, ( alpha + 1.0f ), 1.0f, 2.0f );
-	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 1.0f, 1.0f, 0.0f, adrenalineMaterial );
+	renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, adrenalineMaterial );
 }
 
 /*
@@ -1903,10 +1841,10 @@ void idPlayerView::PostFX_InfluenceVision() {
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 		renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, pct );
 		renderSystem->DrawStretchPic( 0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f, 1.0f, player->GetInfluenceMaterial() );
-	} else if ( player->GetInfluenceEntity() ) {
-		int offset = 25 + sinf( gameLocal.time );
+	}// else if ( player->GetInfluenceEntity() ) {
+//		int offset = 25 + sinf( gameLocal.time );	// sikk - variable initialized but not used
 //		PostFX_DoubleVision( view, pct * offset );
-	}
+//	}
 }
 
 /*

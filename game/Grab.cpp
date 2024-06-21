@@ -137,7 +137,7 @@ idGrabEntity::Update
 */
 void idGrabEntity::Update( idPlayer *player ) {
 	trace_t trace;
-	idEntity *newEnt;
+//	idEntity *newEnt;
 
 	owner = player;
 

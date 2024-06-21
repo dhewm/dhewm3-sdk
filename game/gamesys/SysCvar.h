@@ -254,16 +254,37 @@ extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
 
+
 // sikk - New Cvars -
+//-------------------------------------------------
 // sikk---> Crosshair Cvars
 extern idCVar	g_crosshair;
 extern idCVar	g_crosshairType;
 extern idCVar	g_crosshairLerp;
 // <---sikk
 
-// sikk---> Dynamic Hud system
+// sikk---> Hud management
+extern idCVar	g_hudType;
 extern idCVar	g_useDynamicHud;
 extern idCVar	g_dynamicHudTime;
+// <---sikk
+
+// sikk---> IR Goggles/Headlight Mod
+extern idCVar	g_goggleType;
+extern idCVar	g_batteryLife;
+extern idCVar	g_batteryRechargeRate;
+// <---sikk
+
+// sikk---> Global Ambient Light
+extern idCVar	g_useAmbientLight;
+extern idCVar	g_ambientLightRadius;
+extern idCVar	g_ambientLightColor;
+// <---sikk
+
+// sikk---> Explosion FX
+extern idCVar	g_useExplosionFX;
+extern idCVar	g_explosionFXTime;
+extern idCVar	g_explosionFXScale;
 // <---sikk
 
 // sikk---> Blood Spray Screen Effect
@@ -273,37 +294,15 @@ extern idCVar	g_bloodSprayDistance;
 extern idCVar	g_bloodSprayFrequency;
 // <---sikk
 
-// sikk---> Explosion FX
-extern idCVar	g_useExplosionFX;
-extern idCVar	g_explosionFXTime;
-extern idCVar	g_explosionFXScale;
-// <---sikk
+extern idCVar	g_screenFrostTime;		// sikk - Screen Frost
 
-extern idCVar	g_screenFrostTime;			// sikk - Screen Frost
+extern idCVar	g_tracerFrequency;		// sikk - Tracer Frequency
 
-extern idCVar	g_enablePortalSky;			// sikk - Portal Sky Box
+extern idCVar	g_playerHeadType;		// sikk - Player Head Type
 
+extern idCVar	g_showFirstPersonBody;	// sikk - First Person Body
 
-extern idCVar	g_burnAwayDelay;			// sikk - Monster Burn Away Delay
-
-// sikk---> Enemy Health Management
-extern idCVar	g_enemyHealthType;
-extern idCVar	g_enemyHealthScale;
-// <---sikk
-
-extern idCVar	g_interRankAggression;		// sikk - Inter Rank Aggression
-
-extern idCVar	g_cyberdemonDamageType;		// sikk - Cyberdemon Damage Type
-
-extern idCVar	g_zombieResurrectionLimit;	// sikk - Zombie Resurrection
-
-// sikk---> Random Encounters System
-extern idCVar	g_useRandomEncounters;
-extern idCVar	g_randomEncountersMaxSpawns;
-extern idCVar	g_randomEncountersMinTime;
-extern idCVar	g_randomEncountersMaxTime;
-extern idCVar	g_randomEncountersDormantTime;
-// <---sikk
+extern idCVar	g_enablePortalSky;		// sikk - Portal Sky Box
 
 
 // sikk---> Health Management System
@@ -321,39 +320,63 @@ extern idCVar	g_healthRegenFeedback;
 
 // sikk---> Item Management
 extern idCVar	g_itemPickupType;
-extern idCVar	g_itemRemovalFactor;
-extern idCVar	g_itemValueFactor;
+extern idCVar	g_itemMaxArmorType;
 extern idCVar	g_itemHelmetFactor;
+extern idCVar	g_itemValueFactor;
+extern idCVar	g_itemRemovalFactor;
 extern idCVar	g_itemSearchFactor;
 // <---sikk
 
 // sikk---> Ammo Management
-extern idCVar	g_ammoDamageType;
 extern idCVar	g_ammoCapacityType;
+extern idCVar	g_ammoClipSizeType;
 extern idCVar	g_ammoUsageType;
 // <---sikk
 
-extern idCVar	g_weaponHandlingType;		// sikk - Weapon Handling
-
-extern idCVar	g_tracerFrequency;			// sikk - Tracer Frequency
+// sikk---> Weapon Management
+extern idCVar	g_weaponAwareness;
+extern idCVar	g_weaponHandlingType;
+extern idCVar	g_weaponProjectileOrigin;
+// <---sikk
 
 extern idCVar	g_grabMode;					// sikk - Object Manipulation
 
-// sikk---> IR Goggles/Headlight Mod
-extern idCVar	g_goggleType;
-extern idCVar	g_batteryLife;
-extern idCVar	g_batteryRechargeRate;
+extern idCVar	g_disableFallDamage;		// sikk - Disable Fall Damage
+
+extern idCVar	g_playerSpeedType;			// sikk - Player Speed Type
+
+extern idCVar	g_damageType;				// sikk - Damage Type
+extern idCVar	g_damageZoneType;			// sikk - Locational Damage Type
+
+// sikk---> Enemy Health Management
+extern idCVar	g_enemyHealthType;
+extern idCVar	g_enemyHealthScale;
+extern idCVar	g_enemyHealthRandom;
 // <---sikk
 
-// sikk---> Global Ambient Light
-extern idCVar	g_useAmbientLight;
-extern idCVar	g_ambientLightRadius;
-extern idCVar	g_ambientLightColor;
+extern idCVar	g_enemySpectreFactor;		// sikk - Spectre Factor
+extern idCVar	g_enemyPainElementalFactor;	// sikk - Pain Elemental Factor
+extern idCVar	g_enemyBaronFactor;			// sikk - Baron of Hell Factor
+
+extern idCVar	g_burnAwayDelay;			// sikk - Monster Burn Away Delay
+
+extern idCVar	g_cyberdemonDamageType;		// sikk - Cyberdemon Damage Type
+
+extern idCVar	g_interRankAggression;		// sikk - Inter Rank Aggression
+
+extern idCVar	g_zombieResurrectionLimit;	// sikk - Zombie Resurrection
+
+// sikk---> Random Encounters System
+extern idCVar	g_useRandomEncounters;
+extern idCVar	g_randomEncountersMaxSpawns;
+extern idCVar	g_randomEncountersMinTime;
+extern idCVar	g_randomEncountersMaxTime;
+extern idCVar	g_randomEncountersDormantTime;
 // <---sikk
 
-extern idCVar	g_showFirstPersonBody;		// sikk - First Person Body
 
-extern idCVar	pm_thirdPersonOffest;		// sikk - Thirdpesron Camera
+extern idCVar	pm_thirdPersonOffset;		// sikk - Thirdpesron Camera
+
 
 // sikk---> PostProcess Effects
 extern idCVar	r_useSoftShadows;

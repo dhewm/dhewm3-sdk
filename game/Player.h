@@ -530,7 +530,10 @@ public:
 
 	int						nShowHudTimer;		// sikk - Dynamic hud system - Used to say when to show the hud as well as fade it in/out (just for health/armor/ammo/weapon changes)
 
-	idItem*					focusItem;			// sikk - Manual Item Pickup
+// sikk---> Manual Item Pickup
+	idItem*					focusItem;
+	int						itemPickupTime;
+// <---sikk
 
 // sikk---> Searchable Corpses
 	void					SearchCorpse( idAFEntity_Gibbable* corpse );
@@ -563,10 +566,13 @@ public:
 	idVec3					v3CrosshairPos;
 // <---sikk
 
-// sikk---> Weapon Handling System
-	bool					GetWeaponHandling( void );
+// sikk---> Weapon Management: Awareness
+	bool					GetWeaponAwareness( void );
 	bool					bWATrace;
 	bool					bWAIsSprinting;
+	bool					bWAUseHideDist;
+	float					fSpreadModifier;
+	idEntity*				entChainsawed;
 // <---sikk
 
 // sikk---> Depth Render
@@ -577,6 +583,7 @@ public:
 // sikk---> Depth of Field PostProcess
 	int						GetTalkCursor( void ) { return talkCursor; };	// used to check if character has focus
 	bool					bIsZoomed;
+	float					focusDistance;
 // <---sikk
 
 // sikk---> Global Ambient Light
@@ -751,7 +758,7 @@ private:
 	void					ExtractEmailInfo( const idStr &email, const char *scan, idStr &out );
 	void					UpdateObjectiveInfo( void );
 
-	void					UseVehicle( bool drive );
+	void					UseVehicle( bool drive );	// sikk - function modified to support use function
 
 	void					Event_GetButtons( void );
 	void					Event_GetMove( void );

@@ -931,11 +931,11 @@ void idAI::Spawn( void ) {
 		spawnArgs.SetFloat( "burnaway", g_burnAwayDelay.GetFloat() );
 // <---sikk
 
-// sikk---> Enemy Health Management (also modifies friendlies but it doesn't make any difference)
+// sikk---> Enemy Health Management (also modifies friendlies but that doesn't matter)
 	health *= g_enemyHealthScale.GetFloat();
 
-	if ( g_enemyHealthType.GetBool() )
-		health = ( health * 0.5f ) + ( health * gameLocal.random.RandomFloat() );
+	if ( g_enemyHealthRandom.GetBool() )
+		health += health * 0.5f * gameLocal.random.CRandomFloat();
 
 	health = ( health <= 0 ) ? 1 : health;
 // <---sikk
@@ -1043,7 +1043,6 @@ void idAI::DormantBegin( void ) {
 		// remove ourselves from the enemy's enemylist
 		enemyNode.Remove();
 	}
-
 
 // sikk---> Random Encounters System
 	if ( isRandom )
@@ -3711,7 +3710,7 @@ void idAI::SetEnemyPosition( void ) {
 	idActor		*enemyEnt = enemy.GetEntity();
 	int			enemyAreaNum;
 	int			areaNum;
-	int			lastVisibleReachableEnemyAreaNum;
+	int			lastVisibleReachableEnemyAreaNum = 0;	// sikk - warning C4701: potentially uninitialized local variable used
 	aasPath_t	path;
 	idVec3		pos;
 	bool		onGround;
@@ -4157,8 +4156,35 @@ idProjectile *idAI::LaunchProjectile( const char *jointname, idEntity *target, b
 
 	attack_accuracy = spawnArgs.GetFloat( "attack_accuracy", "7" );
 	attack_cone = spawnArgs.GetFloat( "attack_cone", "70" );
-	projectile_spread = spawnArgs.GetFloat( "projectile_spread", "0" );
-	num_projectiles = spawnArgs.GetInt( "num_projectiles", "1" );
+
+// sikk---> Damage Type/Spread
+	if ( g_damageType.GetInteger() == 1 ) {
+		if ( spawnArgs.GetFloat( "projectile_spread_doom", "-1.0" ) != -1.0 )
+			projectile_spread = spawnArgs.GetFloat( "projectile_spread_doom", "0" );
+		else
+			projectile_spread = spawnArgs.GetFloat( "projectile_spread", "0" );
+
+		if ( spawnArgs.GetInt( "num_projectiles_doom" ) )
+			num_projectiles = spawnArgs.GetInt( "num_projectiles_doom", "1" );
+		else
+			num_projectiles = spawnArgs.GetInt( "num_projectiles", "1" );
+
+	} else if ( g_damageType.GetInteger() == 2 ) {
+		if ( spawnArgs.GetFloat( "projectile_spread_custom", "-1.0" ) != -1.0 )
+			projectile_spread = spawnArgs.GetFloat( "projectile_spread_custom", "0" );
+		else
+			projectile_spread = spawnArgs.GetFloat( "projectile_spread", "0" );
+
+		if ( spawnArgs.GetInt( "num_projectiles_custom" ) )
+			num_projectiles = spawnArgs.GetInt( "num_projectiles_custom", "1" );
+		else
+			num_projectiles = spawnArgs.GetInt( "num_projectiles", "1" );
+
+	} else {
+		projectile_spread = spawnArgs.GetFloat( "projectile_spread", "0" );
+		num_projectiles = spawnArgs.GetInt( "num_projectiles", "1" );
+	}
+// <---sikk
 
 	GetMuzzle( jointname, muzzle, axis );
 

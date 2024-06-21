@@ -158,7 +158,7 @@ public:
 
 	virtual void			ClientPredictionThink( void );
 
-	float					wh_hide_distance;	// sikk - Weapon Handling System
+	float					wm_hide_distance;	// sikk - Weapon Management: Awareness
 
 	idEntityPtr<idAnimatedEntity>*	GetWorldModel( void ) { return &worldModel; };	// sikk - Depth Render
 

@@ -1158,7 +1158,6 @@ idLight::ClientReceiveEvent
 ================
 */
 bool idLight::ClientReceiveEvent( int event, int time, const idBitMsg &msg ) {
-
 	switch( event ) {
 		case EVENT_BECOMEBROKEN: {
 			BecomeBroken( NULL );

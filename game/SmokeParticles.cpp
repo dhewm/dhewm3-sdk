@@ -166,7 +166,7 @@ Called by game code to drop another particle into the list
 ================
 */
 bool idSmokeParticles::EmitSmoke( const idDeclParticle *smoke, const int systemStartTime, const float diversity, const idVec3 &origin, const idMat3 &axis ) {
-	bool	continues = false;
+	bool continues = false;
 
 	if ( !smoke ) {
 		return false;
@@ -205,9 +205,9 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle *smoke, const int systemS
 		}
 
 		// see how many particles we should emit this tic
-		// FIXME:			smoke.privateStartTime += stage->timeOffset;
-		int		finalParticleTime = stage->cycleMsec * stage->spawnBunching;
-		int		deltaMsec = gameLocal.time - systemStartTime;
+		// FIXME:	smoke.privateStartTime += stage->timeOffset;
+		int finalParticleTime = stage->cycleMsec * stage->spawnBunching;
+		int deltaMsec = gameLocal.time - systemStartTime;
 
 		int		nowCount=0, prevCount=0;
 		if ( finalParticleTime == 0 ) {
@@ -264,7 +264,7 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle *smoke, const int systemS
 				gameLocal.Printf( "idSmokeParticles::EmitSmoke: no free smokes with %d active stages\n", activeStages.Num() );
 				return true;
 			}
-			singleSmoke_t	*newSmoke = freeSmokes;
+			singleSmoke_t *newSmoke = freeSmokes;
 			freeSmokes = freeSmokes->next;
 			numActiveSmokes++;
 

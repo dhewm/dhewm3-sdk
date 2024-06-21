@@ -608,8 +608,16 @@ void idActor::Spawn( void ) {
 	blink_min = SEC2MS( spawnArgs.GetFloat( "blink_min", "0.5" ) );
 	blink_max = SEC2MS( spawnArgs.GetFloat( "blink_max", "8" ) );
 
+// sikk---> Player Head Type
 	// set up the head anim if necessary
-	int headAnim = headAnimator->GetAnim( "def_head" );
+	int headAnim;
+	if ( g_playerHeadType.GetBool() && spawnArgs.GetString( "def_head_custom" )[ 0 ] ) {
+		headAnim = headAnimator->GetAnim( "def_head_custom" );
+	} else {
+		headAnim = headAnimator->GetAnim( "def_head" );
+	}
+// <---sikk
+
 	if ( headAnim ) {
 		if ( headEnt ) {
 			headAnimator->CycleAnim( ANIMCHANNEL_ALL, headAnim, gameLocal.time, 0 );
@@ -668,7 +676,14 @@ void idActor::SetupHead( void ) {
 		return;
 	}
 
-	headModel = spawnArgs.GetString( "def_head", "" );
+// sikk---> Player Head Type
+	if ( g_playerHeadType.GetBool() && spawnArgs.GetString( "def_head_custom" )[ 0 ] ) {
+		headModel = spawnArgs.GetString( "def_head_custom" );
+	} else {
+		headModel = spawnArgs.GetString( "def_head", "" );
+	}
+// <---sikk
+
 	if ( headModel[ 0 ] ) {
 		jointName = spawnArgs.GetString( "head_joint" );
 		joint = animator.GetJointHandle( jointName );
@@ -2179,13 +2194,17 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
 	}
 
-// sikk---> Ammo Management: Custom Ammo Damage
+// sikk---> Damage Type
 	int	damage;
-	if ( g_ammoDamageType.GetBool() && damageDef->GetInt( "custom_damage" ) )
-		damage = damageDef->GetInt( "custom_damage" ) * damageScale;
-	else
-		damage = damageDef->GetInt( "damage" ) * damageScale;
+	if ( g_damageType.GetInteger() == 1 && damageDef->GetInt( "damage_doom_scale" ) ) {
+		damage = damageDef->GetInt( "damage_doom_scale" ) * ( gameLocal.random.RandomInt( 255 ) % damageDef->GetInt( "damage_doom_range" ) + 1 );
+	} else if ( g_damageType.GetInteger() == 2 && damageDef->GetInt( "damage_custom" ) ) {
+		damage = damageDef->GetInt( "damage_custom" );
+	} else {
+		damage = damageDef->GetInt( "damage" );
+	}
 // <---sikk
+	damage *= damageScale;
 	damage = GetDamageForLocation( damage, location );
 
 	// inform the attacker that they hit someone
@@ -2197,7 +2216,8 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
+// sikk - Changed gib health from -20 to -health
+			if ( ( health < -spawnArgs.GetInt( "health" ) ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
 				Gib( dir, damageDefName );
 			}
 		} else {
@@ -2353,19 +2373,29 @@ void idActor::SetupDamageGroups( void ) {
 		damageScale[ i ] = 1.0f;
 	}
 
+// sikk---> Doom 1/2 & custom Damage zones
 	// set the percentage on damage zones
-	arg = spawnArgs.MatchPrefix( "damage_scale ", NULL );
+	const char* scalePrefix;
+	if ( g_damageZoneType.GetInteger() == 1 )
+		scalePrefix = "damage_scale_doom ";
+	else if ( g_damageZoneType.GetInteger() == 2 )
+		scalePrefix = "damage_scale_custom ";
+	else
+		scalePrefix = "damage_scale ";
+
+	arg = spawnArgs.MatchPrefix( scalePrefix, NULL );
 	while ( arg ) {
 		scale = atof( arg->GetValue() );
 		groupname = arg->GetKey();
-		groupname.Strip( "damage_scale " );
+		groupname.Strip( scalePrefix );
 		for( i = 0; i < damageScale.Num(); i++ ) {
 			if ( damageGroups[ i ] == groupname ) {
 				damageScale[ i ] = scale;
 			}
 		}
-		arg = spawnArgs.MatchPrefix( "damage_scale ", arg );
+		arg = spawnArgs.MatchPrefix( scalePrefix, arg );
 	}
+// <---sikk
 }
 
 /*

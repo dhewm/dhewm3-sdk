@@ -197,12 +197,9 @@ private:
 	const idMaterial *	explosionFXMaterial;	// Explosion FX material
 
 	renderView_t		hackedView;
-	float				focusDistance;			// Holds focus distance for depth of field
 	idAngles			prevViewAngles;			// Holds previous frame's player view angles
 	int					prevTime;				// Holds previous frame's time
 	bool				bDepthRendered;			// Holds whether the depth map has been rendered for the current frame
-	bool				bDitherRendered;		// Holds whether the dither map has been rendered
-	float				fDitherSize;			// Holds previous frame's dither size to check for changes
 	pvsHandle_t			playerPVS;				// Holds player's current pvs (for soft shadows)
 	bool				bSoftShadows;			// a soft shadows toggle used so ResetShadows() is only run once when r_useSoftShadows = 0
 // <---sikk

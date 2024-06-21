@@ -850,6 +850,8 @@ idAI::Event_StopRagdoll
 void idAI::Event_StopRagdoll( void ) {
 	StopRagdoll();
 
+	physicsObj.SetOrigin( af.GetPhysics()->GetOrigin() );	// sikk - Zombie Ressurection Fix
+
 	// set back the monster physics
 	SetPhysics( &physicsObj );
 }

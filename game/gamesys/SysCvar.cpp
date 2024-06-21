@@ -122,13 +122,13 @@ idCVar g_debugMover(				"g_debugMover",				"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_debugTriggers(				"g_debugTriggers",			"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_debugCinematic(			"g_debugCinematic",			"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_stopTime(					"g_stopTime",				"0",			CVAR_GAME | CVAR_BOOL, "" );
-idCVar g_damageScale(				"g_damageScale",			"1",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "scale final damage on player by this factor" );
-idCVar g_armorProtection(			"g_armorProtection",		"0.3",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage" );
-idCVar g_armorProtectionMP(			"g_armorProtectionMP",		"0.6",			CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "armor takes this percentage of damage in mp" );
-idCVar g_useDynamicProtection(		"g_useDynamicProtection",	"1",			CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE, "scale damage and armor dynamically to keep the player alive more often" );
-idCVar g_healthTakeTime(			"g_healthTakeTime",			"5",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "how often to take health in nightmare mode" );
-idCVar g_healthTakeAmt(				"g_healthTakeAmt",			"5",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "how much health to take in nightmare mode" );
-idCVar g_healthTakeLimit(			"g_healthTakeLimit",		"25",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "how low can health get taken in nightmare mode" );
+idCVar g_damageScale(				"g_damageScale",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "scale final damage on player by this factor" );
+idCVar g_armorProtection(			"g_armorProtection",		"0.3",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "armor takes this percentage of damage" );
+idCVar g_armorProtectionMP(			"g_armorProtectionMP",		"0.6",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "armor takes this percentage of damage in mp" );
+idCVar g_useDynamicProtection(		"g_useDynamicProtection",	"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "scale damage and armor dynamically to keep the player alive more often" );
+idCVar g_healthTakeTime(			"g_healthTakeTime",			"5",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "how often to take health in nightmare mode" );
+idCVar g_healthTakeAmt(				"g_healthTakeAmt",			"5",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "how much health to take in nightmare mode" );
+idCVar g_healthTakeLimit(			"g_healthTakeLimit",		"25",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "how low can health get taken in nightmare mode" );
 
 idCVar g_showPVS(					"g_showPVS",				"0",			CVAR_GAME | CVAR_INTEGER, "", 0, 2 );
 idCVar g_showTargets(				"g_showTargets",			"0",			CVAR_GAME | CVAR_BOOL, "draws entities and their targets.  hidden entities are drawn grey." );
@@ -139,7 +139,8 @@ idCVar g_showCollisionTraces(		"g_showCollisionTraces",	"0",			CVAR_GAME | CVAR_
 idCVar g_maxShowDistance(			"g_maxShowDistance",		"128",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_showEntityInfo(			"g_showEntityInfo",			"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_showviewpos(				"g_showviewpos",			"0",			CVAR_GAME | CVAR_BOOL, "" );
-idCVar g_showcamerainfo(			"g_showcamerainfo",			"0",			CVAR_GAME | CVAR_ARCHIVE, "displays the current frame # for the camera when playing cinematics" );
+// sikk - g_showcamerainfo was archived and type bool was not set
+idCVar g_showcamerainfo(			"g_showcamerainfo",			"0",			CVAR_GAME | CVAR_BOOL, "displays the current frame # for the camera when playing cinematics" );
 idCVar g_showTestModelFrame(		"g_showTestModelFrame",		"0",			CVAR_GAME | CVAR_BOOL, "displays the current animation and frame # for testmodels" );
 idCVar g_showActiveEntities(		"g_showActiveEntities",		"0",			CVAR_GAME | CVAR_BOOL, "draws boxes around thinking entities.  dormant entities (outside of pvs) are drawn yellow.  non-dormant are green." );
 idCVar g_showEnemies(				"g_showEnemies",			"0",			CVAR_GAME | CVAR_BOOL, "draws boxes around monsters that have targeted the the player" );
@@ -228,59 +229,64 @@ idCVar rb_showInertia(				"rb_showInertia",			"0",			CVAR_GAME | CVAR_BOOL, "sho
 idCVar rb_showVelocity(				"rb_showVelocity",			"0",			CVAR_GAME | CVAR_BOOL, "show the velocity of each rigid body" );
 idCVar rb_showActive(				"rb_showActive",			"0",			CVAR_GAME | CVAR_BOOL, "show rigid bodies that are not at rest" );
 
+// sikk---> Added "CVAR_ARCHIVE" to all player movement cvars
 // The default values for player movement cvars are set in def/player.def
-idCVar pm_jumpheight(				"pm_jumpheight",			"48",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate height the player can jump" );
-idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "maximum height the player can step up without jumping" );
-idCVar pm_crouchspeed(				"pm_crouchspeed",			"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while crouched" );
-idCVar pm_walkspeed(				"pm_walkspeed",				"140",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking" );
-idCVar pm_runspeed(					"pm_runspeed",				"220",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while running" );
-idCVar pm_noclipspeed(				"pm_noclipspeed",			"200",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while in noclip" );
-idCVar pm_spectatespeed(			"pm_spectatespeed",			"450",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while spectating" );
-idCVar pm_spectatebbox(				"pm_spectatebbox",			"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "size of the spectator bounding box" );
-idCVar pm_usecylinder(				"pm_usecylinder",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "use a cylinder approximation instead of a bounding box for player collision detection" );
-idCVar pm_minviewpitch(				"pm_minviewpitch",			"-89",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "amount player's view can look up (negative values are up)" );
-idCVar pm_maxviewpitch(				"pm_maxviewpitch",			"89",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "amount player's view can look down" );
-idCVar pm_stamina(					"pm_stamina",				"24",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "length of time player can run" );
-idCVar pm_staminathreshold(			"pm_staminathreshold",		"45",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "when stamina drops below this value, player gradually slows to a walk" );
-idCVar pm_staminarate(				"pm_staminarate",			"0.75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "rate that player regains stamina. divide pm_stamina by this value to determine how long it takes to fully recharge." );
-idCVar pm_crouchheight(				"pm_crouchheight",			"38",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while crouched" );
-idCVar pm_crouchviewheight(			"pm_crouchviewheight",		"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's view while crouched" );
-idCVar pm_normalheight(				"pm_normalheight",			"74",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while standing" );
-idCVar pm_normalviewheight(			"pm_normalviewheight",		"68",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's view while standing" );
-idCVar pm_deadheight(				"pm_deadheight",			"20",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while dead" );
-idCVar pm_deadviewheight(			"pm_deadviewheight",		"10",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's view while dead" );
-idCVar pm_crouchrate(				"pm_crouchrate",			"0.87",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "time it takes for player's view to change from standing to crouching" );
-idCVar pm_bboxwidth(				"pm_bboxwidth",				"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "x/y size of player's bounding box" );
-idCVar pm_crouchbob(				"pm_crouchbob",				"0.5",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob much faster when crouched" );
-idCVar pm_walkbob(					"pm_walkbob",				"0.3",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob slowly when walking" );
-idCVar pm_runbob(					"pm_runbob",				"0.4",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob faster when running" );
-idCVar pm_runpitch(					"pm_runpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_runroll(					"pm_runroll",				"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_bobup(					"pm_bobup",					"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_bobpitch(					"pm_bobpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
-idCVar pm_bobroll(					"pm_bobroll",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "" );
+idCVar pm_jumpheight(				"pm_jumpheight",			"48",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "approximate hieght the player can jump" );
+idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "maximum height the player can step up without jumping" );
+idCVar pm_crouchspeed(				"pm_crouchspeed",			"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "speed the player can move while crouched" );
+idCVar pm_walkspeed(				"pm_walkspeed",				"140",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "speed the player can move while walking" );
+idCVar pm_runspeed(					"pm_runspeed",				"220",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "speed the player can move while running" );
+idCVar pm_noclipspeed(				"pm_noclipspeed",			"200",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "speed the player can move while in noclip" );
+idCVar pm_spectatespeed(			"pm_spectatespeed",			"450",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "speed the player can move while spectating" );
+idCVar pm_spectatebbox(				"pm_spectatebbox",			"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "size of the spectator bounding box" );
+idCVar pm_usecylinder(				"pm_usecylinder",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_BOOL, "use a cylinder approximation instead of a bounding box for player collision detection" );
+idCVar pm_minviewpitch(				"pm_minviewpitch",			"-89",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "amount player's view can look up (negative values are up)" );
+idCVar pm_maxviewpitch(				"pm_maxviewpitch",			"89",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "amount player's view can look down" );
+idCVar pm_stamina(					"pm_stamina",				"24",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT,					"length of time player can run" );
+idCVar pm_staminathreshold(			"pm_staminathreshold",		"4",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "when stamina drops below this value, player gradually slows to a walk" );
+idCVar pm_staminarate(				"pm_staminarate",			"0.75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "rate that player regains stamina. divide pm_stamina by this value to determine how long it takes to fully recharge." );
+idCVar pm_crouchheight(				"pm_crouchheight",			"38",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's bounding box while crouched" );
+idCVar pm_crouchviewheight(			"pm_crouchviewheight",		"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's view while crouched" );
+idCVar pm_normalheight(				"pm_normalheight",			"74",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's bounding box while standing" );
+idCVar pm_normalviewheight(			"pm_normalviewheight",		"68",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's view while standing" );
+idCVar pm_deadheight(				"pm_deadheight",			"20",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's bounding box while dead" );
+idCVar pm_deadviewheight(			"pm_deadviewheight",		"10",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of player's view while dead" );
+idCVar pm_crouchrate(				"pm_crouchrate",			"0.87",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "time it takes for player's view to change from standing to crouching" );
+idCVar pm_bboxwidth(				"pm_bboxwidth",				"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "x/y size of player's bounding box" );
+idCVar pm_crouchbob(				"pm_crouchbob",				"0.5",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "bob much faster when crouched" );
+idCVar pm_walkbob(					"pm_walkbob",				"0.3",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "bob slowly when walking" );
+idCVar pm_runbob(					"pm_runbob",				"0.4",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "bob faster when running" );
+idCVar pm_runpitch(					"pm_runpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar pm_runroll(					"pm_runroll",				"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar pm_bobup(					"pm_bobup",					"0.005",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar pm_bobpitch(					"pm_bobpitch",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar pm_bobroll(					"pm_bobroll",				"0.002",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "" );
 
-idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "camera distance from player in 3rd person" );
-idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
-idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
-idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "clip third person view into world space" );
-idCVar pm_thirdPerson(				"pm_thirdPerson",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view" );
-idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_BOOL, "enables third person view when player dies" );
-idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
-idCVar pm_airTics(					"pm_air",					"1800",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" );
+idCVar pm_thirdPersonRange(			"pm_thirdPersonRange",		"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "camera distance from player in 3rd person" );
+idCVar pm_thirdPersonHeight(		"pm_thirdPersonHeight",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "height of camera from normal view height in 3rd person" );
+idCVar pm_thirdPersonAngle(			"pm_thirdPersonAngle",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT, "direction of camera from player in 3rd person in degrees (0 = behind player, 180 = in front)" );
+idCVar pm_thirdPersonClip(			"pm_thirdPersonClip",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_BOOL, "clip third person view into world space" );
+idCVar pm_thirdPerson(				"pm_thirdPerson",			"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_BOOL, "enables third person view" );
+idCVar pm_thirdPersonDeath(			"pm_thirdPersonDeath",		"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_BOOL, "enables third person view when player dies" );
+idCVar pm_modelView(				"pm_modelView",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_INTEGER, "draws camera from POV of player model (1 = always, 2 = when dead)", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
+idCVar pm_airTics(					"pm_air",					"1800",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_INTEGER, "how long in milliseconds the player can go without air before he starts taking damage" );
+// <---sikk
 
 idCVar g_showPlayerShadow(			"g_showPlayerShadow",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables shadow of player model" );
 idCVar g_showHud(					"g_showHud",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "" );
 idCVar g_showProjectilePct(			"g_showProjectilePct",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables display of player hit percentage" );
 idCVar g_showBrass(					"g_showBrass",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "enables ejected shells from weapon" );
-idCVar g_gun_x(						"g_gunX",					"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_gun_y(						"g_gunY",					"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_gun_z(						"g_gunZ",					"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_viewNodalX(				"g_viewNodalX",				"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_viewNodalZ(				"g_viewNodalZ",				"0",			CVAR_GAME | CVAR_FLOAT, "" );
-idCVar g_fov(						"g_fov",					"90",			CVAR_GAME | CVAR_INTEGER | CVAR_NOCHEAT, "" );
-idCVar g_skipViewEffects(			"g_skipViewEffects",		"0",			CVAR_GAME | CVAR_BOOL, "skip damage and other view effects" );
-idCVar g_mpWeaponAngleScale(		"g_mpWeaponAngleScale",		"0",			CVAR_GAME | CVAR_FLOAT, "Control the weapon sway in MP" );
+
+// sikk---> Added "CVAR_ARCHIVE" to all select game cvars
+idCVar g_gun_x(						"g_gunX",					"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar g_gun_y(						"g_gunY",					"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar g_gun_z(						"g_gunZ",					"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar g_viewNodalX(				"g_viewNodalX",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar g_viewNodalZ(				"g_viewNodalZ",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "" );
+idCVar g_fov(						"g_fov",					"90",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NOCHEAT, "" );
+idCVar g_skipViewEffects(			"g_skipViewEffects",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "skip damage and other view effects" );
+idCVar g_mpWeaponAngleScale(		"g_mpWeaponAngleScale",		"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "Control the weapon sway in MP" );
+// <---sikk
 
 idCVar g_testParticle(				"g_testParticle",			"0",			CVAR_GAME | CVAR_INTEGER, "test particle visualation, set by the particle editor" );
 idCVar g_testParticleName(			"g_testParticleName",		"",				CVAR_GAME, "name of the particle being tested by the particle editor" );
@@ -336,7 +342,9 @@ idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_AR
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
 
 
+
 // sikk - New Cvars -
+//-------------------------------------------------
 // sikk---> Crosshair Cvar
 idCVar g_crosshair(					"g_crosshair",					"1",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"0 = crosshair off, 1 = crosshair on, 2 = crosshair on only when zoomed or npc has focus" );
 idCVar g_crosshairType(				"g_crosshairType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggle between static and precise crosshair positioning" );
@@ -344,8 +352,26 @@ idCVar g_crosshairLerp(				"g_crosshairLerp",				"0.5",		CVAR_GAME | CVAR_NOCHEA
 // <---sikk
 
 // sikk---> Dynamic Hud system
-idCVar g_useDynamicHud(				"g_useDynamicHud",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables dynamic hud" );
+idCVar g_hudType(					"g_hudType",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles between default and custom hud" );
+idCVar g_useDynamicHud(				"g_useDynamicHud",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables dynamic hud (g_hudType == 1 only)" );
 idCVar g_dynamicHudTime(			"g_dynamicHudTime",				"10.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"time (in sec) before the hud fades out" );
+// <---sikk
+
+// sikk---> IR Goggles/Headlight Mod
+idCVar g_goggleType(				"g_goggleType",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets the goggle's type: 0 = Infrared; 1 = Thermal" );
+idCVar g_batteryLife(				"g_batteryLife",				"60",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER, "how long the battery lasts (in seconds) for ir goggles/headlight" );
+idCVar g_batteryRechargeRate(		"g_batteryRechargeRate",		"120",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER, "how long it takes the battery to fully recharge (in seconds) for ir goggles/headlight" );
+// <---sikk
+
+// sikk---> Global Ambient Light
+idCVar g_useAmbientLight(			"g_useAmbientLight",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enable a global ambient light bound to player" );
+idCVar g_ambientLightRadius(		"g_ambientLightRadius",			"1024 1024 1024",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE,	"sets the ambient light's radius (XYZ = 0 to 65536)" );
+idCVar g_ambientLightColor(			"g_ambientLightColor",			"0.03125 0.03125 0.03125",	CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE,	"sets the ambient light's color (RGB = 0.0 to 1.0)" );
+
+// sikk---> Explosion FX
+idCVar g_useExplosionFX(			"g_useExplosionFX",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables explosion screen effects" );
+idCVar g_explosionFXTime(			"g_explosionFXTime",			"2.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"time (in secs) the effect lasts" );
+idCVar g_explosionFXScale(			"g_explosionFXScale",			"32.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"explosion effect scale" );
 // <---sikk
 
 // sikk---> Blood Spray Screen Effect
@@ -355,48 +381,26 @@ idCVar g_bloodSprayDistance(		"g_bloodSprayDistance",			"96",		CVAR_GAME | CVAR_
 idCVar g_bloodSprayFrequency(		"g_bloodSprayFrequency",		"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"how often the blood spray effect can occur. Value Range: 0.0 (never) - 1.0 (always)" );
 // <---sikk
 
-// sikk---> Explosion FX
-idCVar g_useExplosionFX(			"g_useExplosionFX",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables explosion screen effects" );
-idCVar g_explosionFXTime(			"g_explosionFXTime",			"2.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"time (in secs) the effect lasts" );
-idCVar g_explosionFXScale(			"g_explosionFXScale",			"16.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"explosion effect scale" );
-// <---sikk
-
 // sikk---> Screen Frost
 idCVar g_screenFrostTime(			"g_screenFrostTime",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"time (in secs) for frost to fully build on the screen. 0 = disables effect" );
 // <---sikk
 
+// sikk---> Tracer Frequency
+idCVar g_tracerFrequency(			"g_tracerFrequency",			"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"how frequent a fired shot will be a tracer. Value Range: 0.0 (no tracers) - 1.0 (all tracers)" );
+// <---sikk
+
+// sikk---> Player Head Type
+idCVar g_playerHeadType(			"g_playerHeadType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets which head def to use for the player. 0 = Default Player Head; 1 = Marine Helmet" );
+// <---sikk
+
+// sikk---> First Person Body
+idCVar g_showFirstPersonBody(		"g_showFirstPersonBody",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"draws the player body in first person view mode" );
+// <---sikk
+
 // sikk---> Portal Sky Box
-idCVar g_enablePortalSky(			"g_enablePortalSky",			"1",		CVAR_GAME | CVAR_BOOL, "enables portal sky box support" );
+idCVar g_enablePortalSky(			"g_enablePortalSky",			"1",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables portal sky box support" );
 // <---sikk
 
-// sikk---> Monster Burn Away Delay
-idCVar g_burnAwayDelay(				"g_burnAwayDelay",				"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"enemy burn away delay. 0.0 = use default value" );
-// <---sikk
-
-// sikk---> Enemy Health Management
-idCVar g_enemyHealthType(			"g_enemyHealthType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets enemy health type: 0 = normal; 1 = random" );
-idCVar g_enemyHealthScale(			"g_enemyHealthScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the health scale for enemies" );
-// <---sikk
-
-// sikk---> Inter Rank Aggression
-idCVar g_interRankAggression(		"g_interRankAggression",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether enemies of the same rank will fight each other" );
-// <---sikk
-
-// sikk---> Cyberdemon Damage Type
-idCVar g_cyberdemonDamageType(		"g_cyberdemonDamageType",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets how the Cyberdemon can be damaged: 0 = Soul Cube only; 1 = All weapons" );
-// <---sikk
-
-// sikk---> Zombie Resurrection
-idCVar g_zombieResurrectionLimit(	"g_zombieResurrectionLimit",	"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the total number of times a zombie can resurrect. The chance for a zombie to resurrect is still randomized. 0 = Off" );
-// <---sikk
-
-// sikk---> Random Encounters System
-idCVar g_useRandomEncounters(		"g_useRandomEncounters",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables random encounters" );
-idCVar g_randomEncountersMaxSpawns(	"g_randomEncountersMaxSpawns",	"5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"number of random enemies that can be alive at one time" );
-idCVar g_randomEncountersMinTime(	"g_randomEncountersMinTime",	"30",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"minimum time (in secs) to wait before spawning another random enemy" );
-idCVar g_randomEncountersMaxTime(	"g_randomEncountersMaxTime",	"60",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"maximum time (in secs) to wait before spawning another random enemy" );
-idCVar g_randomEncountersDormantTime(	"g_randomEncountersDormantTime",	"10",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"maximum time (in secs) a random enemy can be dormant before it is removed" );
-// <---sikk
 
 // sikk---> Health Management System
 idCVar g_healthManagementType(		"g_healthManagementType",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"selects which health management system to use. 0 = default; 1 = carriable health pack; 2 = regenerating health" );
@@ -413,57 +417,96 @@ idCVar g_healthRegenFeedback(		"g_healthRegenFeedback",		"50",		CVAR_GAME | CVAR
 
 // sikk---> Item Management
 idCVar g_itemPickupType(			"g_itemPickupType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles whether items need to be picked up manually with the 'Use' key." );
-idCVar g_itemRemovalFactor(			"g_itemRemovalFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which items are randomly removed from the map. Value Range: 0.0 (no items are removed) - 1.0 (all items are removed)" );
-idCVar g_itemValueFactor(			"g_itemValueFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which the value for items are randomly set. Value Range: 0.0 (items have full value) - 1.0 (items have anywhere from one to full value)" );
+idCVar g_itemMaxArmorType(			"g_itemMaxArmorType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets armor capacity type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 idCVar g_itemHelmetFactor(			"g_itemHelmetFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which security armor is randomly replaced with a marine helmet. Value Range: 0.0 (no replacement) - 1.0 (full replacement)" );
+idCVar g_itemValueFactor(			"g_itemValueFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which the value for items are randomly set. Value Range: 0.0 (items have full value) - 1.0 (items have anywhere from one to full value)" );
+idCVar g_itemRemovalFactor(			"g_itemRemovalFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which items are randomly removed from the map. Value Range: 0.0 (no items are removed) - 1.0 (all items are removed)" );
 idCVar g_itemSearchFactor(			"g_itemSearchFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor for which items can be found on dead bodies. Value Range: 0.0 (dead bodies contain no items) - 1.0 (dead bodies always contain items)" );
 // <---sikk
 
 // sikk---> Ammo Management
-idCVar g_ammoDamageType(			"g_ammoDamageType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles between the use of normal or custom damage values" );
-idCVar g_ammoCapacityType(			"g_ammoCapacityType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles between the use of normal or custom max ammo/clip size values" );
+idCVar g_ammoCapacityType(			"g_ammoCapacityType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets ammo capacity type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
+idCVar g_ammoClipSizeType(			"g_ammoClipSizeType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets ammo clip size type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 idCVar g_ammoUsageType(				"g_ammoUsageType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables realistic ammo usage when reloading and collecting ammo" );
 // <---sikk
 
-// sikk---> Weapon Handling System
-idCVar g_weaponHandlingType(		"g_weaponHandlingType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles between normal and realistic weapon handling" );
-// <---sikk
-
-// sikk---> Tracer Frequency
-idCVar g_tracerFrequency(			"g_tracerFrequency",			"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"how frequent a fired shot will be a tracer. Value Range: 0.0 (no tracers) - 1.0 (all tracers)" );
+// sikk---> Weapon Management
+idCVar g_weaponAwareness(			"g_weaponAwareness",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles weapon awareness" );
+idCVar g_weaponHandlingType(		"g_weaponHandlingType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the weapon handling type: 0 = spread (fixed); 1 = spread (variable); 2 spread (fixed) + recoil; 2 spread (variable) + recoil" );
+idCVar g_weaponProjectileOrigin(	"g_weaponProjectileOrigin",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether projectiles are launched from their def defined origin or to launch all projectiles from the weapon's barrel: 0 = Default; 1 = Weapon Barrel" );
 // <---sikk
 
 // sikk---> First Person Body
 idCVar g_grabMode(					"g_grabMode",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables the ability to grab moveable objects" );
 // <---sikk
 
-// sikk---> IR Goggles/Headlight Mod
-idCVar g_goggleType(				"g_goggleType",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets the goggle's type: 0 = Infrared; 1 = Thermal" );
-idCVar g_batteryLife(				"g_batteryLife",				"60",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER, "how long the battery lasts (in seconds) for ir goggles/headlight" );
-idCVar g_batteryRechargeRate(		"g_batteryRechargeRate",		"120",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER, "how long it takes the battery to fully recharge (in seconds) for ir goggles/headlight" );
+
+// sikk---> Disable Fall Damage
+idCVar g_disableFallDamage(			"g_disableFallDamage",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"disables fall damage" );
 // <---sikk
 
-// sikk---> Global Ambient Light
-idCVar g_useAmbientLight(			"g_useAmbientLight",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enable a global ambient light bound to player" );
-idCVar g_ambientLightRadius(		"g_ambientLightRadius",			"1024 1024 1024",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE,	"sets the ambient light's radius (XYZ = 0 to 65536)" );
-idCVar g_ambientLightColor(			"g_ambientLightColor",			"0.03125 0.03125 0.03125",	CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE,	"sets the ambient light's color (RGB = 0.0 to 1.0)" );
+// sikk---> Player Speed Type
+idCVar g_playerSpeedType(			"g_playerSpeedType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the player's speed configuration: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 // <---sikk
 
-// sikk---> First Person Body
-idCVar g_showFirstPersonBody(		"g_showFirstPersonBody",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"draws the player body in first person view mode" );
+// sikk---> Locational Damage Type
+idCVar g_damageType(				"g_damageType",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets damage value type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
+idCVar g_damageZoneType(			"g_damageZoneType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets locational damage type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 // <---sikk
+
+// sikk---> Enemy Health Management
+idCVar g_enemyHealthType(			"g_enemyHealthType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets enemy health type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
+idCVar g_enemyHealthScale(			"g_enemyHealthScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the health scale for enemies" );
+idCVar g_enemyHealthRandom(			"g_enemyHealthRandom",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether to randomize enemy health values" );
+// <---sikk
+
+// sikk---> Spectre Factor
+idCVar g_enemySpectreFactor(		"g_enemySpectreFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor that a Pinky demon will spawn as a Spectre" );
+// <---sikk
+// sikk---> Pain Elemental Factor
+idCVar g_enemyPainElementalFactor(	"g_enemyPainElementalFactor",	"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor that a Cacodemon will spawn as a Pain Elemental" );
+// <---sikk
+// sikk---> Baron of Hell Factor
+idCVar g_enemyBaronFactor(			"g_enemyBaronFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor that a Hellknight will spawn as a Baron of Hell" );
+// <---sikk
+
+// sikk---> Monster Burn Away Delay
+idCVar g_burnAwayDelay(				"g_burnAwayDelay",				"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"enemy burn away delay. 0.0 = use default value" );
+// <---sikk
+
+// sikk---> Cyberdemon Damage Type
+idCVar g_cyberdemonDamageType(		"g_cyberdemonDamageType",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets how the Cyberdemon can be damaged: 0 = Soul Cube only; 1 = All weapons" );
+// <---sikk
+
+// sikk---> Inter Rank Aggression
+idCVar g_interRankAggression(		"g_interRankAggression",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether enemies of the same rank will fight each other" );
+// <---sikk
+
+// sikk---> Zombie Resurrection
+idCVar g_zombieResurrectionLimit(	"g_zombieResurrectionLimit",	"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the total number of times a zombie can resurrect. The chance for a zombie to resurrect is still randomized. 0 = Off" );
+// <---sikk
+
+// sikk---> Random Encounters System
+idCVar g_useRandomEncounters(		"g_useRandomEncounters",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables random encounters" );
+idCVar g_randomEncountersMaxSpawns(	"g_randomEncountersMaxSpawns",	"5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"number of random enemies that can be alive at one time" );
+idCVar g_randomEncountersMinTime(	"g_randomEncountersMinTime",	"30",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"minimum time (in secs) to wait before spawning another random enemy" );
+idCVar g_randomEncountersMaxTime(	"g_randomEncountersMaxTime",	"60",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"maximum time (in secs) to wait before spawning another random enemy" );
+idCVar g_randomEncountersDormantTime(	"g_randomEncountersDormantTime",	"10",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"maximum time (in secs) a random enemy can be dormant before it is removed" );
+// <---sikk
+
 
 // sikk---> Thirdperson Camera
-idCVar pm_thirdPersonOffest(		"pm_thirdPersonOffset",			"0",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT,				"camera offest from player in 3rd person (-n = left, +n = right)" );
+idCVar pm_thirdPersonOffset(		"pm_thirdPersonOffset",			"0",		CVAR_GAME | CVAR_NETWORKSYNC | CVAR_ARCHIVE | CVAR_FLOAT,				"camera offset from player in 3rd person (-n = left, +n = right)" );
 // <---sikk
+
 
 // sikk---> PostProcess Effects
 idCVar r_useSoftShadows(			"r_useSoftShadows",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable Soft Shadows postprocessing effect" );
 idCVar r_softShadowsBlurFilter(		"r_softShadowsBlurFilter",		"1",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Blur method used for the shadow mask:\n0 = No Filter\n1 = Box Filter\n2 = Poisson Filter\n3 = Gaussian Filter" );
-idCVar r_softShadowsBlurScale(		"r_softShadowsBlurScale",		"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Sample offset scale for the blur filter" );
+idCVar r_softShadowsBlurScale(		"r_softShadowsBlurScale",		"8.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Sample offset scale for the blur filter" );
 idCVar r_softShadowsBlurEpsilon(	"r_softShadowsBlurEpsilon",		"4.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the blur depth difference factor for the blur filter" );
 
-idCVar r_useEdgeAA(					"r_useEdgeAA",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable edge anti-aliasing" );
+idCVar r_useEdgeAA(					"r_useEdgeAA",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Enable edge anti-aliasing: 0 = RGB edge AA; 1 = FXAA" );
 idCVar r_edgeAASampleScale(			"r_edgeAASampleScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sample offset scale for edge detection" );
 idCVar r_edgeAAFilterScale(			"r_edgeAAFilterScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the filter offset scale for blurring" );
 
@@ -520,9 +563,9 @@ idCVar r_ssaoBlendPower(			"r_ssaoBlendPower",				"2.0",		CVAR_GAME | CVAR_NOCHE
 idCVar r_ssaoBlendScale(			"r_ssaoBlendScale",				"2.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the blend scale for the ssao to scene final combine" );
 
 idCVar r_useSunShafts(				"r_useSunShafts",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable Screen-Space Volumetric Lighting (Sun Shafts) postprocessing effect" );
-idCVar r_sunShaftsSize(				"r_sunShaftsSize",				"8.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts size" );
-idCVar r_sunShaftsStrength(			"r_sunShaftsStrength",			"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts strength" );
-idCVar r_sunShaftsMaskStrength(		"r_sunShaftsMaskStrength",		"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts mask strength" );
+idCVar r_sunShaftsSize(				"r_sunShaftsSize",				"16.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts size" );
+idCVar r_sunShaftsStrength(			"r_sunShaftsStrength",			"2.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts strength" );
+idCVar r_sunShaftsMaskStrength(		"r_sunShaftsMaskStrength",		"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun shafts mask strength" );
 idCVar r_sunShaftsQuality(			"r_sunShaftsQuality",			"4",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the sun shafts quality" );
 idCVar r_sunOriginX(				"r_sunOriginX",					"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun's origin along the X axis (used for sun shafts & lens flare)" );
 idCVar r_sunOriginY(				"r_sunOriginY",					"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sun's origin along the Y axis (used for sun shafts & lens flare)" );
@@ -531,7 +574,7 @@ idCVar r_useLensFlare(				"r_useLensFlare",				"0",		CVAR_GAME | CVAR_NOCHEAT | 
 idCVar r_lensFlareStrength(			"r_lensFlareStrength",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the lens flare strength" );
 
 idCVar r_useDepthOfField(			"r_useDepthOfField",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Enable depth of field postprocessing effect. Value range: 0 - 2 \n0 = Off\n1 = Automatic Focus\n2 = Manual Focus" );
-idCVar r_dofBlurScale(				"r_dofBlurScale",				"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the blur scale for depth of field postprocessing effect" );
+idCVar r_dofBlurScale(				"r_dofBlurScale",				"4.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the blur scale for depth of field postprocessing effect" );
 idCVar r_dofBlurQuality(			"r_dofBlurQuality",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the blur quality for depth of field postprocessing effect:\n0 = Box Filter\n1 = Poisson Filter\n2 = Gaussian Filter\n3 = Bokeh!" );
 idCVar r_dofNear(					"r_dofNear",					"-128",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the near distance for depth of field postprocessing effect (r_useDepthOfField = 2 only)" );
 idCVar r_dofFar(					"r_dofFar",						"1024",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the far distance for depth of field postprocessing effect (r_useDepthOfField = 2 only)" );

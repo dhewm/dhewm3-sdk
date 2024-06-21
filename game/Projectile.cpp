@@ -370,7 +370,7 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	}
 
 	// don't do tracers on client, we don't know origin and direction
-	if ( spawnArgs.GetBool( "tracers" ) && ( gameLocal.random.RandomFloat() < g_tracerFrequency.GetFloat() ) ) {	// sikk - Tracer Frequency
+	if ( spawnArgs.GetBool( "tracers" ) && ( ( gameLocal.random.RandomFloat() * 0.99999f ) < g_tracerFrequency.GetFloat() ) ) {	// sikk - Tracer Frequency
 		SetModel( spawnArgs.GetString( "model_tracer" ) );
 		projectileFlags.isTracer = true;
 	}
@@ -593,7 +593,7 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 // sikk---> Blood Spray Screen Effect
 				if ( g_showBloodSpray.GetBool() ) {
 					idVec3 vLength = player->GetEyePosition() - ent->GetPhysics()->GetOrigin();
-					if ( vLength.Length() <= g_bloodSprayDistance.GetFloat() && gameLocal.random.RandomFloat() < g_bloodSprayFrequency.GetFloat() )
+					if ( vLength.Length() <= g_bloodSprayDistance.GetFloat() && ( gameLocal.random.RandomFloat() * 0.99999f ) < g_bloodSprayFrequency.GetFloat() )
 						player->playerView.AddBloodSpray( g_bloodSprayTime.GetFloat() );
 				}
 // <---sikk
@@ -843,6 +843,20 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 		} else {
 			fxname = spawnArgs.GetString( "model_smoke" );
 		}
+
+/*		switch ( surfaceType ) {
+			case SURFTYPE_NONE:			fxname = spawnArgs.GetString( "model_smokespark" ); break;
+			case SURFTYPE_METAL:		fxname = spawnArgs.GetString( "model_impact_metal" ); break;
+			case SURFTYPE_STONE:		fxname = spawnArgs.GetString( "model_impact_stone" ); break;
+			case SURFTYPE_FLESH:		fxname = spawnArgs.GetString( "model_impact_flesh" ); break;
+			case SURFTYPE_WOOD:			fxname = spawnArgs.GetString( "model_impact_wood" ); break;
+			case SURFTYPE_CARDBOARD:	fxname = spawnArgs.GetString( "model_impact_cardboard" ); break;
+			case SURFTYPE_LIQUID:		fxname = spawnArgs.GetString( "model_impact_liquid" ); break;
+			case SURFTYPE_GLASS:		fxname = spawnArgs.GetString( "model_impact_glass" ); break;
+			case SURFTYPE_PLASTIC:		fxname = spawnArgs.GetString( "model_impact_plastic" ); break;
+			case SURFTYPE_RICOCHET:		fxname = spawnArgs.GetString( "model_ricochet" ); break;
+			default:					fxname = spawnArgs.GetString( "model_smoke" ); break;
+		}*/
 	}
 
 	if ( fxname && *fxname ) {

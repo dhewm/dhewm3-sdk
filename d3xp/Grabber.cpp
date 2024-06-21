@@ -574,7 +574,7 @@ int idGrabber::Update( idPlayer *player, bool hide ) {
 		goalPos = player->firstPersonViewOrigin + localPlayerPoint * player->firstPersonViewAxis;
 
 		drag.SetGoalPosition( goalPos );
-		drag.Evaluate( gameLocal.time );
+		drag.Evaluate( gameLocal.time, true );	// sikk -  Use Function: Object Manipualtion - Added the grabber arg
 
 		// If an object is flying too fast toward the player, stop it hard
 		if ( g_grabberHardStop.GetBool() ) {
@@ -725,11 +725,12 @@ bool idGrabber::grabbableAI( const char *aiName ) {
 	// skip "monster_"
 	aiName += 8;
 
-	if (!idStr::Cmpn( aiName, "flying_lostsoul", 15 ) ||
-		!idStr::Cmpn( aiName, "demon_trite", 11 ) ||
-		!idStr::Cmp( aiName, "flying_forgotten" ) ||
-		!idStr::Cmp( aiName, "demon_cherub" ) ||
-		!idStr::Cmp( aiName, "demon_tick" )) {
+	if ( ( !idStr::Cmpn( aiName, "flying_lostsoul", 15 ) ||
+		   !idStr::Cmpn( aiName, "demon_trite", 11 ) ||
+		   !idStr::Cmp( aiName, "flying_forgotten" ) ||
+		   !idStr::Cmp( aiName, "demon_cherub" ) ||
+		   !idStr::Cmp( aiName, "demon_tick" ) ) &&
+		   g_grabbableAI.GetBool() ) {	// sikk - Grabbable Enemy Toggle
 
 		return true;
 	}

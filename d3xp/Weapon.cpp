@@ -443,6 +443,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	}
 #endif
 
+	savefile->WriteFloat( wh_hide_distance );	// sikk - Weapon Handling System
 }
 
 /*
@@ -670,6 +671,8 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 		weaponLights.Set(newLight.name, newLight);
 	}
 #endif
+
+	savefile->ReadFloat( wh_hide_distance );	// sikk - Weapon Handling System
 }
 
 /***********************************************************************
@@ -878,6 +881,8 @@ void idWeapon::Clear( void ) {
 	projectileEnt		= NULL;
 
 	isFiring			= false;
+
+	wh_hide_distance	= -15;	// sikk - Weapon Handling System
 }
 
 /*
@@ -953,7 +958,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 
 	ammoType			= GetAmmoNumForName( weaponDef->dict.GetString( "ammoType" ) );
 	ammoRequired		= weaponDef->dict.GetInt( "ammoRequired" );
-	clipSize			= weaponDef->dict.GetInt( "clipSize" );
+	clipSize			= g_ammoCapacityType.GetBool() ? weaponDef->dict.GetInt( "custom_clipSize" ) : weaponDef->dict.GetInt( "clipSize" );	// sikk---> Ammo Management: Ammo Capacity Type
 	lowAmmo				= weaponDef->dict.GetInt( "lowAmmo" );
 
 	icon				= weaponDef->dict.GetString( "icon" );
@@ -967,6 +972,8 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 
 	hideTime			= SEC2MS( weaponDef->dict.GetFloat( "hide_time", "0.3" ) );
 	hideDistance		= weaponDef->dict.GetFloat( "hide_distance", "-15" );
+
+	wh_hide_distance	= weaponDef->dict.GetFloat( "wh_hide_distance", "-15" );	// sikk - Weapon Handling System
 
 	// muzzle smoke
 	smokeName = weaponDef->dict.GetString( "smoke_muzzle" );
@@ -1572,7 +1579,7 @@ idWeapon::LowerWeapon
 void idWeapon::LowerWeapon( void ) {
 	if ( !hide ) {
 		hideStart	= 0.0f;
-		hideEnd		= hideDistance;
+		hideEnd		= ( owner->GetWeaponHandling() && !owner->OnLadder() ) ? wh_hide_distance : hideDistance;	// sikk - Weapon Handling System
 		if ( gameLocal.time - hideStartTime < hideTime ) {
 			hideStartTime = gameLocal.time - ( hideTime - ( gameLocal.time - hideStartTime ) );
 		} else {
@@ -2942,6 +2949,10 @@ void idWeapon::Event_AddToClip( int amount ) {
 #ifdef _D3XP
 	// for shared ammo we need to use the ammo when it is moved into the clip
 	int usedAmmo = ammoClip - oldAmmo;
+// sikk---> Ammo Usage Type
+	if ( g_ammoUsageType.GetBool() && ammoType != 1 )
+		 usedAmmo = clipSize;
+// <---sikk
 	owner->inventory.UseAmmo(ammoType, usedAmmo);
 #endif
 }
@@ -3388,14 +3399,18 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		kick_endtime = gameLocal.realClientTime + muzzle_kick_maxtime;
 	}
 
-	if ( gameLocal.isClient ) {
+// sikk---> Zoom Spread Reduction
+	if ( g_weaponHandlingType.GetBool() )
+		spread = spawnArgs.GetFloat( "wh_spread", "0" );
+// <---sikk
 
+	if ( gameLocal.isClient ) {
 		// predict instant hit projectiles
 		if ( projectileDict.GetBool( "net_instanthit" ) ) {
 			float spreadRad = DEG2RAD( spread );
 			muzzle_pos = muzzleOrigin + playerViewAxis[ 0 ] * 2.0f;
 			for( i = 0; i < num_projectiles; i++ ) {
-				ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
+				ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() * ( ( owner->bIsZoomed && g_weaponHandlingType.GetBool() ) ? ( ( GetEntityDefName() == "weapon_shotgun" ) ? 0.5 : 0.25f ) : 1.0f ) );	// sikk - Weapon Handling System: Zoom Spread Reduction
 				spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 				dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
 				dir.Normalize();
@@ -3407,14 +3422,13 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		}
 
 	} else {
-
 		ownerBounds = owner->GetPhysics()->GetAbsBounds();
 
 		owner->AddProjectilesFired( num_projectiles );
 
 		float spreadRad = DEG2RAD( spread );
 		for( i = 0; i < num_projectiles; i++ ) {
-			ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() );
+			ang = idMath::Sin( spreadRad * gameLocal.random.RandomFloat() * ( ( owner->bIsZoomed && g_weaponHandlingType.GetBool() ) ? 0.25f : 1.0f ) );	// sikk - Weapon Handling System: Zoom Spread Reduction
 			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
 			dir.Normalize();
@@ -3857,6 +3871,14 @@ void idWeapon::Event_Melee( void ) {
 
 		idThread::ReturnInt( hit );
 		owner->WeaponFireFeedback( &weaponDef->dict );
+
+// sikk---> Blood Spray Screen Effect **No Chainsaw in D3XP SP**
+//		if ( g_showBloodSpray.GetBool() ) {
+//			if ( GetOwner()->GetCurrentWeaponNum() == 10 && gameLocal.random.RandomFloat() < g_bloodSprayFrequency.GetFloat() && hit )
+//				GetOwner()->playerView.AddBloodSpray( g_bloodSprayTime.GetFloat() );
+//		}
+// <---sikk
+
 		return;
 	}
 

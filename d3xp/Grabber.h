@@ -59,6 +59,8 @@ public:
 	void					SetDragDistance( float dist );
 	int						Update( idPlayer *player, bool hide );
 
+	int						GetLastFiredTime( void ) { return lastFiredTime; };	// sikk - Object Manipulation
+
 private:
 	idEntityPtr<idEntity>	dragEnt;			// entity being dragged
 	idForce_Grab			drag;

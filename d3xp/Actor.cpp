@@ -645,7 +645,7 @@ void idActor::Spawn( void ) {
 		}
 	}
 
-	finalBoss = spawnArgs.GetBool( "finalBoss" );
+	finalBoss = g_cyberdemonDamageType.GetBool() ? false : spawnArgs.GetBool( "finalBoss" );	// sikk - Cyberdemon Damage Type
 
 	FinishSetup();
 }
@@ -2242,7 +2242,13 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
 	}
 
-	int	damage = damageDef->GetInt( "damage" ) * damageScale;
+// sikk---> Ammo Management: Custom Ammo Damage
+	int	damage;
+	if ( g_ammoDamageType.GetBool() && damageDef->GetInt( "custom_damage" ) )
+		damage = damageDef->GetInt( "custom_damage" ) * damageScale;
+	else
+		damage = damageDef->GetInt( "damage" ) * damageScale;
+// <---sikk
 	damage = GetDamageForLocation( damage, location );
 
 	// inform the attacker that they hit someone

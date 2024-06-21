@@ -233,6 +233,9 @@ public:
 	void					RechargeAmmo(idPlayer *owner);
 	bool					CanGive( idPlayer *owner, const idDict &spawnArgs, const char *statname, const char *value, int *idealWeapon );
 #endif
+
+	int						healthPackAmount;	// sikk - Health Management System (Health Pack)
+	int						adrenalineAmount;	// sikk - Adrenaline Pack System
 };
 
 typedef struct {
@@ -332,7 +335,6 @@ public:
 	bool					healthPulse;
 	bool					healthTake;
 	int						nextHealthTake;
-
 
 	bool					hiddenWeapon;		// if the weapon is hidden ( in noWeapons maps )
 	idEntityPtr<idProjectile> soulCubeProjectile;
@@ -619,6 +621,83 @@ public:
 	bool					SelfSmooth( void );
 	void					SetSelfSmooth( bool b );
 
+	int						nScreenFrostAlpha;	// sikk - Screen Frost
+
+	int						nShowHudTimer;		// sikk - Dynamic hud system - Used to say when to show the hud as well as fade it in/out (just for health/armor/ammo/weapon changes)
+
+// sikk---> Manual Item Pickup
+	idItem*					focusItem;
+	int						itemPickupTime;
+// <---sikk
+
+// sikk---> Searchable Corpses
+	void					SearchCorpse( idAFEntity_Gibbable* corpse );
+	idAFEntity_Gibbable*	focusCorpse;
+	int						searchTimer;
+// <---sikk
+
+// sikk---> Object Manipulation
+	idGrabEntity			grabEntity;
+	idEntity*				focusMoveable;
+	int						focusMoveableId;
+	int						focusMoveableTimer;
+// <---sikk
+
+// sikk---> Adrenaline Pack System
+	void					UseAdrenaline( void );
+	int						adrenalineAmount;
+// <---sikk
+
+// sikk---> Health Management System
+	void					UseHealthPack( void );
+	int						healthPackAmount;
+	int						healthPackTimer;
+	int						nextHealthRegen;
+	int						prevHeatlh;			// sikk - holds player health after Health station has been used
+// <---sikk
+
+// sikk---> Crosshair Positioning
+	int						GetCurrentWeaponNum( void ) { return currentWeapon; };
+	idVec3					v3CrosshairPos;
+// <---sikk
+
+// sikk---> Weapon Handling System
+	bool					GetWeaponHandling( void );
+	bool					bWATrace;
+	bool					bWAIsSprinting;
+// <---sikk
+
+// sikk---> Depth Render
+	void					ToggleSuppression( bool bSuppress );
+	bool					bViewModelsModified;
+// <---sikk
+
+// sikk---> Depth of Field PostProcess
+	int						GetTalkCursor( void ) { return talkCursor; };	// used to check if character has focus
+	bool					bIsZoomed;
+// <---sikk
+
+// sikk---> Global Ambient Light
+	void					ToggleAmbientLight( bool bOn );
+	bool					bAmbientLightOn;
+	idStr					szAmbientLightColor;
+	idStr					szAmbientLightRadius;
+// <---sikk
+
+// sikk---> Infrared Goggles/Headlight Mod
+	void					UpdateBattery( void );
+	void					ToggleIRGoggles( void );
+	void					ToggleHeadlight( void );
+
+	bool					bIRGogglesOn;
+	bool					bHeadlightOn;
+	int						nIRGogglesTime;
+	int						nHeadlightTime;
+	int						nBattery;
+	float					fIntensity;
+	float					fIRBloomParms[ 7 ];
+// <---sikk
+
 private:
 	jointHandle_t			hipJoint;
 	jointHandle_t			chestJoint;
@@ -782,7 +861,7 @@ private:
 	bool					WeaponAvailable( const char* name );
 #endif
 
-	void					UseVehicle( void );
+	void					UseVehicle( bool drive );	// sikk - function modified to support use function
 
 	void					Event_GetButtons( void );
 	void					Event_GetMove( void );

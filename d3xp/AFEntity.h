@@ -236,6 +236,8 @@ public:
 	bool					IsGibbed() { return gibbed; };
 #endif
 
+	bool					searchable;	// sikk - Searchable Corpses
+
 protected:
 	idRenderModel *			skeletonModel;
 	int						skeletonModelDefHandle;

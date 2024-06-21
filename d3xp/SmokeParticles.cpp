@@ -82,6 +82,8 @@ void idSmokeParticles::Init( void ) {
 	renderEntity.hModel = renderModelManager->AllocModel();
 	renderEntity.hModel->InitEmpty( smokeParticle_SnapshotName );
 
+	renderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
+
 	// we certainly don't want particle shadows
 	renderEntity.noShadow = 1;
 

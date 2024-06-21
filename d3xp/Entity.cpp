@@ -3094,7 +3094,13 @@ void idEntity::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 		gameLocal.Error( "Unknown damageDef '%s'\n", damageDefName );
 	}
 
-	int	damage = damageDef->GetInt( "damage" );
+// sikk---> Ammo Management: Custom Ammo Damage
+	int	damage;
+	if ( g_ammoDamageType.GetBool() && damageDef->GetInt( "custom_damage" ) )
+		damage = damageDef->GetInt( "custom_damage" );
+	else
+		damage = damageDef->GetInt( "damage" );
+// <---sikk
 
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );

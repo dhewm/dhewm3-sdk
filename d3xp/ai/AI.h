@@ -297,6 +297,12 @@ public:
 	virtual void			Gib( const idVec3 &dir, const char *damageDefName );
 #endif
 
+// sikk---> Random Encounters System
+	int						IsDead( void ) { return AI_DEAD; };
+	int						dormantTime;	// holds the time when a random enemy goes dormant
+	bool					isRandom;		// holds whether the entity was a random spawn or not
+// <---sikk
+
 protected:
 	// navigation
 	idAAS *					aas;

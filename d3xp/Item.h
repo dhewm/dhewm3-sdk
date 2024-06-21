@@ -77,6 +77,12 @@ public:
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
 
+// sikk---> Item Management: Random Item Value/Manual Item Pickup
+	int						GetRandomValue( const char* invName );	// sikk - Item Management: Random Item Value
+	bool					removeable;	// sikk - Item Management: Random Item Removal
+	bool					noPickup;	// sikk - Item Management: Manual Item Pickup
+// <---sikk
+
 private:
 	idVec3					orgOrigin;
 	bool					spin;
@@ -274,6 +280,35 @@ public:
 
 	virtual bool			GiveToPlayer( idPlayer *player );
 };
+
+// sikk---> Moveable Video CD
+class idMoveableVideoCDItem : public idMoveableItem {
+public:
+	CLASS_PROTOTYPE( idMoveableVideoCDItem );
+
+	void					Spawn();
+	virtual bool			GiveToPlayer( idPlayer *player );
+};
+// <---sikk
+
+// sikk---> Moveable Powerup
+class idMoveableItemPowerup : public idMoveableItem {
+public:
+	CLASS_PROTOTYPE( idMoveableItemPowerup );
+
+							idMoveableItemPowerup();
+
+	void					Save( idSaveGame *savefile ) const;
+	void					Restore( idRestoreGame *savefile );
+
+	void					Spawn();
+	virtual bool			GiveToPlayer( idPlayer *player );
+
+private:
+	int						time;
+	int						type;
+};
+// <---sikk
 
 /*
 ===============================================================================

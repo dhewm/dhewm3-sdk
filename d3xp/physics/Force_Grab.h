@@ -60,7 +60,7 @@ public:
 
 
 public: // common force interface
-	virtual void		Evaluate( int time );
+	virtual void		Evaluate( int time, bool grabber );	// sikk -  Use Function: Object Manipualtion - Added the grabber arg
 	virtual void		RemovePhysics( const idPhysics *phys );
 
 	// Get the distance from object to goal position

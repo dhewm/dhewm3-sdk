@@ -196,6 +196,26 @@ public:
 
 	virtual void			ClientPredictionThink( void );
 
+	float					wh_hide_distance;	// sikk - Weapon Handling System
+
+	idGrabber*				GetGrabber( void ) { return &grabber; };	// sikk - Object Manipulation
+
+	idEntityPtr<idAnimatedEntity>*	GetWorldModel( void ) { return &worldModel; };	// sikk - Depth Render
+
+// sikk---> Crosshair Positioning
+	idVec3					GetMuzzleOrigin( void ) { return muzzleOrigin; };
+	idMat3					GetMuzzleAxis( void ) { return muzzleAxis; };
+	jointHandle_t			GetBarrelJointView( void ) { return barrelJointView; };
+	idDict					GetProjectileDict( void ) { return projectileDict; };
+// <---sikk
+
+// sikk---> Soft Shadows PostProcess
+	renderLight_t*			GetMuzzleFlash( void ) { return &muzzleFlash; };
+	renderLight_t*			GetWorldMuzzleFlash( void ) { return &worldMuzzleFlash; };
+	int						GetMuzzleFlashHandle( void ) { return muzzleFlashHandle; };
+	int						GetWorldMuzzleFlashHandle( void ) { return worldMuzzleFlashHandle; };
+// <---sikk
+
 private:
 	// script control
 	idScriptBool			WEAPON_ATTACK;

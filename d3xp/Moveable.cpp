@@ -1059,6 +1059,9 @@ void idExplodingBarrel::AddParticles( const char *name, bool burn ) {
 			particleRenderEntity.shaderParms[ SHADERPARM_ALPHA ] = rgb;
 			particleRenderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.realClientTime );
 			particleRenderEntity.shaderParms[ SHADERPARM_DIVERSITY ] = ( burn ) ? 1.0f : gameLocal.random.RandomInt( 90 );
+
+			particleRenderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
+
 #ifdef _D3XP
 			particleRenderEntity.timeGroup = explicitTimeGroup;
 #endif

@@ -45,7 +45,6 @@ idForce_Grab::Save
 ================
 */
 void idForce_Grab::Save( idSaveGame *savefile ) const {
-
 	savefile->WriteFloat( damping );
 	savefile->WriteVec3( goalPosition );
 	savefile->WriteFloat( distanceToGoal );
@@ -58,7 +57,6 @@ idForce_Grab::Restore
 ================
 */
 void idForce_Grab::Restore( idRestoreGame *savefile ) {
-
 	//Note: Owner needs to call set physics
 	savefile->ReadFloat( damping );
 	savefile->ReadVec3( goalPosition );
@@ -130,7 +128,7 @@ float idForce_Grab::GetDistanceToGoal( void ) {
 idForce_Grab::Evaluate
 ================
 */
-void idForce_Grab::Evaluate( int time ) {
+void idForce_Grab::Evaluate( int time, bool grabber ) {
 	if ( !physics ) {
 		return;
 	}
@@ -140,7 +138,7 @@ void idForce_Grab::Evaluate( int time ) {
 
 	objectCenter = physics->GetAbsBounds(id).GetCenter();
 
-	if ( g_grabberRandomMotion.GetBool() && !gameLocal.isMultiplayer ) {
+	if ( grabber && g_grabberRandomMotion.GetBool() && !gameLocal.isMultiplayer ) {	// sikk - Use Function: Object Manipualtion - Added "grabber" arg
 		// Jitter the objectCenter around so it doesn't remain stationary
 		float SinOffset = idMath::Sin( (float)(gameLocal.time)/66.f );
 		float randScale1 = gameLocal.random.RandomFloat();
@@ -164,16 +162,29 @@ void idForce_Grab::Evaluate( int time ) {
 	}
 	physics->AddForce( id, objectCenter, forceDir * forceAmt );
 
-	if ( distanceToGoal < 196.f ) {
+// sikk---> Use Function: Object Manipualtion
+	if ( grabber ) {
+		if ( distanceToGoal < 196.f ) {
 		v = physics->GetLinearVelocity( id );
 		physics->SetLinearVelocity( v * damping, id );
-	}
-	if ( distanceToGoal < 16.f ) {
-		v = physics->GetAngularVelocity(id);
-		if ( v.LengthSqr() > Square(8) ) {
-			physics->SetAngularVelocity( v * 0.99999f, id );
 		}
+		if ( distanceToGoal < 16.f ) {
+			v = physics->GetAngularVelocity(id);
+			if ( v.LengthSqr() > Square(8) ) {
+				physics->SetAngularVelocity( v * 0.99999f, id );
+			}
+		}
+	} else {
+		if ( distanceToGoal < 128.0f ) {
+			v = physics->GetLinearVelocity( id );
+			if ( distanceToGoal <= 1.0f )
+				physics->SetLinearVelocity( vec3_origin, id );
+			else
+				physics->SetLinearVelocity( v * damping, id );
+		}
+		physics->SetAngularVelocity( vec3_origin, id );
 	}
+// <---sikk
 }
 
 /*

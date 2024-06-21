@@ -35,6 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 #include "SmokeParticles.h"
 #include "Misc.h"
+#include "WorldSpawn.h"
 
 #include "ai/AI.h"
 

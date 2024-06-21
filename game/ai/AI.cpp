@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Moveable.h"
 #include "SmokeParticles.h"
 
+#include "WorldSpawn.h"
+
 #include "ai/AI.h"
 
 static const char *moveCommandString[ NUM_MOVE_COMMANDS ] = {

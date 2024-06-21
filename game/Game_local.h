@@ -317,8 +317,8 @@ public:
 // sikk---> Portal Sky Box
 	idEntityPtr<idEntity>	portalSkyEnt;
 	bool					portalSkyActive;
-	void					idGameLocal::SetPortalSkyEnt( idEntity *ent ) {	portalSkyEnt = ent; }
-	bool					idGameLocal::IsPortalSkyAcive( void ) { return portalSkyActive; }
+	void					SetPortalSkyEnt( idEntity *ent ) {	portalSkyEnt = ent; }
+	bool					IsPortalSkyAcive( void ) { return portalSkyActive; }
 	pvsHandle_t				GetPlayerPVS( void ) { return playerPVS; };
 // <---sikk
 
@@ -683,6 +683,8 @@ typedef enum {
 extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
 extern const int	CINEMATIC_SKIP_DELAY;
+
+#include "Entity.h"
 
 #endif	/* !__GAME_LOCAL_H__ */
 

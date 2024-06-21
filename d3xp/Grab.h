@@ -8,6 +8,12 @@
 ===============================================================================
 */
 
+#ifndef _Grab_h_defined
+#define _Grab_h_defined
+
+#include "Entity.h"
+#include "physics/Force_Grab.h"
+
 class idGrabEntity : public idEntity {
 public:
 	CLASS_PROTOTYPE( idGrabEntity );
@@ -23,7 +29,7 @@ public:
 
 	idEntity *				GetGrabEntity( void ) const { return dragEnt.GetEntity(); }
 	int						GetThrownTime( void ) const { return lastThrownTime; }
-	int						SetThrownTime( int time ) { lastThrownTime = time; }
+	void					SetThrownTime( int time ) { lastThrownTime = time; }
 
 private:
 	idEntityPtr<idEntity>	dragEnt;			// entity being dragged
@@ -41,3 +47,5 @@ private:
 
 };
 // <---sikk
+
+#endif // _Grab_h_defined

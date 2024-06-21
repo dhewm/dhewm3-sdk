@@ -38,6 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Projectile.h"
 #include "PlayerIcon.h"
 #include "GameEdit.h"
+#include "Grab.h" // for sikkmod
 
 class idAI;
 

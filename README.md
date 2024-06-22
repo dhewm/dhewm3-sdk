@@ -79,20 +79,266 @@ for example dentonmod/ for dentonmod.so)
 
 ## How to port a Mod to dhewm3
 
-The usual (easiest) way to port a mod is to make a diff between the mod's source
-and the Doom3 SDK and apply the resulting patch to the vanilla game source (from the master branch).  
-Afterwards usually some manual work must be done to resolve patching conflicts and get the mod to compile.  
-Also, the CMakeLists.txt file must be adjusted (see the dentonmod branch for examples).
-
 Please note that currently I only accept mods that are released under the
 GPL license - the one used by Open Source Doom3 (i.e. *not* only the Doom3 SDK license) -
 because neither the GPL nor the SDK license allow merging code from both licenses.  
 So please get permission from the mod authors first.
 
-Yes, this unfortunately means that unless you manage to contact Sikkpin and get
-his permission, there will be no Sikkmod for dhewm3 (and neither other mods that
-use Sikkmod code) :-(  
-*(If you are Sikkpin, please get in touch!)*
+The usual (easiest) way to port a mod is to make a diff between the mod's source
+and the Doom3 SDK and apply the resulting patch to the vanilla game source (from the master branch).  
+Afterwards usually some manual work must be done to resolve patching conflicts and get the mod to compile.  
+Also, the CMakeLists.txt file must be adjusted (see the dentonmod branch for examples).
+
+Here is the approximate steps I use to port a mod.  
+Note that you'll need basic C++ (or at least C) programming skills, so you can resolve the little
+(and sometimes not-so-little) issues that (almost) always occur when porting a mod, like merge
+conflicts and compiler errors due to missing `#include`s.
+
+#### Getting the difference between the original Doom3 SDK and the Mod's source code
+
+IMHO, the easiest way is to use a git repo of the the origin Doom3 SDK source code, copy the modified
+source from the mod on top and then let git create the diff.
+
+For your convenience, I created such a git repo: https://github.com/DanielGibson/Doom3-SDK
+
+So clone it and switch into its directory, by running the following commands in a terminal
+(on Windows, use the "Git Bash"):
+* `cd doom3dev/` (change into a directory you want to put Doom3 projects in, adjust this to your needs)
+* `git clone https://github.com/DanielGibson/Doom3-SDK.git`
+* `cd Doom3-SDK`
+
+Now copy the mod's source code to the correct place in the repo, usually `src/` or `src/game`,
+replacing the existing files.  
+`git status`  
+shows which files have been changed,  
+`git diff`
+will show the actual differences *(but only for files that already exist in the repo!)*; or use  
+`git gui`
+for a GUI-based overview.
+
+It's possible that the copied files use different line endings than the git repo, in which case git
+will show lots of changes that are really none.
+
+You can fix the line endings by running the following commands:  
+* `find -iname "*.cpp" -exec dos2unix {} \;`  
+* `find -iname "*.h" -exec dos2unix {} \;`  
+    - *If you're on **Windows**, use `unix2dos` instead of `dos2unix`*.
+
+Now **create a branch** for the mod in your local Doom3-SDK repo and stage all the changes,
+including added files:  
+* `git checkout -b mymodname` (adjust the name...)  
+* `git add --all`  
+
+I recommend using `git gui` to check if any files have been added that are irrelevant, i.e. files
+that are not source files but from build directories or in Visual Studio project files or similar
+(those won't be needed for dhewm3-sdk, it uses CMake to handle the build).  
+You can *unstage* files or changes by clicking the file icon left of the filename
+in the "Staged Changes" list to remove them from the commit (the files/changes are *not* deleted,
+they will just not be committed).
+
+> If you insist on using the commandline,  
+> `git status`  
+> will also show the staged files, and you can unstage files with  
+> `git rm --cached path/to/file.name`  
+> or unstage whole directories with  
+> `git rm --cached -r path/to/`
+
+Now commit the changes, either on the commandline with  
+`git commit -m "imported mymodname"`  
+or by just typing a commit message in `git gui` and clicking "Commit" there.
+
+Finally, to get a diff patch you can apply to the dhewm3 SDK, run the following command:  
+`git diff main > ../mymodname.diff`
+
+#### Applying the mod diff to the dhewm3 SDK
+
+First, clone the dhewm3 SDK and create a branch for the new mod, with the following terminal commands
+(again, on Windows, use the "Git Bash"):  
+* `cd doom3dev/` (same directory as used in the other step)
+* `git clone https://github.com/dhewm/dhewm3-sdk.git`  
+* `cd dhewm3-sdk`  
+* `git checkout -b mymodname`
+
+> If you've already cloned the repo earlier, make sure to check out the `master` branch before
+> creating the new branch for your mod, so the new branch is based on the unmodified gamecode,
+> and make sure there are no uncommitted changes:  
+> * `git checkout master`
+> * `git reset --hard HEAD` (undo all uncommitted changes)
+> * `git pull` (get the latest changes from the dhewm3-sdk repo)
+
+Now apply the patch with the mod's code with:
+
+`patch -p2 -l --merge --no-backup-if-mismatch < ../mymodname.diff`
+
+Explanation:
+* `-p2` skips an additional directory layer: In the Doom3 SDK the source `src/game/`, for example,
+  in the dhewm3 SDK it's directly in `game/`, so `src/` must be skipped
+* `-l` ignore whitespace changes, in case the mod has replaced tabs with spaces or something
+* `--merge` when there are merge conflicts (patch isn't sure how to apply a change to the dhewm3 SDK),
+  they are marked in the corresponding source files with sections containing the new code and the old
+  code, marked with `<<<<<<<`, `=======` and `>>>>>>>` (see below)
+* `--no-backup-if-mismatch` if this is not set, patch will create `bla.cpp.orig` (containing the
+  original unpatched file) for every file that's patched, we don't want that
+
+Now look very carefully at the output the `patch` command printed to the terminal!  
+It often happens that some changes can't be merged automatically, and `patch will tell you about that`
+like this:
+
+```
+patching file game/Misc.cpp
+Hunk #1 NOT MERGED at 143-148.
+```
+
+This means that one change in game/Misc.cpp could not be merged automatically, so it must be merged manually.  
+`patch` then inserts something like this in that file:
+
+  ```
+   ...
+   switch( event ) {
+      case EVENT_TELEPORTPLAYER: {
+         entityNumber = msg.ReadBits( GENTITYNUM_BITS );
+         idPlayer *player = static_cast<idPlayer *>( gameLocal.entities[entityNumber] );
+         if ( player != NULL && player->IsType( idPlayer::Type ) ) {
+            Event_TeleportPlayer( player );
+         }
+         return true;
+      }
+      default:
+         break;
+      }
+  <<<<<<<
+  
+  	return idEntity::ClientReceiveEvent( event, time, msg );
+  =======
+  	//	return false;	// sikk - warning C4702: unreachable code
+  >>>>>>>
+  }
+  ```
+
+So open the file and search for "<<<<".
+The first section (between `<<<<<<<` and `=======`) is the existing code of dhewm3-sdk, the second
+section (between `=======` and `>>>>>>>`) is what that code looked like in the mod you're trying to
+merge (in this example Sikkmod).  
+  
+> In this case, both Sikkmod and dhewm3 fixed a compiler warning: 
+> `return idEntity::ClientReceiveEvent( event, time, msg );` used to be in the `default:` case of switch,
+> and after the switch was `return false;`, which was unreachable because the function would always
+> return at `default: return idEntity::ClientReceiveEvent( event, time, msg );` (if it didn't already 
+> return before), and the compiler warned about that unreachable code.  
+> *sikk* got rid of that warning by commenting out `return false;`, in dhewm3 we moved the
+> `return idEntity::ClientReceiveEvent( event, time, msg );` behind the switch-case - both valid 
+> (and equivalent) solutions.
+
+You need to remove the lines with `<<<<<<<` and `=======` and `>>>>>>>`, and make sure that the code that
+was in this sections is merged completely, i.e. in a state that works correctly like it did in the mod.
+
+> In this example it's simple: Just keep dhewm3's code and remove sikk's change:
+>  ```
+>  ...
+>      switch( event ) {
+>         case EVENT_TELEPORTPLAYER: {
+>            entityNumber = msg.ReadBits( GENTITYNUM_BITS );
+>            idPlayer *player = static_cast<idPlayer *>( gameLocal.entities[entityNumber] );
+>            if ( player != NULL && player->IsType( idPlayer::Type ) ) {
+>               Event_TeleportPlayer( player );
+>            }
+>            return true;
+>         }
+>         default:
+>            break;
+>      }
+>     
+>      return idEntity::ClientReceiveEvent( event, time, msg );
+>  }
+>  ```
+
+Sometimes it makes sense to open the file from Doom3 SDK and the patched one from dhewm3 SDK
+side-by-side to compare functions with merge conflicts to see more context from the original file.
+
+If you're *really* unlucky, `patch` will show you messages like
+```
+patching file d3xp/Item.cpp
+Hunk #1 merged at 653.
+misordered hunks! output would be garbled
+Hunk #2 FAILED at 77.
+misordered hunks! output would be garbled
+Hunk #3 FAILED at 109.
+2 out of 4 hunks FAILED -- saving rejects to file d3xp/Item.cpp.rej
+
+```
+This means that it has no idea whatsoever where that code from the patch belongs, and it will *not*
+create such a merge-conflict section in the file as shown above. In that case you'll have to check
+the `.rej` files for what changes have been omitted and try to merge them manually.
+In this case, even the first hunk (which was supported to be around line 50) was, for reasons unclear
+to me, merged at the totally wrong location so it must be fixed as well.
+
+When merging the changes for a file fails completely, it can help to use a graphical diff and merge
+tool like [meld](https://meldmerge.org/) or [kdiff3](https://kdiff3.sourceforge.net/) or 
+[Beyond Compare](https://www.scootersoftware.com/) to compare the file from the Doom3 SDK and the one
+from the dhewm3 SDK and merge the changes in there.  
+However note that it will also show you differences that are unrelated to the mod, like fixes made
+in dhewm3 - and the first lines of the file are always different, because in the dhewm3 SDK they
+contain the [GPL license note from the Doom3 GPL release](https://github.com/dhewm/dhewm3-sdk/blob/master/d3xp/Item.cpp#L1-L27),
+while in the original Doom3 SDK there usually is only a very short comment like
+```
+// Copyright (C) 2004 Id Software, Inc.
+//
+```
+This is also the reason why it's easiest to create a diff in the Doom3 SDK and apply that diff
+in the dhewm3 SDK (instead of using a merge tool on all files, for example): The diff only contains
+the changes made in the SDK, so those copyright notices are not in the diff (unless the Mod author
+changed those lines), and don't create merge conflicts in dhewm3 code.
+
+In my experience, most of the changes from the patch are merged without any conflict, and then you'll
+have a handful of `Hunk #X NOT MERGED` errors that at least can be resolved within the file.  
+I've only ever seen the `Hunk #X FAILED` error in one project..
+
+<br>
+Anyway, when you think you've resolved all merge conflicts, you can make double-sure like this:  
+
+`grep -r "<<<<" `  
+and  
+`grep -r ">>>>"`
+
+both shouldn't find anything, at least not in .cpp or .h files.
+
+Once all merge conflicts are resolved, remove any `.rej` files and commit the changes, like described
+above (or just use `git gui` for that).  
+Don't forget to also commit added source files, if any - in fact, remember which (source) files were
+added, because they're needed in the next step!
+
+#### Build the Mod for dhewm3
+
+Now edit `CMakeLists.txt`.  
+
+If the mod only uses the code in `game/`, you can set the `ON` in `option(D3XP  "Build the d3xp/ game code" ON)`
+to `OFF`, if it only uses the code in `d3xp/`, you can do the same for `option(BASE ...` (if both are used,
+i.e. the mod builds two DLLs, one for the base game and one for Resurrection of Evil, leave those options as they are).  
+
+Make sure to adjust `BASE_NAME` and/or `D3XP_NAME` according to the mod directory name, for example,
+the *Classic Doom 3* mod directory is called `cdoom` and it uses the source code in `game/`, so
+the line is adjusted like `set(BASE_NAME   "cdoom" CACHE STRING "Name of the mod...")`.  
+
+If the mod requires definitions passed to the compiler (like `-DMY_OPTION for `#ifdef MY_OPTION`),
+adjust `BASE_DEFS` and/or `D3XP_DEFS` accordingly.
+
+Last but not least, if the mod adds any source files to the SDK (instead of just modifying the
+existing ones), add them to `src_game_mod` or `src_d3xp_mod`.
+
+Look at the
+[CMakeLists.txt of the Rivensen Mod](https://github.com/dhewm/dhewm3-sdk/blob/rivensin/CMakeLists.txt)
+for an example that does several of the things mentioned above (disable D3XP DLL, set custom compiler
+definitions, add custom source files).
+
+Once that's done, you can finally try to build the mod, as described in the [How to build section](#how-to-build).
+
+You'll likely get compiler errors because of missing includes, or maybe there's
+`#include "../idlib/precompiled.h"` or similar somewhere which is an error because dhewm3 doesn't
+have `precompiled.h` (so remove that). It's usually best to scroll up to the first compiler error
+and fix it (for example, if it complains that unknown type is used, that type is likely defined in
+a header that must be included) and retry building, because often further errors are caused by the
+first one, and fixing it fixes several others as well, so by building again after fixing the first
+you'll see which errors remain.
 
 ### Getting in touch
 

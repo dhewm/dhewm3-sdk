@@ -319,7 +319,7 @@ Make sure to adjust `BASE_NAME` and/or `D3XP_NAME` according to the mod director
 the *Classic Doom 3* mod directory is called `cdoom` and it uses the source code in `game/`, so
 the line is adjusted like `set(BASE_NAME   "cdoom" CACHE STRING "Name of the mod...")`.  
 
-If the mod requires definitions passed to the compiler (like `-DMY_OPTION for `#ifdef MY_OPTION`),
+If the mod requires definitions passed to the compiler (like `-DMY_OPTION` for `#ifdef MY_OPTION`),
 adjust `BASE_DEFS` and/or `D3XP_DEFS` accordingly.
 
 Last but not least, if the mod adds any source files to the SDK (instead of just modifying the

@@ -527,6 +527,7 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 								// when g_enablePortalSky gets re-enabled GlobalPortalSkies keep working 
 	}
 
+        // process the frame
 	gameRenderWorld->RenderScene( &hackedView );
 
 	if ( player->spectating ) {

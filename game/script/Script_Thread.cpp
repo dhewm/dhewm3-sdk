@@ -78,6 +78,10 @@ const idEventDef EV_Thread_VecLength( "vecLength", "v", 'f' );
 const idEventDef EV_Thread_VecDotProduct( "DotProduct", "vv", 'f' );
 const idEventDef EV_Thread_VecCrossProduct( "CrossProduct", "vv", 'v' );
 const idEventDef EV_Thread_VecToAngles( "VecToAngles", "v", 'v' );
+
+const idEventDef EV_Thread_VecToOrthoBasisAngles( "VecToOrthoBasisAngles", "v", 'v' ); // PD3
+const idEventDef EV_Thread_RotateVector("rotateVector", "vv", 'v'); // PD3
+
 const idEventDef EV_Thread_OnSignal( "onSignal", "des" );
 const idEventDef EV_Thread_ClearSignal( "clearSignalThread", "de" );
 const idEventDef EV_Thread_SetCamera( "setCamera", "e" );
@@ -156,6 +160,10 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_VecDotProduct,			idThread::Event_VecDotProduct )
 	EVENT( EV_Thread_VecCrossProduct,		idThread::Event_VecCrossProduct )
 	EVENT( EV_Thread_VecToAngles,			idThread::Event_VecToAngles )
+
+	EVENT( EV_Thread_VecToOrthoBasisAngles, idThread::Event_VecToOrthoBasisAngles ) // PD3
+	EVENT( EV_Thread_RotateVector,			idThread::Event_RotateVector ) // PD3
+
 	EVENT( EV_Thread_OnSignal,				idThread::Event_OnSignal )
 	EVENT( EV_Thread_ClearSignal,			idThread::Event_ClearSignalThread )
 	EVENT( EV_Thread_SetCamera,				idThread::Event_SetCamera )
@@ -1342,6 +1350,32 @@ idThread::Event_VecToAngles
 void idThread::Event_VecToAngles( idVec3 &vec ) {
 	idAngles ang = vec.ToAngles();
 	ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
+}
+
+/*
+================
+idThread::Event_VecToOrthoBasisAngles PD3
+================
+*/
+void idThread::Event_VecToOrthoBasisAngles( idVec3 &vec ) {
+	idVec3 left, up;
+	idAngles ang;
+
+	vec.OrthogonalBasis( left, up );
+	idMat3 axis( left, up, vec );
+
+	ang = axis.ToAngles();
+
+	ReturnVector( idVec3( ang[0], ang[1], ang[2] ) );
+}
+
+void idThread::Event_RotateVector( idVec3 &vec, idVec3 &ang ) {
+
+	idAngles tempAng(ang);
+	idMat3 axis = tempAng.ToMat3();
+	idVec3 ret = vec * axis;
+	ReturnVector(ret);
+
 }
 
 /*

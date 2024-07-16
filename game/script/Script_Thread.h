@@ -150,6 +150,10 @@ private:
 	void						Event_VecDotProduct( idVec3 &vec1, idVec3 &vec2 );
 	void						Event_VecCrossProduct( idVec3 &vec1, idVec3 &vec2 );
 	void						Event_VecToAngles( idVec3 &vec );
+
+	void						Event_VecToOrthoBasisAngles( idVec3 &vec ); // PD3
+	void						Event_RotateVector( idVec3 &vec, idVec3 &ang ); // PD3
+
 	void						Event_OnSignal( int signal, idEntity *ent, const char *func );
 	void						Event_ClearSignalThread( int signal, idEntity *ent );
 	void						Event_SetCamera( idEntity *ent );

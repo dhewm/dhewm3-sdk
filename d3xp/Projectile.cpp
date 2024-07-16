@@ -998,10 +998,14 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 			if ( removeTime < delay * 1000 ) {
 				removeTime = ( delay + 0.10 ) * 1000;
 			}
-			PostEventSec( &EV_RadiusDamage, delay, ignore );
+// sikk---> Entities hit directly by a projectile will no longer be ignored by splash damage PD3
+//			PostEventSec( &EV_RadiusDamage, delay, ignore );
+			PostEventSec( &EV_RadiusDamage, delay, NULL );
 		} else {
-			Event_RadiusDamage( ignore );
+//			Event_RadiusDamage( ignore );
+			Event_RadiusDamage( NULL );
 		}
+// <---sikk PD3
 	}
 
 	// spawn debris entities
@@ -2415,10 +2419,25 @@ void idDebris::Restore( idRestoreGame *savefile ) {
 idDebris::Launch
 =================
 */
+/*********************************************************
+doomtrinity->
+Following method includes code from Denton's mod v. 2.02
+to enhance brass ejection behaviour.
+Be sure to add the macro
+_DENTONMOD
+in the game properties if you want to compile the code
+with his changes.
+Thanks to Clone JC Denton
+*********************************************************/
 void idDebris::Launch( void ) {
 	float		fuse;
 	idVec3		velocity;
+#ifdef _DENTONMOD
+	idVec3		angular_velocity_vect;
+#else
 	idAngles	angular_velocity;
+#endif
+
 	float		linear_friction;
 	float		angular_friction;
 	float		contact_friction;
@@ -2432,7 +2451,12 @@ void idDebris::Launch( void ) {
 	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
 
 	spawnArgs.GetVector( "velocity", "0 0 0", velocity );
+#ifdef _DENTONMOD
+	angular_velocity_vect = spawnArgs.GetAngles( "angular_velocity", "0 0 0").ToAngularVelocity();
+#else
 	spawnArgs.GetAngles( "angular_velocity", "0 0 0", angular_velocity );
+#endif
+
 
 	linear_friction		= spawnArgs.GetFloat( "linear_friction" );
 	angular_friction	= spawnArgs.GetFloat( "angular_friction" );
@@ -2448,9 +2472,29 @@ void idDebris::Launch( void ) {
 	}
 
 	if ( randomVelocity ) {
+#ifdef _DENTONMOD
+		float rand = spawnArgs.GetFloat("linear_velocity_rand", "0.35"); 
+
+		// sets velocity randomly between ((1-rand)*100)% and ((1+rand)*100)%
+		// e.g.1: if rand = 0.2, velocity will be randomly set between 80% and 120%
+		// e.g.2: if rand = 0.3, velocity will be randomly set between 70% and 130%
+		// and so on.
+		velocity.x *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+		velocity.y *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+		velocity.z *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+
+		// do not perform following calculations unless there's key in decl that says so.
+		if( spawnArgs.GetFloat( "angular_velocity_rand", "0.0", rand) && rand > 0.0f ) {
+			angular_velocity_vect.x *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+			angular_velocity_vect.y *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+			angular_velocity_vect.z *= gameLocal.random.RandomFloat()*rand*2.0 + 1.0 -  rand;
+		}
+#else
 		velocity.x *= gameLocal.random.RandomFloat() + 0.5f;
 		velocity.y *= gameLocal.random.RandomFloat() + 0.5f;
 		velocity.z *= gameLocal.random.RandomFloat() + 0.5f;
+#endif		
+
 	}
 
 	if ( health ) {
@@ -2491,8 +2535,22 @@ void idDebris::Launch( void ) {
 	physicsObj.SetGravity( gravVec * gravity );
 	physicsObj.SetContents( 0 );
 	physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
+#ifdef _DENTONMOD
+	// Make sure that the linear velocity is added with 
+	// owner's linear velocity for more accurate physics simulation. 
+	idEntity *ownerEnt = owner.GetEntity();
+	if( ownerEnt != NULL ) {
+		physicsObj.SetLinearVelocity( (axis[ 0 ] * velocity[ 0 ] + axis[ 1 ] * velocity[ 1 ] + axis[ 2 ] * velocity[ 2 ]) + ownerEnt->GetPhysics()->GetLinearVelocity());
+	}
+	else {
+		physicsObj.SetLinearVelocity( axis[ 0 ] * velocity[ 0 ] + axis[ 1 ] * velocity[ 1 ] + axis[ 2 ] * velocity[ 2 ] );
+	}
+	physicsObj.SetAngularVelocity( angular_velocity_vect * axis );
+#else
 	physicsObj.SetLinearVelocity( axis[ 0 ] * velocity[ 0 ] + axis[ 1 ] * velocity[ 1 ] + axis[ 2 ] * velocity[ 2 ] );
 	physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() * axis );
+#endif
+
 	physicsObj.SetOrigin( GetPhysics()->GetOrigin() );
 	physicsObj.SetAxis( axis );
 	SetPhysics( &physicsObj );

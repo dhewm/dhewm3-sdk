@@ -346,7 +346,7 @@ idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIV
 // sikk - New Cvars -
 //-------------------------------------------------
 // sikk---> Crosshair Cvar
-idCVar g_crosshair(					"g_crosshair",					"1",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"0 = crosshair off, 1 = crosshair on, 2 = crosshair on only when zoomed or npc has focus" );
+idCVar g_crosshair(					"g_crosshair",					"1",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"0 = crosshair off, 1 = crosshair on" );
 idCVar g_crosshairType(				"g_crosshairType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggle between static and precise crosshair positioning" );
 idCVar g_crosshairLerp(				"g_crosshairLerp",				"0.5",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"smoothness for the movement of the crosshair when g_crosshairType = 1" );
 // <---sikk
@@ -459,6 +459,11 @@ idCVar g_enemyHealthType(			"g_enemyHealthType",			"0",		CVAR_GAME | CVAR_NOCHEA
 idCVar g_enemyHealthScale(			"g_enemyHealthScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the health scale for enemies" );
 idCVar g_enemyHealthRandom(			"g_enemyHealthRandom",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether to randomize enemy health values" );
 // <---sikk
+
+// PD3---> SSG Factor
+idCVar g_weaponSSGFactor(		"g_weaponSSGFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor that a Pumpshotgun will spawn as a Double Barrel Shotgun" );
+// <---PD3
+
 
 // sikk---> Spectre Factor
 idCVar g_enemySpectreFactor(		"g_enemySpectreFactor",			"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the factor that a Pinky demon will spawn as a Spectre" );
@@ -613,3 +618,10 @@ idCVar r_filmgrainStrength(			"r_filmgrainStrength",			"1.0",		CVAR_GAME | CVAR_
 
 idCVar r_useVignetting(				"r_useVignetting",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable vignetting postprocessing effect" );
 // <---sikk
+//doomtrinity ->
+// These mouse Cvars do NOT affect directly the mouse settings, "sensitivity" and "m_smooth" are still used.
+idCVar in_mouseSensitivity(			"in_mouseSensitivity",		"5",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "mouse view sensitivity" );
+idCVar in_mouseSmooth(				"in_mouseSmooth",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "number of samples blended for mouse viewing" );
+idCVar pm_adsspeed(					"pm_adsspeed",				"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking and zooming" );
+idCVar pm_adsbob(					"pm_adsbob",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob slowly when walking and zooming" );
+//<- doomtrinity

@@ -331,9 +331,13 @@ extern idCVar	g_screenFrostTime;			// sikk - Screen Frost
 
 extern idCVar	g_burnAwayDelay;			// sikk - Monster Burn Away Delay
 
-// sikk---> Enemy Health Management
+extern idCVar	g_damageType;				// sikk - Damage Type
+extern idCVar	g_damageZoneType;			// sikk - Locational Damage Type
+
+// sikk---> Enemy Health Management PD3
 extern idCVar	g_enemyHealthType;
 extern idCVar	g_enemyHealthScale;
+extern idCVar	g_enemyHealthRandom;
 // <---sikk
 
 extern idCVar	g_interRankAggression;		// sikk - Inter Rank Aggression
@@ -378,6 +382,14 @@ extern idCVar	g_ammoDamageType;
 extern idCVar	g_ammoCapacityType;
 extern idCVar	g_ammoUsageType;
 // <---sikk
+
+// sikk---> Weapon Management
+extern idCVar	g_weaponAwareness;
+extern idCVar	g_weaponHandlingType;
+extern idCVar	g_weaponProjectileOrigin;
+// <---sikk
+
+extern idCVar	g_playerSpeedType;			// sikk - Player Speed Type
 
 extern idCVar	g_weaponHandlingType;		// sikk - Weapon Handling
 
@@ -514,5 +526,12 @@ extern idCVar	r_filmgrainStrength;
 
 extern idCVar	r_useVignetting;
 // <---sikk
+//doomtrinity ->
+// These mouse Cvars do NOT affect directly the mouse settings, "sensitivity" and "m_smooth" are still used.
+extern idCVar	in_mouseSensitivity;
+extern idCVar	in_mouseSmooth;
+extern idCVar	pm_adsspeed;// player speed in zoomed mode
+extern idCVar	pm_adsbob;// bob in zoomed mode
+//<- doomtrinity
 
 #endif /* !__SYS_CVAR_H__ */

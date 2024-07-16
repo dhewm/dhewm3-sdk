@@ -103,6 +103,10 @@ const idEventDef EV_Player_ToggleBloom( "toggleBloom", "d" );
 const idEventDef EV_Player_SetBloomParms( "setBloomParms", "ff" );
 #endif
 
+// doomtrinity-dual weapon
+const idEventDef EV_Player_GetNumPistols( "getNumPistols", NULL, 'd' );
+const idEventDef EV_Player_GetNumShotguns( "getNumShotguns", NULL, 'd' );
+
 CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_GetButtons,			idPlayer::Event_GetButtons )
 	EVENT( EV_Player_GetMove,				idPlayer::Event_GetMove )
@@ -133,6 +137,9 @@ CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_ToggleBloom,			idPlayer::Event_ToggleBloom )
 	EVENT( EV_Player_SetBloomParms,			idPlayer::Event_SetBloomParms )
 #endif
+	// doomtrinity-dual weapon
+	EVENT( EV_Player_GetNumPistols,			idPlayer::Event_GetNumPistols )
+	EVENT( EV_Player_GetNumShotguns,			idPlayer::Event_GetNumShotguns )
 END_CLASS
 
 const int MAX_RESPAWN_TIME = 10000;
@@ -168,6 +175,8 @@ idInventory::Clear
 void idInventory::Clear( void ) {
 	maxHealth		= 0;
 	weapons			= 0;
+	shotgunDoubleInInventory = 0; // doomtrinity-dual weapon
+	pistolInInventory = 0; // doomtrinity-dual weapon
 	powerups		= 0;
 	armor			= 0;
 	maxarmor		= 0;
@@ -282,6 +291,10 @@ void idInventory::GetPersistantData( idDict &dict ) {
 	// armor
 	dict.SetInt( "armor", armor );
 
+	// doomtrinity-dual weapon
+	dict.SetInt( "hasDB", shotgunDoubleInInventory );
+	dict.SetInt( "hasPistol", pistolInInventory );
+
 	// don't bother with powerups, maxhealth, maxarmor, or the clip
 
 	// ammo
@@ -291,6 +304,13 @@ void idInventory::GetPersistantData( idDict &dict ) {
 			dict.SetInt( name, ammo[ i ] );
 		}
 	}
+
+//doomtrinity ->	//From D3XP
+	//Save the clip data
+	for( i = 0; i < MAX_WEAPONS; i++ ) {
+		dict.SetInt( va("clip%i", i), clip[ i ] );
+	}
+//<- doomtrinity
 
 #ifdef _D3XP
 	//Save the clip data
@@ -381,6 +401,11 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 	// health/armor
 	maxHealth		= dict.GetInt( "maxhealth", "100" );
 	armor			= dict.GetInt( "armor", "50" );
+
+	// doomtrinity-dual weapon
+	shotgunDoubleInInventory = dict.GetInt( "hasDB" );
+	pistolInInventory = dict.GetInt( "hasPistol" );
+
 	maxarmor		= dict.GetInt( "maxarmor", "100" );
 	deplete_armor	= dict.GetInt( "deplete_armor", "0" );
 	deplete_rate	= dict.GetFloat( "deplete_rate", "2.0" );
@@ -395,6 +420,13 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 			ammo[ i ] = dict.GetInt( name );
 		}
 	}
+
+//doomtrinity ->	//From D3XP
+	//Restore the clip data
+	for( i = 0; i < MAX_WEAPONS; i++ ) {
+		clip[i] = dict.GetInt(va("clip%i", i), "-1");
+	}
+//<- doomtrinity
 
 #ifdef _D3XP
 	//Restore the clip data
@@ -464,6 +496,16 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 		Give( owner, dict, "weapon", dict.GetString( "weapon" ), NULL, false );
 	}
 
+// doomtrinity-dual weapon->
+	// we need this for game saves prior to mod installation
+	if ( (weapons & 2) && !pistolInInventory ) {
+		pistolInInventory = 1;
+	}
+	if ( (weapons & 8) && !shotgunDoubleInInventory ) {
+		shotgunDoubleInInventory = 1;
+	}
+// doomtrinity-dual weapon-<
+
 	num = dict.GetInt( "levelTriggers" );
 	for ( i = 0; i < num; i++ ) {
 		sprintf( itemname, "levelTrigger_Level_%i", i );
@@ -486,6 +528,11 @@ void idInventory::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteInt( maxHealth );
 	savefile->WriteInt( weapons );
+
+	// doomtrinity-dual weapon
+	savefile->WriteInt( shotgunDoubleInInventory );
+	savefile->WriteInt( pistolInInventory );
+
 	savefile->WriteInt( powerups );
 	savefile->WriteInt( armor );
 	savefile->WriteInt( maxarmor );
@@ -593,6 +640,11 @@ void idInventory::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( maxHealth );
 	savefile->ReadInt( weapons );
+
+	// doomtrinity-dual weapon
+	savefile->ReadInt( shotgunDoubleInInventory );
+	savefile->ReadInt( pistolInInventory );
+
 	savefile->ReadInt( powerups );
 	savefile->ReadInt( armor );
 	savefile->ReadInt( maxarmor );
@@ -973,6 +1025,16 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 						assert( !gameLocal.isClient );
 						*idealWeapon = i;
 					}
+
+// doomtrinity-dual weapon->										
+					if ( weaponName == "weapon_pistol" ) {
+						pistolInInventory = 1;
+					} 
+					if ( weaponName == "weapon_shotgun_double" ) {
+						shotgunDoubleInInventory = 1;
+					} 
+// doomtrinity-dual weapon-<
+
 					if ( owner->hud && updateHud && lastGiveTime + 1000 < gameLocal.time ) {
 						owner->hud->SetStateInt( "newWeapon", i );
 						owner->hud->HandleNamedEvent( "newWeapon" );
@@ -1046,6 +1108,27 @@ int idInventory::HasAmmo( ammo_t type, int amount ) {
 	return ammo[ type ] / amount;
 
 }
+
+/*
+===============
+idInventory::HasAmmo
+===============
+*/
+/*
+int idInventory::HasAmmo( const char *weapon_classname, bool includeClip, idPlayer* owner ) {// doomtrinity (D3XP)
+	int ammoRequired;
+	ammo_t ammo_i = AmmoIndexForWeaponClass( weapon_classname, &ammoRequired );
+//doomtrinity ->	//From D3XP
+	int ammoCount = HasAmmo( ammo_i, ammoRequired );
+	if(includeClip && owner) {
+		ammoCount += clip[owner->SlotForWeapon(weapon_classname)];
+	}
+	return ammoCount;
+	
+	//return HasAmmo( ammo_i, ammoRequired );
+*/
+//<- doomtrinity
+//}
 
 /*
 ===============
@@ -1292,6 +1375,7 @@ idPlayer::idPlayer() {
 
 	firstPersonViewOrigin	= vec3_zero;
 	firstPersonViewAxis		= mat3_identity;
+	firstPersonViewWeaponAxis		= mat3_identity;		// doomtrinity-headanim
 
 	hipJoint				= INVALID_JOINT;
 	chestJoint				= INVALID_JOINT;
@@ -1321,6 +1405,14 @@ idPlayer::idPlayer() {
 	weapon_soulcube			= -1;
 	weapon_pda				= -1;
 	weapon_fists			= -1;
+//doomtrinity ->
+	weapon_pistol			= -1;
+	weapon_shotgun			= -1;
+	weapon_superShotgun		= -1;
+	weapon_machinegun		= -1;
+	weapon_plasmagun		= -1;
+	weapon_rocketlauncher	= -1;
+//<- doomtrinity
 #ifdef _D3XP
 	weapon_bloodstone		= -1;
 	weapon_bloodstone_active1 = -1;
@@ -1428,6 +1520,8 @@ idPlayer::idPlayer() {
 	isChatting				= false;
 
 	selfSmooth				= false;
+
+	fSpreadModifier			= 0.0f;		// sikk - Weapon Management: Handling PD3
 
 	focusMoveableTimer		= 0;		// sikk - Object Manipulation
 
@@ -1543,6 +1637,14 @@ void idPlayer::Init( void ) {
 	weapon_soulcube			= SlotForWeapon( "weapon_soulcube" );
 	weapon_pda				= SlotForWeapon( "weapon_pda" );
 	weapon_fists			= SlotForWeapon( "weapon_fists" );
+//doomtrinity ->
+	weapon_pistol			= SlotForWeapon( "weapon_pistol" );
+	weapon_shotgun			= SlotForWeapon( "weapon_shotgun" );
+	weapon_superShotgun		= SlotForWeapon( "weapon_shotgun_double" );
+	weapon_machinegun		= SlotForWeapon( "weapon_machinegun" );
+	weapon_plasmagun		= SlotForWeapon( "weapon_plasmagun" );
+	weapon_rocketlauncher	= SlotForWeapon( "weapon_rocketlauncher" );
+//<- doomtrinity
 #ifdef _D3XP
 	weapon_bloodstone		= SlotForWeapon( "weapon_bloodstone_passive" );
 	weapon_bloodstone_active1 = SlotForWeapon( "weapon_bloodstone_active1" );
@@ -1601,6 +1703,8 @@ void idPlayer::Init( void ) {
 	focusCharacter			= NULL;
 	talkCursor				= 0;
 	focusVehicle			= NULL;
+
+	fSpreadModifier			= 0.0f;		// sikk - Weapon Management: Handling PD3
 
 	focusMoveableTimer		= 0;		// sikk - Object Manipulation
 
@@ -1804,6 +1908,12 @@ void idPlayer::Init( void ) {
 
 	//isChatting = false;
 	cvarSystem->SetCVarBool("ui_chat", false);
+//doomtrinity ->
+	init_mSensitivity	= in_mouseSensitivity.GetFloat();
+	init_mSmooth		= in_mouseSmooth.GetInteger();
+	cvarSystem->SetCVarFloat( "sensitivity", init_mSensitivity ); 
+	cvarSystem->SetCVarInteger( "m_smooth", init_mSmooth );
+//<- doomtrinity
 }
 
 /*
@@ -2166,6 +2276,14 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( weapon_soulcube );
 	savefile->WriteInt( weapon_pda );
 	savefile->WriteInt( weapon_fists );
+//doomtrinity ->
+	savefile->WriteInt( weapon_pistol );
+	savefile->WriteInt( weapon_shotgun );
+	savefile->WriteInt( weapon_superShotgun );
+	savefile->WriteInt( weapon_machinegun );
+	savefile->WriteInt( weapon_plasmagun );
+	savefile->WriteInt( weapon_rocketlauncher );
+//<- doomtrinity
 #ifdef _D3XP
 	savefile->WriteInt( weapon_bloodstone );
 	savefile->WriteInt( weapon_bloodstone_active1 );
@@ -2227,6 +2345,7 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteVec3( firstPersonViewOrigin );
 	savefile->WriteMat3( firstPersonViewAxis );
+	savefile->WriteMat3( firstPersonViewWeaponAxis );			// doomtrinity-headanim
 
 	// don't bother saving dragEntity since it's a dev tool
 
@@ -2443,6 +2562,14 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( weapon_soulcube );
 	savefile->ReadInt( weapon_pda );
 	savefile->ReadInt( weapon_fists );
+//doomtrinity ->
+	savefile->ReadInt( weapon_pistol );
+	savefile->ReadInt( weapon_shotgun );
+	savefile->ReadInt( weapon_superShotgun );
+	savefile->ReadInt( weapon_machinegun );
+	savefile->ReadInt( weapon_plasmagun );
+	savefile->ReadInt( weapon_rocketlauncher );
+//<- doomtrinity
 #ifdef _D3XP
 	savefile->ReadInt( weapon_bloodstone );
 	savefile->ReadInt( weapon_bloodstone_active1 );
@@ -2509,6 +2636,7 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadVec3( firstPersonViewOrigin );
 	savefile->ReadMat3( firstPersonViewAxis );
+	savefile->ReadMat3( firstPersonViewWeaponAxis );			// doomtrinity-headanim
 
 	// don't bother saving dragEntity since it's a dev tool
 	dragEntity.Clear();
@@ -3194,7 +3322,7 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 #endif
 		_hud->SetStateString( "player_ammo", weapon.GetEntity()->ClipSize() ? va( "%i", inclip ) : "--" );		// how much in the current clip
 		_hud->SetStateString( "player_clips", weapon.GetEntity()->ClipSize() ? va( "%i", ammoamount / weapon.GetEntity()->ClipSize() ) : "--" );
-
+		_hud->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount ) );// doomtrinity (D3XP)
 #ifdef _D3XP
 		_hud->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount ) );
 #else
@@ -3229,6 +3357,10 @@ void idPlayer::UpdateHudAmmo( idUserInterface *_hud ) {
 	_hud->HandleNamedEvent( "bloodstoneAmmoUpdate" );
 #endif
 
+//doomtrinity ->	//From D3XP
+	//Let the HUD know the total amount of ammo regardless of the ammo required value
+	_hud->SetStateString( "player_ammo_count", va("%i", weapon.GetEntity()->AmmoCount()));
+//<- doomtrinity
 	_hud->HandleNamedEvent( "updateAmmo" );
 
 // sikk---> Dynamic Hud System
@@ -3425,6 +3557,8 @@ idPlayer::DrawHUD
 */
 void idPlayer::DrawHUD( idUserInterface *_hud ) {
 
+int crosshairType = g_crosshair.GetInteger();
+
 	if ( !weapon.GetEntity() || influenceActive != INFLUENCE_NONE || privateCameraView || gameLocal.GetCamera() || !_hud || !g_showHud.GetBool() ) {
 		return;
 	}
@@ -3445,98 +3579,17 @@ void idPlayer::DrawHUD( idUserInterface *_hud ) {
 	// weapon targeting crosshair
 	if ( !GuiActive() ) {
 		if ( cursor && weapon.GetEntity()->ShowCrosshair() ) {
-
-// sikk---> Crosshair Positioning
-			idStr buf;
-			if ( g_crosshairType.GetBool() && !GetTalkCursor() && !( focusItem || focusCorpse ) ) {
-				trace_t	tr;
-				idVec3	ndc;
-				idVec3	muzzleOrigin;
-				idMat3	muzzleAxis;
-
-				// detemine the point at which the weapon is aiming
-				if ( weapon.GetEntity()->GetBarrelJointView() != INVALID_JOINT &&
-					 weapon.GetEntity()->GetProjectileDict().GetBool( "launchFromBarrel" ) &&
-					 ( GetCurrentWeaponNum() < 9 && GetCurrentWeaponNum() > 11 ) ) {
-					// there is an explicit joint for the muzzle
-					weapon.GetEntity()->GetGlobalJointTransform( true, weapon.GetEntity()->GetBarrelJointView(), muzzleOrigin, muzzleAxis );
-				} else {
-					// go straight out of the view
-					muzzleOrigin = firstPersonViewOrigin;
-					muzzleAxis = firstPersonViewAxis;
-				}
-				idVec3 endPos = muzzleOrigin + ( muzzleAxis.ToAngles().ToForward() * 65536.0f );
-				gameLocal.clip.TracePoint( tr, muzzleOrigin, endPos, MASK_SHOT_RENDERMODEL, this );
-				endPos = tr.endpos;
-				v3CrosshairPos.Lerp( endPos, v3CrosshairPos, g_crosshairLerp.GetFloat() );
-				renderSystem->GlobalToNormalizedDeviceCoordinates( v3CrosshairPos, ndc );
-				ndc.x = ( ( ndc.x * 0.5 + 0.5 ) * SCREEN_WIDTH );
-				ndc.y = ( ( 1.0f - ( ndc.y * 0.5 + 0.5 ) ) * SCREEN_HEIGHT );
-				sprintf( buf, "%d %d 100 32", (int)ndc.x - 16, (int)ndc.y - 16);
-			} else { 
-				sprintf( buf, "%d %d 100 32", 304, 224 );
-			}
-// <---sikk
-
-// sikk---> Crosshair Cvar
-			int crosshairType = g_crosshair.GetInteger();
-			if ( crosshairType == 0 ) {
-				cursor->SetStateString( "grabbercursor", "0" );
-				cursor->SetStateString( "combatcursor", "0" );
-			} else if ( crosshairType == 1 ) {
-				if ( weapon.GetEntity()->GetGrabberState() == 1 || weapon.GetEntity()->GetGrabberState() == 2 ) {
-					cursor->SetStateString( "grabbercursor", "1" );
+//doomtrinity PD3 ->
+			if ( usercmd.buttons & BUTTON_ZOOM ) {
+				if ( crosshairType == 0 || currentWeapon == weapon_pistol || currentWeapon == weapon_shotgun || currentWeapon == weapon_superShotgun /* PD3 || currentWeapon == weapon_machinegun || currentWeapon == weapon_plasmagun || currentWeapon == weapon_rocketlauncher */ ) {
 					cursor->SetStateString( "combatcursor", "0" );
-					cursor->SetStateString( "pickupcursor", "0" );
-				} else if ( weapon.GetEntity()->GetGrabberState() != 2 && !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) ) {
-					cursor->SetStateString( "grabbercursor", "0" );
-					cursor->SetStateString( "combatcursor", "0" );
-					cursor->SetStateString( "pickupcursor", "1" );
 				} else {
-					cursor->SetStateString( "grabbercursor", "0" );
 					cursor->SetStateString( "combatcursor", "1" );
-					cursor->SetStateString( "pickupcursor", "0" );
 				}
-				cursor->SetStateString( "cursorposition", buf );
-			} else if ( crosshairType == 2 ) {
-				cursor->SetStateString( "cursorposition", buf );
-				if ( ( bIsZoomed || GetTalkCursor() ) &&
-					!( g_weaponHandlingType.GetBool() && ( bWATrace || bWAIsSprinting || OnLadder() ) ) &&
-					( GetCurrentWeaponNum() > 1 && GetCurrentWeaponNum() < 12 ) ) {
-					if ( weapon.GetEntity()->GetGrabberState() == 1 || weapon.GetEntity()->GetGrabberState() == 2 ) {
-						cursor->SetStateString( "grabbercursor", "1" );
-						cursor->SetStateString( "combatcursor", "0" );
-						cursor->SetStateString( "pickupcursor", "0" );
-					} else if ( weapon.GetEntity()->GetGrabberState() != 2 && !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) ) {
-						cursor->SetStateString( "grabbercursor", "0" );
-						cursor->SetStateString( "combatcursor", "0" );
-						cursor->SetStateString( "pickupcursor", "1" );
-					} else {
-						cursor->SetStateString( "grabbercursor", "0" );
-						cursor->SetStateString( "combatcursor", "1" );
-						cursor->SetStateString( "pickupcursor", "0" );
-					}
-				} else {
-					cursor->SetStateString( "grabbercursor", "0" );
-					cursor->SetStateString( "combatcursor", "0" );
-					// we still want the pickup icon to show up
-					if ( weapon.GetEntity()->GetGrabberState() != 2 && !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) )
-						cursor->SetStateString( "pickupcursor", "1" );
-					else
-						cursor->SetStateString( "pickupcursor", "0" );
-				}
-			}
-#ifdef _D3XP
-/*			if ( weapon.GetEntity()->GetGrabberState() == 1 || weapon.GetEntity()->GetGrabberState() == 2 ) {
-				cursor->SetStateString( "grabbercursor", "1" );
-				cursor->SetStateString( "combatcursor", "0" );
-			} else {
-				cursor->SetStateString( "grabbercursor", "0" );
+			} else if ( usercmd.buttons & !BUTTON_ZOOM && crosshairType != 0 ) {
 				cursor->SetStateString( "combatcursor", "1" );
-			}*/
-#endif
-// <---sikk
-
+			}
+//<- doomtrinity PD3
 			cursor->Redraw( gameLocal.realClientTime );
 		}
 	}
@@ -3645,7 +3698,7 @@ void idPlayer::UpdateConditions( void ) {
 		AI_STRAFE_RIGHT	= false;
 	}
 
-	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ) && ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) );
+	AI_RUN			= ( usercmd.buttons & BUTTON_RUN ) && ( ( !pm_stamina.GetFloat() ) || ( stamina > pm_staminathreshold.GetFloat() ) ); // && !( usercmd.buttons & BUTTON_ZOOM ) ;// doomtrinity
 	AI_DEAD			= ( health <= 0 );
 }
 
@@ -4216,6 +4269,14 @@ void idPlayer::ClearPowerup( int i ) {
 #endif
 			break;
 		}
+
+// PD3 start
+		case ADRENALINE: {
+			StopSound( SND_CHANNEL_DEMONIC, false );
+			break;
+		}
+// PD3 end
+
 		case INVISIBILITY: {
 			if ( weapon.GetEntity() ) {
 				weapon.GetEntity()->UpdateSkin();
@@ -4759,6 +4820,7 @@ void idPlayer::NextBestWeapon( void ) {
 	while ( w > 0 ) {
 		w--;
 		weap = spawnArgs.GetString( va( "def_weapon%d", w ) );
+//		if ( !weap[ 0 ] || ( ( inventory.weapons & ( 1 << w ) ) == 0 ) || ( !inventory.HasAmmo( weap, true, this ) ) ) {// doomtrinity (D3XP)
 #ifdef _D3XP
 		if ( !weap[ 0 ] || ( ( inventory.weapons & ( 1 << w ) ) == 0 ) || ( !inventory.HasAmmo( weap, true, this ) ) ) {
 #else
@@ -4778,7 +4840,6 @@ void idPlayer::NextBestWeapon( void ) {
 			continue;
 		}
 #endif
-
 		break;
 	}
 	idealWeapon = w;
@@ -4831,6 +4892,7 @@ void idPlayer::NextWeapon( void ) {
 #else
 		if ( inventory.HasAmmo( weap ) ) {
 #endif
+//		if ( inventory.HasAmmo( weap, true, this ) ) {// doomtrinity (D3XP)
 			break;
 		}
 	}
@@ -4886,6 +4948,7 @@ void idPlayer::PrevWeapon( void ) {
 #else
 		if ( inventory.HasAmmo( weap ) ) {
 #endif
+	//	if ( inventory.HasAmmo( weap, true, this ) ) {// doomtrinity (D3XP)
 			break;
 		}
 	}
@@ -4978,10 +5041,12 @@ void idPlayer::SelectWeapon( int num, bool force ) {
 #endif
 
 	if ( force || ( inventory.weapons & ( 1 << num ) ) ) {
+	//	if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {// doomtrinity (D3XP)
 #ifdef _D3XP
 		if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {
 #else
-		if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {
+		if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {// doomtrinity (D3XP)
+	//	if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", num ) ) ) {
 #endif
 			return;
 		}
@@ -4990,8 +5055,10 @@ void idPlayer::SelectWeapon( int num, bool force ) {
 #ifdef _D3XP
 			if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {
 #else
-			if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {
+			if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {// doomtrinity (D3XP)
+		//	if ( !inventory.HasAmmo( weap ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {
 #endif
+		//	if ( !inventory.HasAmmo( weap, true, this ) && !spawnArgs.GetBool( va( "weapon%d_allowempty", previousWeapon ) ) ) {// doomtrinity (D3XP)
 				return;
 			}
 			idealWeapon = previousWeapon;
@@ -5402,17 +5469,19 @@ void idPlayer::UpdateWeapon( void ) {
 	} else	if ( focusCharacter && ( focusCharacter->health > 0 ) ) {
 		Weapon_NPC();
 // sikk---> Health Management System (Health Pack)|Manual Item Pickup|Searchable Corpses|Object Manipulation
-	} else if ( ( g_weaponHandlingType.GetBool() && ( healthPackTimer > gameLocal.time ) || ( searchTimer > gameLocal.time ) ) || 
+	} else if ( ( g_weaponAwareness.GetBool() && ( healthPackTimer > gameLocal.time ) || ( searchTimer > gameLocal.time ) ) || 
 				( g_grabMode.GetBool() && ( grabEntity.GetGrabEntity() || grabEntity.GetThrownTime() > gameLocal.time ) ) ) {
 		StopFiring();
 		weapon.GetEntity()->LowerWeapon();
 // <---sikk
-// sikk---> Weapon Handling System
-	} else if ( GetWeaponHandling() ) {
+// sikk---> Weapon Management: Awareness
+	} else if ( GetWeaponAwareness() ) {
 		if ( idealWeapon != currentWeapon )
 			Weapon_Combat();
 		StopFiring();
 		weapon.GetEntity()->LowerWeapon();
+		if ( !OnLadder() )
+			bWAUseHideDist = true;
 // <---sikk
 	} else {
 		Weapon_Combat();
@@ -6182,8 +6251,14 @@ void idPlayer::BobCycle( const idVec3 &pushVelocity ) {
 			bobmove = pm_crouchbob.GetFloat();
 			// ducked characters never play footsteps
 		} else {
-			// vary the bobbing based on the speed of the player
-			bobmove = pm_walkbob.GetFloat() * ( 1.0f - bobFrac ) + pm_runbob.GetFloat() * bobFrac;
+//doomtrinity ->
+			if ( usercmd.buttons & BUTTON_ZOOM ) {
+				bobmove = pm_adsbob.GetFloat();
+			} else {
+				// vary the bobbing based on the speed of the player
+				bobmove = pm_walkbob.GetFloat() * ( 1.0f - bobFrac ) + pm_runbob.GetFloat() * bobFrac;
+			}
+//<- doomtrinity
 		}
 
 		// check for footstep / splash sounds
@@ -7117,7 +7192,8 @@ void idPlayer::PerformImpulse( int impulse ) {
 			break;
 		}
 
-		case IMPULSE_25: {
+	// PD3	case IMPULSE_25: {
+			case IMPULSE_21: {
 			if ( gameLocal.isServer && gameLocal.mpGame.IsGametypeFlagBased() && (gameLocal.serverInfo.GetInt( "si_midnight" ) == 2) ) {
 				if ( enviroSuitLight.IsValid() ) {
 					enviroSuitLight.GetEntity()->PostEventMS( &EV_Remove, 0 );
@@ -7174,22 +7250,29 @@ void idPlayer::PerformImpulse( int impulse ) {
 			break;
 		}
 
+// PD3
+//		case IMPULSE_21: {
+//					SelectWeapon( 13, true );
+//			break;
+//		}
+
 // sikk---> Headlight Mod
-		case IMPULSE_21: {
-			if ( GetCurrentWeaponNum() > 0 && !gameLocal.inCinematic )
+		case IMPULSE_23: {
+			if ( !gameLocal.inCinematic )
+	// PD3		if ( GetCurrentWeapon() < 11 && !gameLocal.inCinematic )
 				ToggleHeadlight();
 			break;
 		}
 // <---sikk
 // sikk---> Infrared Goggles PostProcess
-		case IMPULSE_23: {
-			if ( GetCurrentWeaponNum() != 16 && !gameLocal.inCinematic && ( !GetInfluenceMaterial() && GetInfluenceEntity() == NULL ) )
+		case IMPULSE_24: {
+			if ( GetCurrentWeapon() != 12 && !gameLocal.inCinematic && ( !GetInfluenceMaterial() && GetInfluenceEntity() == NULL ) )
 				ToggleIRGoggles();
 			break;
 		}
 // <---sikk
 // sikk---> Health Management System (Health Pack)
-		case IMPULSE_24: {
+		case IMPULSE_25: {
 			if ( g_healthManagementType.GetInteger() == 1 )
 				UseHealthPack();
 			break;
@@ -7305,13 +7388,30 @@ void idPlayer::AdjustSpeed( void ) {
 	float speed;
 	float rate;
 
+// sikk---> Player Speed Type
+	float crouchSpeed, walkSpeed, runSpeed;
+	if ( g_playerSpeedType.GetInteger() == 0 ) {
+		crouchSpeed = 80.0f;
+		walkSpeed = 140.0f;
+		runSpeed = 220.0f;
+	} else if ( g_playerSpeedType.GetInteger() == 1 ) {
+		crouchSpeed = 120.0f;
+		walkSpeed = 220.0f;
+		runSpeed = 320.0f;
+	} else {
+		crouchSpeed = pm_crouchspeed.GetFloat();
+		walkSpeed = pm_walkspeed.GetFloat();
+		runSpeed = pm_runspeed.GetFloat();
+	}
+// <---sikk
+
 	if ( spectating ) {
 		speed = pm_spectatespeed.GetFloat();
 		bobFrac = 0.0f;
 	} else if ( noclip ) {
 		speed = pm_noclipspeed.GetFloat();
 		bobFrac = 0.0f;
-	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) ) {
+	} else if ( !physicsObj.OnLadder() && ( usercmd.buttons & BUTTON_RUN ) && ( usercmd.forwardmove || usercmd.rightmove ) && ( usercmd.upmove >= 0 ) && !( usercmd.buttons & BUTTON_ZOOM ) ) {// doomtrinity
 		if ( !gameLocal.isMultiplayer && !physicsObj.IsCrouching() && !PowerUpActive( ADRENALINE ) ) {
 			stamina -= MS2SEC( gameLocal.msec );
 		}
@@ -7339,7 +7439,14 @@ void idPlayer::AdjustSpeed( void ) {
 		if ( stamina > pm_stamina.GetFloat() ) {
 			stamina = pm_stamina.GetFloat();
 		}
-		speed = pm_walkspeed.GetFloat() * ( bIsZoomed ? 0.75f : 1.0f );	// sikk - Decreased movement speed when zoomed
+//doomtrinity ->
+		if ( usercmd.buttons & BUTTON_ZOOM ) {
+			speed = pm_adsspeed.GetFloat();
+		} else {
+			speed = walkSpeed;
+		}
+		//speed = walkSpeed * ( g_weaponAwareness.GetBool() && bIsZoomed ? 0.75f : 1.0f );	// sikk - Decreased movement speed when zoomed
+//<- doomtrinity
 		bobFrac = 0.0f;
 	}
 
@@ -7750,6 +7857,53 @@ void idPlayer::UpdateHud( void ) {
 	} else {
 		hud->SetStateString( "hudLag", "0" );
 	}
+
+// sikk---> Crosshair Positioning PD3
+	idStr buf;
+	if ( g_crosshairType.GetBool() && !GetTalkCursor() && !( focusItem || focusCorpse ) ) {
+		trace_t	tr;
+		idVec3	ndc;
+		idVec3	muzzleOrigin;
+		idMat3	muzzleAxis;
+
+		// detemine the point at which the weapon is aiming
+		if ( weapon.GetEntity()->GetBarrelJointView() != INVALID_JOINT &&
+			 ( weapon.GetEntity()->GetProjectileDict().GetBool( "launchFromBarrel" ) || g_weaponProjectileOrigin.GetBool() ) ) {	// sikk - Weapon Management: Projectile Origin
+			// there is an explicit joint for the muzzle
+			weapon.GetEntity()->GetGlobalJointTransform( true, weapon.GetEntity()->GetBarrelJointView(), muzzleOrigin, muzzleAxis );
+		} else {
+			// go straight out of the view
+			muzzleOrigin = firstPersonViewOrigin;
+			muzzleAxis = firstPersonViewAxis;
+		}
+		idVec3 endPos = muzzleOrigin + ( firstPersonViewAxis.ToAngles().ToForward() * 65536.0f );
+		gameLocal.clip.TracePoint( tr, muzzleOrigin, endPos, MASK_SHOT_RENDERMODEL, this );
+		endPos = tr.endpos;
+		v3CrosshairPos.Lerp( endPos, v3CrosshairPos, g_crosshairLerp.GetFloat() );
+		renderSystem->GlobalToNormalizedDeviceCoordinates( v3CrosshairPos, ndc );
+		ndc.x = ( ( ndc.x * 0.5 + 0.5 ) * SCREEN_WIDTH );
+		ndc.y = ( ( 1.0f - ( ndc.y * 0.5 + 0.5 ) ) * SCREEN_HEIGHT );
+		sprintf( buf, "%d %d 100 32", (int)ndc.x - 16, (int)ndc.y - 16);
+	} else { 
+		sprintf( buf, "%d %d 100 32", 304, 224 );
+	}
+// <---sikk PD3
+
+// sikk---> Crosshair Cvar PD3
+	int crosshairType = g_crosshair.GetInteger();
+	if ( crosshairType == 0 ) {
+		cursor->SetStateString( "combatcursor", "0" );
+	} else if ( crosshairType == 1 ) {
+		if ( !grabEntity.GetGrabEntity() && ( focusItem || focusCorpse || focusMoveable ) ) {
+			cursor->SetStateString( "combatcursor", "0" );
+			cursor->SetStateString( "pickupcursor", "1" );
+		} else {
+			cursor->SetStateString( "combatcursor", "1" );
+			cursor->SetStateString( "pickupcursor", "0" );
+		}
+		cursor->SetStateString( "cursorposition", buf );
+	}
+// <---sikk PD3
 }
 
 /*
@@ -7884,25 +8038,48 @@ void idPlayer::Think( void ) {
 	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_MLOOK ) {
 		centerView.Init( gameLocal.time, 200, viewAngles.pitch, 0 );
 	}
+//doomtrinity ->
+	if ( init_mSensitivity != in_mouseSensitivity.GetFloat() ) {
+		init_mSensitivity = in_mouseSensitivity.GetFloat();
+		cvarSystem->SetCVarFloat( "sensitivity", init_mSensitivity );
+	}
+	if ( init_mSmooth != in_mouseSmooth.GetInteger() ) {
+		init_mSmooth = in_mouseSmooth.GetInteger();
+		cvarSystem->SetCVarInteger( "m_smooth", init_mSmooth );
+	}
+//<- doomtrinity
 
 	// zooming
 	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_ZOOM ) {
 		if ( ( usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ) {
 			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
 			bIsZoomed = true;	// sikk - Depth of Field PostProcess
+//doomtrinity ->
+			cvarSystem->SetCVarFloat( "sensitivity", ( in_mouseSensitivity.GetFloat() * 0.75f ) );// Mouse sensitivity is 75% when zooming
+			cvarSystem->SetCVarInteger( "m_smooth", 8 );// Force the smoothness of the mouse view
+//<- doomtrinity
 		} else {
 			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
 			bIsZoomed = false;	// sikk - Depth of Field PostProcess
+//doomtrinity ->
+			cvarSystem->SetCVarFloat( "sensitivity", in_mouseSensitivity.GetFloat() ); 
+			cvarSystem->SetCVarInteger( "m_smooth", in_mouseSmooth.GetInteger() );
+//<- doomtrinity
 		}
 	}
 
-// sikk---> Weapon Handling System
-	if ( g_weaponHandlingType.GetBool() && !weapon.GetEntity()->IsReady() && bIsZoomed ) {
+// sikk---> Weapon Management: Handling/Awareness PD3
+	if ( g_weaponAwareness.GetBool() && !weapon.GetEntity()->IsReady() && bIsZoomed ) {
 		zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
 		usercmd.buttons ^= BUTTON_ZOOM;
 		bIsZoomed = false;
 	}
-// <---sikk
+	if ( g_weaponHandlingType.GetInteger() == 1 || g_weaponHandlingType.GetInteger() == 3 ) {
+		fSpreadModifier -= 0.05f;
+		if ( fSpreadModifier < 0.0f )
+			fSpreadModifier = 0.0f;
+	}
+// <---sikk PD3
 
 	// if we have an active gui, we will unrotate the view angles as
 	// we turn the mouse movements into gui events
@@ -8166,6 +8343,7 @@ void idPlayer::StopHealthRecharge() {
 idPlayer::GetCurrentWeapon
 =================
 */
+/* PD3
 idStr idPlayer::GetCurrentWeapon() {
 	const char *weapon;
 
@@ -8176,6 +8354,7 @@ idStr idPlayer::GetCurrentWeapon() {
 		return "";
 	}
 }
+*/
 
 /*
 =================
@@ -8502,7 +8681,16 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 	int		damage;
 	int		armorSave;
 
-	damageDef->GetInt( "damage", "20", damage );
+// sikk---> Damage Type PD3
+	if ( g_damageType.GetInteger() == 1 && damageDef->GetInt( "damage_doom_scale" ) ) {
+		damage = damageDef->GetInt( "damage_doom_scale" ) * ( gameLocal.random.RandomInt( 255 ) % damageDef->GetInt( "damage_doom_range" ) + 1 );
+	} else if ( g_damageType.GetInteger() == 2 && damageDef->GetInt( "damage_custom" ) ) {
+		damage = damageDef->GetInt( "damage_custom" );
+	} else {
+		damage = damageDef->GetInt( "damage", "20" );
+	}
+// <---sikk PD3
+
 	damage = GetDamageForLocation( damage, location );
 
 	idPlayer *player = attacker->IsType( idPlayer::Type ) ? static_cast<idPlayer*>(attacker) : NULL;
@@ -9033,7 +9221,8 @@ void idPlayer::CalculateViewWeaponPos( idVec3 &origin, idMat3 &axis ) {
 
 	// CalculateRenderView must have been called first
 	const idVec3 &viewOrigin = firstPersonViewOrigin;
-	const idMat3 &viewAxis = firstPersonViewAxis;
+	//const idMat3 &viewAxis = firstPersonViewAxis;		// doomtrinity-headanim - commented out. Use "firstPersonViewWeaponAxis" which doesn't take care of the head orientation.
+	const idMat3 &viewAxis = firstPersonViewWeaponAxis;			// doomtrinity-headanim 
 
 	// these cvars are just for hand tweaking before moving a value to the weapon def
 	idVec3	gunpos( g_gun_x.GetFloat(), g_gun_y.GetFloat(), g_gun_z.GetFloat() );
@@ -9073,12 +9262,16 @@ void idPlayer::CalculateViewWeaponPos( idVec3 &origin, idMat3 &axis ) {
 		origin -= gravity * ( landChange*0.25f * (LAND_DEFLECT_TIME + LAND_RETURN_TIME - delta) / LAND_RETURN_TIME );
 	}
 
-	// speed sensitive idle drift
-	scale = xyspeed + 40.0f;
-	fracsin = scale * sin( MS2SEC( gameLocal.time ) ) * 0.01f;
-	angles.roll		+= fracsin;
-	angles.yaw		+= fracsin;
-	angles.pitch	+= fracsin;
+//doomtrinity ->
+	if ( !( usercmd.buttons & BUTTON_ZOOM ) ) {
+		// speed sensitive idle drift
+		scale = xyspeed + 40.0f;
+		fracsin = scale * sin( MS2SEC( gameLocal.time ) ) * 0.01f;
+		angles.roll		+= fracsin;
+		angles.yaw		+= fracsin;
+		angles.pitch	+= fracsin;
+	}
+//<- doomtrinity
 
 	axis = angles.ToMat3() * viewAxis;
 }
@@ -9183,6 +9376,7 @@ idPlayer::GetViewPos
 */
 void idPlayer::GetViewPos( idVec3 &origin, idMat3 &axis ) const {
 	idAngles angles;
+	idAngles headAnimAngle;		// doomtrinity-headanim
 
 	// if dead, fix the angle and don't add any kick
 	if ( health <= 0 ) {
@@ -9194,12 +9388,48 @@ void idPlayer::GetViewPos( idVec3 &origin, idMat3 &axis ) const {
 	} else {
 		origin = GetEyePosition() + viewBob;
 		angles = viewAngles + viewBobAngles + playerView.AngleOffset();
+		//angles = viewAngles + viewBobAngles + playerView.AngleOffset();	// doomtrinity-headanim - commented out
+// doomtrinity-headanim -->			// Check in the viewmodel if the bone "head" is present, if true take care of its orientation.
+		if ( weapon.GetEntity()->HasHeadJoint() ) {
+			headAnimAngle = weapon.GetEntity()->GetHeadAngle();
+			angles = viewAngles + viewBobAngles + headAnimAngle + playerView.AngleOffset();
+			//gameLocal.Printf( "calculate head anim\n" );
+		} else {
+			angles = viewAngles + viewBobAngles + playerView.AngleOffset();
+			//gameLocal.Printf( "DO NOT calculate head anim\n" );
+		}		
+// <-- doomtrinity-headanim
 
 		axis = angles.ToMat3() * physicsObj.GetGravityAxis();
 
 		// adjust the origin based on the camera nodal distance (eye distance from neck)
 		origin += physicsObj.GetGravityNormal() * g_viewNodalZ.GetFloat();
 		origin += axis[0] * g_viewNodalX.GetFloat() + axis[2] * g_viewNodalZ.GetFloat();
+	}
+}
+
+/*
+===============
+idPlayer::GetViewWeaponAxis			// doomtrinity-headanim
+===============
+*/
+void idPlayer::GetViewWeaponAxis( idMat3 &axis ) const {
+	idAngles angles;
+	
+	// if dead, fix the angle and don't add any kick
+	if ( health <= 0 ) {
+		angles.yaw = viewAngles.yaw;
+		angles.roll = 40;
+		angles.pitch = -15;
+		axis = angles.ToMat3();
+		
+	} else {
+		
+		angles = viewAngles + viewBobAngles + playerView.AngleOffset();
+
+		axis = angles.ToMat3() * physicsObj.GetGravityAxis();
+
+		
 	}
 }
 
@@ -9231,6 +9461,7 @@ void idPlayer::CalculateFirstPersonView( void ) {
 		firstPersonViewAxis = firstPersonViewAxis * playerView.ShakeAxis();
 #endif
 	}
+	GetViewWeaponAxis( firstPersonViewWeaponAxis );			// doomtrinity-headanim
 }
 
 /*
@@ -10605,6 +10836,25 @@ void idPlayer::Event_Gibbed( void ) {
 	// do nothing
 }
 
+// doomtrinity-dual weapon->
+/*
+==================
+idPlayer::Event_GetNumPistols
+==================
+*/
+void idPlayer::Event_GetNumPistols( void ) {
+	idThread::ReturnInt( inventory.pistolInInventory );
+}
+/*
+==================
+idPlayer::Event_GetNumShotguns
+==================
+*/
+void idPlayer::Event_GetNumShotguns( void ) {
+	idThread::ReturnInt( inventory.shotgunDoubleInInventory );
+}
+// doomtrinity-dual weapon-<
+
 /*
 ===============
 idPlayer::UpdatePlayerIcons
@@ -10798,7 +11048,7 @@ void idPlayer::UpdateBattery() {
 		if ( nBattery <= 0 ) {
 			nBattery = 0;
 			ToggleIRGoggles();
-		} else if ( GetCurrentWeaponNum() == 16 || gameLocal.inCinematic || PowerUpActive( BERSERK ) || ( GetInfluenceMaterial() || GetInfluenceEntity() ) ) {
+		} else if ( GetCurrentWeapon() == 16 || gameLocal.inCinematic || PowerUpActive( BERSERK ) || ( GetInfluenceMaterial() || GetInfluenceEntity() ) ) {
 			ToggleIRGoggles();
 		}
 	}
@@ -10828,7 +11078,8 @@ void idPlayer::UpdateBattery() {
 		if ( nBattery <= 0 ) {
 			nBattery = 0;
 			ToggleHeadlight();
-		} else if ( GetCurrentWeaponNum() == 0 || GetCurrentWeaponNum() == 16 || gameLocal.inCinematic ) {
+		} else if ( gameLocal.inCinematic ) {
+// PD3		} else if ( GetCurrentWeapon() >= 11 || gameLocal.inCinematic ) {
 			ToggleHeadlight();
 		}
 	} 
@@ -10904,7 +11155,7 @@ void idPlayer::ToggleIRGoggles() {
 		StartSoundShader( declManager->FindSound( "player_sounds_irgoggles_off" ), SND_CHANNEL_VOICE, 0, false, NULL );
 
 		// reset bloom parms
-		r_useBloom.SetBool( (bool)fIRBloomParms[ 0 ] );
+		r_useBloom.SetInteger( fIRBloomParms[ 0 ] );
 		r_bloomBufferSize.SetInteger( (int)fIRBloomParms[ 1 ] );
 		r_bloomBlurIterations.SetInteger( (int)fIRBloomParms[ 2 ] );
 		r_bloomBlurScaleX.SetFloat( (int)fIRBloomParms[ 3 ] );
@@ -10942,9 +11193,9 @@ void idPlayer::ToggleHeadlight() {
 		args.Set( "classname", "light" );
 		args.Set( "name", name + "_headlight" );	// light name
 		args.Set( "texture", "lights/headlight" );	// light texture
-		args.Set( "light_target", "768 0 0" );		// light cone direction
- 		args.Set( "light_up", "0 0 192" );			// light cone height
- 		args.Set( "light_right", "0 -192 0" );		// light cone width
+		args.Set( "light_target", "1536 0 0" );		// light cone direction // doomtrinity-was 768 0 0
+ 		args.Set( "light_up", "0 0 768" );			// light cone height // doomtrinity-was 0 0 192
+ 		args.Set( "light_right", "0 -768 0" );		// light cone width // doomtrinity-was 0 -192 0
 		gameLocal.SpawnEntityDef( args, &ent );
 		ent->BindToJoint( this, "head", 0.0f );		// light bind parent joint
 		ent->SetOrigin( idVec3( 8, -12, 4 ) );		// light origin
@@ -11062,8 +11313,10 @@ idPlayer::UseAdrenaline
 */
 void idPlayer::UseAdrenaline() {
 	if ( adrenalineAmount ) {
-		inventory.GivePowerUp( this, ADRENALINE, 0 );
-		StartSoundShader( declManager->FindSound( "pickup_adrenaline" ), SND_CHANNEL_ITEM, 0, false, NULL );
+		inventory.GivePowerUp( this, BERSERK, 0 ); // PD3
+	// PD3 inventory.GivePowerUp( this, ADRENALINE, 0 );
+	// PD3 StartSoundShader( declManager->FindSound( "pickup_adrenaline" ), SND_CHANNEL_ITEM, 0, false, NULL );
+		StartSoundShader( declManager->FindSound( "player_sounds_berserk" ), SND_CHANNEL_DEMONIC, 0, false, NULL ); // PD3
 		stamina = 100.0f;
 		adrenalineAmount = 0;
 	}
@@ -11112,14 +11365,14 @@ void idPlayer::SearchCorpse( idAFEntity_Gibbable* corpse ) {
 }
 // <---sikk
 
-// sikk---> Weapon Handling System
+// sikk---> Weapon Management: Awareness PD3
 /*
 ==================
-idPlayer::GetWeaponHandling
+idPlayer::GetWeaponAwareness
 ==================
 */
-bool idPlayer::GetWeaponHandling() {
-	if ( g_weaponHandlingType.GetBool() ) {
+bool idPlayer::GetWeaponAwareness() {
+	if ( g_weaponAwareness.GetBool() ) {
 		idEntity *ent;
 		trace_t trace;
 		idVec3 start = GetEyePosition();
@@ -11127,7 +11380,7 @@ bool idPlayer::GetWeaponHandling() {
 		gameLocal.clip.TracePoint( trace, start, end, MASK_SHOT_RENDERMODEL, this );
 		bWATrace = false;
 		
-		if ( ( trace.fraction < 1.0f ) && ( GetCurrentWeaponNum() > 1 && GetCurrentWeaponNum() < 12 ) ) {
+		if ( ( trace.fraction < 1.0f ) && ( GetCurrentWeapon() > 0 && GetCurrentWeapon() < 9 ) ) {
 			ent = gameLocal.entities[ trace.c.entityNum ];
 			if ( ent && !ent->IsType( idAI::Type ) ) 
 				bWATrace = true;
@@ -11135,7 +11388,7 @@ bool idPlayer::GetWeaponHandling() {
 				bWATrace = false;
 		}
 
-		bWAIsSprinting = ( ( GetCurrentWeaponNum() > 1 && GetCurrentWeaponNum() < 12 ) && AI_RUN && ( AI_FORWARD || AI_BACKWARD || AI_STRAFE_LEFT || AI_STRAFE_RIGHT ) );
+		bWAIsSprinting = ( ( GetCurrentWeapon() >= 0 ) && AI_RUN && ( AI_FORWARD || AI_BACKWARD || AI_STRAFE_LEFT || AI_STRAFE_RIGHT ) );
 
 		if ( bWATrace || bWAIsSprinting || OnLadder() )
 			return true;
@@ -11143,4 +11396,4 @@ bool idPlayer::GetWeaponHandling() {
 
 	return false;
 }
-// <---sikk
+// <---sikk PD3

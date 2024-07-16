@@ -448,9 +448,15 @@ idCVar g_screenFrostTime(			"g_screenFrostTime",			"0",		CVAR_GAME | CVAR_NOCHEA
 idCVar g_burnAwayDelay(				"g_burnAwayDelay",				"0.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"enemy burn away delay. 0.0 = use default value" );
 // <---sikk
 
-// sikk---> Enemy Health Management
-idCVar g_enemyHealthType(			"g_enemyHealthType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets enemy health type: 0 = normal; 1 = random" );
+// sikk---> Locational Damage Type PD3
+idCVar g_damageType(				"g_damageType",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets damage value type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
+idCVar g_damageZoneType(			"g_damageZoneType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets locational damage type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
+// <---sikk PD3
+
+// sikk---> Enemy Health Management PD3
+idCVar g_enemyHealthType(			"g_enemyHealthType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets enemy health type: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 idCVar g_enemyHealthScale(			"g_enemyHealthScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"sets the health scale for enemies" );
+idCVar g_enemyHealthRandom(			"g_enemyHealthRandom",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether to randomize enemy health values" );
 // <---sikk
 
 // sikk---> Inter Rank Aggression
@@ -504,8 +510,14 @@ idCVar g_ammoCapacityType(			"g_ammoCapacityType",			"0",		CVAR_GAME | CVAR_NOCH
 idCVar g_ammoUsageType(				"g_ammoUsageType",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"enables realistic ammo usage when reloading and collecting ammo" );
 // <---sikk
 
-// sikk---> Weapon Handling System
-idCVar g_weaponHandlingType(		"g_weaponHandlingType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles between normal and realistic weapon handling" );
+// sikk---> Weapon Management PD3
+idCVar g_weaponAwareness(			"g_weaponAwareness",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"toggles weapon awareness" );
+idCVar g_weaponHandlingType(		"g_weaponHandlingType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the weapon handling type: 0 = spread (fixed); 1 = spread (variable); 2 spread (fixed) + recoil; 2 spread (variable) + recoil" );
+idCVar g_weaponProjectileOrigin(	"g_weaponProjectileOrigin",		"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"sets whether projectiles are launched from their def defined origin or to launch all projectiles from the weapon's barrel: 0 = Default; 1 = Weapon Barrel" );
+// <---sikk PD3
+
+// sikk---> Player Speed Type
+idCVar g_playerSpeedType(			"g_playerSpeedType",			"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"sets the player's speed configuration: 0 = Doom 3; 1 = Doom 1/2; 2 = Custom" );
 // <---sikk
 
 // sikk---> Tracer Frequency
@@ -542,7 +554,7 @@ idCVar r_softShadowsBlurFilter(		"r_softShadowsBlurFilter",		"1",		CVAR_GAME | C
 idCVar r_softShadowsBlurScale(		"r_softShadowsBlurScale",		"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Sample offset scale for the blur filter" );
 idCVar r_softShadowsBlurEpsilon(	"r_softShadowsBlurEpsilon",		"4.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Set the blur depth difference factor for the blur filter" );
 
-idCVar r_useEdgeAA(					"r_useEdgeAA",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable edge anti-aliasing" );
+idCVar r_useEdgeAA(					"r_useEdgeAA",					"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_INTEGER,	"Enable edge anti-aliasing: 0 = RGB edge AA; 1 = FXAA" );
 idCVar r_edgeAASampleScale(			"r_edgeAASampleScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the sample offset scale for edge detection" );
 idCVar r_edgeAAFilterScale(			"r_edgeAAFilterScale",			"1.0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT,	"Set the filter offset scale for blurring" );
 
@@ -649,3 +661,10 @@ idCVar r_filmgrainStrength(			"r_filmgrainStrength",			"1.0",		CVAR_GAME | CVAR_
 
 idCVar r_useVignetting(				"r_useVignetting",				"0",		CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL,	"Enable vignetting postprocessing effect" );
 // <---sikk
+//doomtrinity ->
+// These mouse Cvars do NOT affect directly the mouse settings, "sensitivity" and "m_smooth" are still used.
+idCVar in_mouseSensitivity(			"in_mouseSensitivity",		"5",			CVAR_GAME | CVAR_ARCHIVE | CVAR_FLOAT, "mouse view sensitivity" );
+idCVar in_mouseSmooth(				"in_mouseSmooth",			"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_INTEGER, "number of samples blended for mouse viewing" );
+idCVar pm_adsspeed(					"pm_adsspeed",				"80",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "speed the player can move while walking and zooming" );
+idCVar pm_adsbob(					"pm_adsbob",				"0",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "bob slowly when walking and zooming" );
+//<- doomtrinity

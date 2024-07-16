@@ -3154,6 +3154,12 @@ bool idGameLocal::SpawnEntityDef( const idDict &args, idEntity **ent, bool setDe
 
 	spawnArgs.GetString( "classname", NULL, &classname );
 
+// PD3---> SSG Factor
+	if ( !idStr::Icmp( classname, "weapon_shotgun" ) ) {
+		classname = ( ( random.RandomFloat() * 0.99999f ) < g_weaponSSGFactor.GetFloat() ) ? "weapon_shotgun_double" : classname;
+	}
+// <---PD3
+
 // sikk---> Spectre Factor
 	if ( !idStr::Icmp( classname, "monster_demon_pinky" ) ) {
 		classname = ( ( random.RandomFloat() * 0.99999f ) < g_enemySpectreFactor.GetFloat() ) ? "monster_demon_spectre" : classname;

@@ -152,6 +152,8 @@ class idInventory {
 public:
 	int						maxHealth;
 	int						weapons;
+	int					shotgunDoubleInInventory;	// doomtrinity-dual weapon
+	int					pistolInInventory;	// doomtrinity-dual weapon
 	int						powerups;
 	int						armor;
 	int						maxarmor;
@@ -220,6 +222,8 @@ public:
 #ifdef _D3XP
 	bool					HasEmptyClipCannotRefill(const char *weapon_classname, idPlayer* owner);
 #endif
+
+//	int						HasAmmo( const char *weapon_classname, bool includeClip = false, idPlayer* owner = NULL );			// looks up the ammo information for the weapon class first		// doomtrinity (D3XP)
 
 	void					UpdateArmor( void );
 
@@ -314,6 +318,14 @@ public:
 	int						weapon_soulcube;
 	int						weapon_pda;
 	int						weapon_fists;
+//doomtrinity ->
+	int						weapon_pistol;
+	int						weapon_shotgun;
+	int						weapon_superShotgun;
+	int						weapon_machinegun;
+	int						weapon_plasmagun;
+	int						weapon_rocketlauncher;
+//<- doomtrinity
 #ifdef _D3XP
 	int						weapon_bloodstone;
 	int						weapon_bloodstone_active1;
@@ -385,6 +397,7 @@ public:
 	// if a third person view is used
 	idVec3					firstPersonViewOrigin;
 	idMat3					firstPersonViewAxis;
+	idMat3					firstPersonViewWeaponAxis;		// doomtrinity-headanim
 
 	idDragEntity			dragEntity;
 
@@ -479,6 +492,7 @@ public:
 	void					CalculateViewWeaponPos( idVec3 &origin, idMat3 &axis );
 	idVec3					GetEyePosition( void ) const;
 	void					GetViewPos( idVec3 &origin, idMat3 &axis ) const;
+	void					GetViewWeaponAxis( idMat3 &axis ) const;		// doomtrinity-headanim
 	void					OffsetThirdPersonView( float angle, float range, float height, bool clip );
 
 	bool					Give( const char *statname, const char *value );
@@ -605,7 +619,7 @@ public:
 	void					StartHealthRecharge(int speed);
 	void					StopHealthRecharge();
 
-	idStr					GetCurrentWeapon();
+// PD3 idStr					GetCurrentWeapon();
 
 	bool					CanGive( const char *statname, const char *value );
 
@@ -657,15 +671,18 @@ public:
 	int						prevHeatlh;			// sikk - holds player health after Health station has been used
 // <---sikk
 
-// sikk---> Crosshair Positioning
-	int						GetCurrentWeaponNum( void ) { return currentWeapon; };
+// sikk---> Crosshair Positioning PD3
+	int						GetCurrentWeapon( void ) { return currentWeapon; };
 	idVec3					v3CrosshairPos;
 // <---sikk
 
-// sikk---> Weapon Handling System
-	bool					GetWeaponHandling( void );
+// sikk---> Weapon Management: Awareness PD3
+	bool					GetWeaponAwareness( void );
 	bool					bWATrace;
 	bool					bWAIsSprinting;
+	bool					bWAUseHideDist;
+	float					fSpreadModifier;
+	idEntity*				entChainsawed;
 // <---sikk
 
 // sikk---> Depth Render
@@ -749,6 +766,10 @@ private:
 	idInterpolate<float>	zoomFov;
 	idInterpolate<float>	centerView;
 	bool					fxFov;
+//doomtrinity ->
+	float					init_mSensitivity;
+	int						init_mSmooth;
+//<- doomtrinity
 
 	float					influenceFov;
 	int						influenceActive;		// level of influence.. 1 == no gun or hud .. 2 == 1 + no movement
@@ -895,6 +916,9 @@ private:
 	void					Event_ToggleBloom( int on );
 	void					Event_SetBloomParms( float speed, float intensity );
 #endif
+	// doomtrinity-dual weapon
+	void					Event_GetNumPistols( void );
+	void					Event_GetNumShotguns( void );
 };
 
 ID_INLINE bool idPlayer::IsReady( void ) {

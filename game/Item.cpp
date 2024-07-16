@@ -36,6 +36,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Item.h"
 
+#define WEAPON_COUNT_STOP 2 // doomtrinity-dual weapon
+
 /*
 ===============================================================================
 
@@ -391,6 +393,9 @@ idItem::GiveToPlayer
 ================
 */
 bool idItem::GiveToPlayer( idPlayer *player ) {
+	int numPistols;		// doomtrinity-dual weapon->
+	int numShotguns;	// doomtrinity-dual weapon->
+
 	if ( player == NULL ) {
 		return false;
 	}
@@ -403,6 +408,22 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 	if ( spawnArgs.GetBool( "inv_carry" ) ) {
 		return player->GiveInventoryItem( &spawnArgs );
 	}
+// doomtrinity-dual weapon->
+	numPistols = player->inventory.pistolInInventory;
+	numShotguns = player->inventory.shotgunDoubleInInventory;
+
+	if ( ( numPistols != WEAPON_COUNT_STOP ) || ( numShotguns != WEAPON_COUNT_STOP ) ) {
+		idStr inv_weapon;
+		inv_weapon = spawnArgs.GetString( va("inv_weapon") );
+		if ( ( player->inventory.weapons & 2 ) && ( numPistols != WEAPON_COUNT_STOP ) && ( inv_weapon == "weapon_pistol" ) ) {
+			player->inventory.pistolInInventory++;
+			//gameLocal.Printf( "pistol # %i\n", player->inventory.pistolInInventory );
+		} else if ( ( player->inventory.weapons & 8 ) && ( numShotguns != WEAPON_COUNT_STOP ) && ( inv_weapon == "weapon_shotgun_double" ) ) {
+			player->inventory.shotgunDoubleInInventory++;
+			//gameLocal.Printf( "shotgun # %i\n", player->inventory.shotgunDoubleInInventory );
+		}
+	}
+// doomtrinity-dual weapon-<
 
 	return player->GiveItem( this );
 }

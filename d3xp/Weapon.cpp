@@ -75,6 +75,7 @@ const idEventDef EV_Weapon_AllowDrop( "allowDrop", "d" );
 const idEventDef EV_Weapon_AutoReload( "autoReload", NULL, 'f' );
 const idEventDef EV_Weapon_NetReload( "netReload" );
 const idEventDef EV_Weapon_IsInvisible( "isInvisible", NULL, 'f' );
+const idEventDef EV_Weapon_IsLowered( "isLowered", NULL, 'd' ); // doomtrinity
 const idEventDef EV_Weapon_NetEndReload( "netEndReload" );
 #ifdef _D3XP
 const idEventDef EV_Weapon_GrabberHasTarget( "grabberHasTarget", NULL, 'd' );
@@ -129,6 +130,7 @@ CLASS_DECLARATION( idAnimatedEntity, idWeapon )
 	EVENT( EV_Weapon_AutoReload,				idWeapon::Event_AutoReload )
 	EVENT( EV_Weapon_NetReload,					idWeapon::Event_NetReload )
 	EVENT( EV_Weapon_IsInvisible,				idWeapon::Event_IsInvisible )
+	EVENT( EV_Weapon_IsLowered,					idWeapon::Event_IsLowered ) // doomtrinity
 	EVENT( EV_Weapon_NetEndReload,				idWeapon::Event_NetEndReload )
 #ifdef _D3XP
 	EVENT( EV_Weapon_Grabber,					idWeapon::Event_Grabber )
@@ -373,6 +375,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	savefile->WriteJoint( ejectJointView );
 	savefile->WriteJoint( guiLightJointView );
 	savefile->WriteJoint( ventLightJointView );
+	savefile->WriteJoint( headJointView );		// doomtrinity-headanim
 
 	savefile->WriteJoint( flashJointWorld );
 	savefile->WriteJoint( barrelJointWorld );
@@ -443,7 +446,7 @@ void idWeapon::Save( idSaveGame *savefile ) const {
 	}
 #endif
 
-	savefile->WriteFloat( wh_hide_distance );	// sikk - Weapon Handling System
+	savefile->WriteFloat( wm_hide_distance );	// sikk - Weapon Management: Awareness PD3
 }
 
 /*
@@ -574,6 +577,7 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 	savefile->ReadJoint( ejectJointView );
 	savefile->ReadJoint( guiLightJointView );
 	savefile->ReadJoint( ventLightJointView );
+	savefile->ReadJoint( headJointView );		// doomtrinity-headanim
 
 	savefile->ReadJoint( flashJointWorld );
 	savefile->ReadJoint( barrelJointWorld );
@@ -672,7 +676,7 @@ void idWeapon::Restore( idRestoreGame *savefile ) {
 	}
 #endif
 
-	savefile->ReadFloat( wh_hide_distance );	// sikk - Weapon Handling System
+	savefile->ReadFloat( wm_hide_distance );	// sikk - Weapon Management: Awareness
 }
 
 /***********************************************************************
@@ -827,6 +831,7 @@ void idWeapon::Clear( void ) {
 	ejectJointView		= INVALID_JOINT;
 	guiLightJointView	= INVALID_JOINT;
 	ventLightJointView	= INVALID_JOINT;
+	headJointView		= INVALID_JOINT;		// doomtrinity-headanim
 
 	barrelJointWorld	= INVALID_JOINT;
 	flashJointWorld		= INVALID_JOINT;
@@ -882,7 +887,7 @@ void idWeapon::Clear( void ) {
 
 	isFiring			= false;
 
-	wh_hide_distance	= -15;	// sikk - Weapon Handling System
+	wm_hide_distance	= -15;	// sikk - Weapon Management: Awareness
 }
 
 /*
@@ -973,7 +978,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 	hideTime			= SEC2MS( weaponDef->dict.GetFloat( "hide_time", "0.3" ) );
 	hideDistance		= weaponDef->dict.GetFloat( "hide_distance", "-15" );
 
-	wh_hide_distance	= weaponDef->dict.GetFloat( "wh_hide_distance", "-15" );	// sikk - Weapon Handling System
+	wm_hide_distance	= weaponDef->dict.GetFloat( "wm_hide_distance", "-15" );	// sikk - Weapon Management: Awareness
 
 	// muzzle smoke
 	smokeName = weaponDef->dict.GetString( "smoke_muzzle" );
@@ -1025,6 +1030,7 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 	ejectJointView = animator.GetJointHandle( "eject" );
 	guiLightJointView = animator.GetJointHandle( "guiLight" );
 	ventLightJointView = animator.GetJointHandle( "ventLight" );
+	headJointView = animator.GetJointHandle( "head" );		// doomtrinity-headanim
 
 #ifdef _D3XP
 	idStr smokeJoint = weaponDef->dict.GetString("smoke_joint");
@@ -1153,6 +1159,10 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 		//In D3XP we use ammo as soon as it is moved into the clip. This allows for weapons that share ammo
 		owner->inventory.UseAmmo(ammoType, ammoClip);
 #endif
+//doomtrinity ->	//From D3XP
+		//In D3XP we use ammo as soon as it is moved into the clip. This allows for weapons that share ammo
+		owner->inventory.UseAmmo(ammoType, ammoClip);
+//<- doomtrinity
 	}
 
 	renderEntity.gui[ 0 ] = NULL;
@@ -1346,6 +1356,7 @@ void idWeapon::UpdateGUI( void ) {
 #else
 		renderEntity.gui[ 0 ]->SetStateString( "player_totalammo", va( "%i", ammoamount - inclip) );
 #endif
+		renderEntity.gui[ 0 ]->SetStateString( "player_totalammo", va( "%i", ammoamount ) );// doomtrinity (D3XP)
 		renderEntity.gui[ 0 ]->SetStateString( "player_ammo", ClipSize() ? va( "%i", inclip ) : "--" );
 		renderEntity.gui[ 0 ]->SetStateString( "player_clips", ClipSize() ? va("%i", ammoamount / ClipSize()) : "--" );
 
@@ -1354,6 +1365,7 @@ void idWeapon::UpdateGUI( void ) {
 #else
 		renderEntity.gui[ 0 ]->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount - inclip ) );
 #endif
+		renderEntity.gui[ 0 ]->SetStateString( "player_allammo", va( "%i/%i", inclip, ammoamount ) );// doomtrinity (D3XP)
 	}
 	renderEntity.gui[ 0 ]->SetStateBool( "player_ammo_empty", ( ammoamount == 0 ) );
 	renderEntity.gui[ 0 ]->SetStateBool( "player_clip_empty", ( inclip == 0 ) );
@@ -1366,6 +1378,10 @@ void idWeapon::UpdateGUI( void ) {
 	//Grabber Gui Info
 	renderEntity.gui[ 0 ]->SetStateString( "grabber_state", va("%i", grabberState));
 #endif
+//doomtrinity ->	//From D3XP
+	//Let the HUD know the total amount of ammo regardless of the ammo required value
+	renderEntity.gui[ 0 ]->SetStateString( "player_ammo_count", va("%i", AmmoCount()));
+//<- doomtrinity
 }
 
 /***********************************************************************
@@ -1513,6 +1529,27 @@ bool idWeapon::GetGlobalJointTransform( bool viewModel, const jointHandle_t join
 
 /*
 ================
+idWeapon::GetHeadAngle		// doomtrinity-headanim
+
+returns the orientation of the joint in local space
+================
+*/
+idAngles idWeapon::GetHeadAngle( void ) {// was idVec3
+	idVec3 offset;
+	idMat3 axis;
+
+	if ( !animator.GetJointTransform( headJointView, gameLocal.time, offset, axis ) ) {
+		gameLocal.Warning( "Joint # %d out of range on entity '%s'",  headJointView, name.c_str() );
+	}
+
+	idAngles ang = axis.ToAngles();
+	return ang;
+	//idVec3 vec( ang[ 0 ], ang[ 1 ], ang[ 2 ] );
+	//return vec;
+}
+
+/*
+================
 idWeapon::SetPushVelocity
 ================
 */
@@ -1579,13 +1616,14 @@ idWeapon::LowerWeapon
 void idWeapon::LowerWeapon( void ) {
 	if ( !hide ) {
 		hideStart	= 0.0f;
-		hideEnd		= ( owner->GetWeaponHandling() && !owner->OnLadder() ) ? wh_hide_distance : hideDistance;	// sikk - Weapon Handling System
+		hideEnd		= owner->bWAUseHideDist ? wm_hide_distance : hideDistance;	// sikk - Weapon Management: Awareness PD3
 		if ( gameLocal.time - hideStartTime < hideTime ) {
 			hideStartTime = gameLocal.time - ( hideTime - ( gameLocal.time - hideStartTime ) );
 		} else {
 			hideStartTime = gameLocal.time;
 		}
 		hide = true;
+		Event_IsLowered(); // doomtrinity
 	}
 }
 
@@ -1598,7 +1636,7 @@ void idWeapon::RaiseWeapon( void ) {
 	Show();
 
 	if ( hide ) {
-		hideStart	= hideDistance;
+		hideStart	= owner->bWAUseHideDist ? wm_hide_distance : hideDistance;	// sikk - Weapon Management: Awareness
 		hideEnd		= 0.0f;
 		if ( gameLocal.time - hideStartTime < hideTime ) {
 			hideStartTime = gameLocal.time - ( hideTime - ( gameLocal.time - hideStartTime ) );
@@ -1606,6 +1644,7 @@ void idWeapon::RaiseWeapon( void ) {
 			hideStartTime = gameLocal.time;
 		}
 		hide = false;
+		Event_IsLowered(); // doomtrinity
 	}
 }
 
@@ -1975,6 +2014,19 @@ bool idWeapon::BloodSplat( float size ) {
 	return true;
 }
 
+/*
+================
+idWeapon::HasHeadJoint		// doomtrinity-headanim
+================
+*/
+bool idWeapon::HasHeadJoint( void ) {
+	
+	if ( headJointView != INVALID_JOINT ) {
+		return true;
+	}
+
+	return false;
+}
 
 /***********************************************************************
 
@@ -2658,6 +2710,26 @@ int	idWeapon::AmmoRequired( void ) const {
 	return ammoRequired;
 }
 
+//doomtrinity ->	//From D3XP
+/*
+================
+idWeapon::AmmoCount
+
+Returns the total number of rounds regardless of the required ammo
+================
+*/
+/*
+int idWeapon::AmmoCount() const {
+
+	if ( owner ) {
+		return owner->inventory.HasAmmo( ammoType, 1 );
+	} else {
+		return 0;
+	}
+}
+*/
+//<- doomtrinity
+
 #ifdef _D3XP
 /*
 ================
@@ -2906,7 +2978,7 @@ void idWeapon::Event_UseAmmo( int amount ) {
 		return;
 	}
 
-	owner->inventory.UseAmmo( ammoType, ( powerAmmo ) ? amount : ( amount * ammoRequired ) );
+	//owner->inventory.UseAmmo( ammoType, ( powerAmmo ) ? amount : ( amount * ammoRequired ) ); // Commented out, now this event works as it should. // doomtrinity 
 	if ( clipSize && ammoRequired ) {
 		ammoClip -= powerAmmo ? amount : ( amount * ammoRequired );
 		if ( ammoClip < 0 ) {
@@ -2926,6 +2998,11 @@ void idWeapon::Event_AddToClip( int amount ) {
 	if ( gameLocal.isClient ) {
 		return;
 	}
+
+//doomtrinity ->	//From D3XP
+//	int oldAmmo = ammoClip;
+//	ammoAvail = owner->inventory.HasAmmo( ammoType, ammoRequired ) + AmmoInClip();
+//<- doomtrinity
 
 #ifdef _D3XP
 	int oldAmmo = ammoClip;
@@ -2955,6 +3032,12 @@ void idWeapon::Event_AddToClip( int amount ) {
 // <---sikk
 	owner->inventory.UseAmmo(ammoType, usedAmmo);
 #endif
+
+//doomtrinity ->	//From D3XP
+	// for shared ammo we need to use the ammo when it is moved into the clip
+//	int usedAmmo = ammoClip - oldAmmo;
+//	owner->inventory.UseAmmo(ammoType, usedAmmo);
+//<- doomtrinity
 }
 
 /*
@@ -2979,7 +3062,7 @@ void idWeapon::Event_AmmoAvailable( void ) {
 #else
 	int ammoAvail = owner->inventory.HasAmmo( ammoType, ammoRequired );
 #endif
-
+	ammoAvail += AmmoInClip();// doomtrinity (D3XP)
 	idThread::ReturnFloat( ammoAvail );
 }
 
@@ -3317,6 +3400,21 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 	// avoid all ammo considerations on an MP client
 	if ( !gameLocal.isClient ) {
 
+//doomtrinity ->	//From D3XP
+
+//		int ammoAvail = owner->inventory.HasAmmo( ammoType, ammoRequired );
+//		if ( ( clipSize != 0 ) && ( ammoClip <= 0 ) ) {
+//			return;
+//		}
+
+/*		// check if we're out of ammo or the clip is empty
+		int ammoAvail = owner->inventory.HasAmmo( ammoType, ammoRequired );
+		if ( !ammoAvail || ( ( clipSize != 0 ) && ( ammoClip <= 0 ) ) ) {
+			return;
+		}
+*/
+//<- doomtrinity
+
 #ifdef _D3XP
 
 		if ( ( clipSize != 0 ) && ( ammoClip <= 0 ) ) {
@@ -3342,6 +3440,18 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 				dmgPower = ammoClip;
 			}
 		}
+//doomtrinity ->	//From D3XP PD3
+		/*
+		if(clipSize == 0) {
+			//Weapons with a clip size of 0 launch strait from inventory without moving to a clip
+
+			//In D3XP we used the ammo when the ammo was moved into the clip so we don't want to
+			//use it now.
+			owner->inventory.UseAmmo( ammoType, ( powerAmmo ) ? dmgPower : ammoRequired );
+
+		}
+		*/
+//<- doomtrinity
 
 #ifdef _D3XP
 		if(clipSize == 0) {
@@ -3359,7 +3469,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 #ifdef _D3XP
 			ammoClip -= powerAmmo ? dmgPower : ammoRequired;
 #else
-			ammoClip -= powerAmmo ? dmgPower : 1;
+			ammoClip -= powerAmmo ? dmgPower : ammoRequired;// doomtrinity (D3XP)
 #endif
 		}
 
@@ -3381,7 +3491,7 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 	}
 
 	// calculate the muzzle position
-	if ( barrelJointView != INVALID_JOINT && projectileDict.GetBool( "launchFromBarrel" ) ) {
+	if ( barrelJointView != INVALID_JOINT && ( projectileDict.GetBool( "launchFromBarrel" ) || g_weaponProjectileOrigin.GetBool() ) ) {	// sikk - Weapon Management: Projectile Origin
 		// there is an explicit joint for the muzzle
 		GetGlobalJointTransform( true, barrelJointView, muzzleOrigin, muzzleAxis );
 	} else {
@@ -3399,9 +3509,17 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 		kick_endtime = gameLocal.realClientTime + muzzle_kick_maxtime;
 	}
 
-// sikk---> Zoom Spread Reduction
-	if ( g_weaponHandlingType.GetBool() )
-		spread = spawnArgs.GetFloat( "wh_spread", "0" );
+// sikk---> Weapon Management: Handling/Awareness
+	if ( ( g_weaponHandlingType.GetInteger() == 1 || g_weaponHandlingType.GetInteger() == 3 ) && owner->GetCurrentWeapon() != 2 ) {
+		spread = ( spread + 2.0f ) * owner->fSpreadModifier;
+
+		owner->fSpreadModifier += 0.25f;
+		if ( owner->fSpreadModifier > 2.0f )
+			owner->fSpreadModifier = 2.0f;
+	}
+	
+	if ( g_weaponAwareness.GetBool() && owner->bIsZoomed )
+		spread *= 0.5f;
 // <---sikk
 
 	if ( gameLocal.isClient ) {
@@ -3432,6 +3550,12 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 			spin = (float)DEG2RAD( 360.0f ) * gameLocal.random.RandomFloat();
 			dir = playerViewAxis[ 0 ] + playerViewAxis[ 2 ] * ( ang * idMath::Sin( spin ) ) - playerViewAxis[ 1 ] * ( ang * idMath::Cos( spin ) );
 			dir.Normalize();
+
+// sikk---> Weapon Management: Handling
+			if ( g_weaponHandlingType.GetInteger() > 1 && !( g_weaponAwareness.GetBool() && owner->bIsZoomed ) ) {
+				owner->SetViewAngles( owner->viewAngles + idAngles( -0.5f * owner->fSpreadModifier, 0.0f, 0.0f ) );
+			}
+// <---sikk
 
 			if ( projectileEnt ) {
 				ent = projectileEnt;
@@ -3483,7 +3607,13 @@ void idWeapon::Event_LaunchProjectiles( int num_projectiles, float spread, float
 #ifdef _D3XP
 		if(brassDelay >= 0)
 #endif
-		PostEventMS( &EV_Weapon_EjectBrass, brassDelay );
+//doomtrinity ->	// From D3XP
+
+		if( brassDelay >= 0 ) {
+			PostEventMS( &EV_Weapon_EjectBrass, brassDelay );
+		}
+
+//<- doomtrinity
 	}
 
 	// add the light for the muzzleflash
@@ -3944,11 +4074,15 @@ void idWeapon::Event_EjectBrass( void ) {
 	debris->Create( owner, origin, axis );
 	debris->Launch();
 
+//doomtrinity -> // following code commented out. Linear velocity in brass def works properly now.
+/*
 	linear_velocity = 40 * ( playerViewAxis[0] + playerViewAxis[1] + playerViewAxis[2] );
 	angular_velocity.Set( 10 * gameLocal.random.CRandomFloat(), 10 * gameLocal.random.CRandomFloat(), 10 * gameLocal.random.CRandomFloat() );
 
 	debris->GetPhysics()->SetLinearVelocity( linear_velocity );
 	debris->GetPhysics()->SetAngularVelocity( angular_velocity );
+*/
+//doomtrinity -<
 }
 
 /*
@@ -3963,6 +4097,17 @@ void idWeapon::Event_IsInvisible( void ) {
 	}
 	idThread::ReturnFloat( owner->PowerUpActive( INVISIBILITY ) ? 1 : 0 );
 }
+
+//doomtrinity->
+/*
+===============
+idWeapon::Event_IsLowered
+===============
+*/
+void idWeapon::Event_IsLowered( void ) {
+	idThread::ReturnInt( hide );
+}
+//<-doomtrinity
 
 /*
 ===============

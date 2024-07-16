@@ -327,6 +327,16 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 
 	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
 		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+
+// doomtrinity-dual weapon->
+		if ( !player->inventory.pistolInInventory ) {
+			player->inventory.pistolInInventory = 1;
+		}
+		if ( !player->inventory.shotgunDoubleInInventory ) {
+			player->inventory.shotgunDoubleInInventory = 1;
+		}
+// doomtrinity-dual weapon-<
+
 		player->CacheWeapons();
 
 		if ( !give_all ) {

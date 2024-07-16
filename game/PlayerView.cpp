@@ -321,6 +321,7 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	}
 
 	// screen blob
+	/* PD3
 	float blobTime = damageDef->GetFloat( "blob_time" );
 	if ( blobTime ) {
 		screenBlob_t *blob = GetScreenBlob();
@@ -344,6 +345,12 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 		blob->s2 = 1;
 		blob->t2 = 1;
 	}
+	*/
+
+				//PD3
+				if ( g_showBloodSpray.GetBool() ) {
+						player->playerView.AddBloodSpray( g_bloodSprayTime.GetFloat() );
+				}
 
 	// save lastDamageTime for tunnel vision attenuation
 	lastDamageTime = MS2SEC( gameLocal.time );

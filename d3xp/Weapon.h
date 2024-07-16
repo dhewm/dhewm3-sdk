@@ -166,6 +166,8 @@ public:
 	void					GetWeaponAngleOffsets( int *average, float *scale, float *max );
 	void					GetWeaponTimeOffsets( float *time, float *scale );
 	bool					BloodSplat( float size );
+	bool					HasHeadJoint( void );		// doomtrinity-headanim
+	idAngles				GetHeadAngle( void );		// doomtrinity-headanim //was idVec3
 
 	// Ammo
 	static ammo_t			GetAmmoNumForName( const char *ammoname );
@@ -178,6 +180,7 @@ public:
 	int						ClipSize( void ) const;
 	int						LowAmmo( void ) const;
 	int						AmmoRequired( void ) const;
+//	int						AmmoCount() const;// doomtrinity (D3XP)
 #ifdef _D3XP
 	int						AmmoCount() const;
 	int						GetGrabberState() const;
@@ -196,7 +199,7 @@ public:
 
 	virtual void			ClientPredictionThink( void );
 
-	float					wh_hide_distance;	// sikk - Weapon Handling System
+	float					wm_hide_distance;	// sikk - Weapon Management: Awareness
 
 	idGrabber*				GetGrabber( void ) { return &grabber; };	// sikk - Object Manipulation
 
@@ -326,6 +329,7 @@ private:
 	jointHandle_t			ejectJointView;
 	jointHandle_t			guiLightJointView;
 	jointHandle_t			ventLightJointView;
+	jointHandle_t			headJointView;		// doomtrinity-headanim
 
 	jointHandle_t			flashJointWorld;
 	jointHandle_t			barrelJointWorld;
@@ -417,6 +421,7 @@ private:
 	void					Event_AutoReload( void );
 	void					Event_NetReload( void );
 	void					Event_IsInvisible( void );
+	void					Event_IsLowered( void ); // doomtrinity
 	void					Event_NetEndReload( void );
 
 #ifdef _D3XP

@@ -333,11 +333,11 @@ extern idCVar	g_ammoClipSizeType;
 extern idCVar	g_ammoUsageType;
 // <---sikk
 
-// sikk---> Weapon Management
+// sikk---> Weapon Management PD3
 extern idCVar	g_weaponAwareness;
 extern idCVar	g_weaponHandlingType;
 extern idCVar	g_weaponProjectileOrigin;
-// <---sikk
+// <---sikk PD3
 
 extern idCVar	g_grabMode;					// sikk - Object Manipulation
 
@@ -354,6 +354,7 @@ extern idCVar	g_enemyHealthScale;
 extern idCVar	g_enemyHealthRandom;
 // <---sikk
 
+extern idCVar	g_weaponSSGFactor;			// PD3 - Baron of Hell Factor
 extern idCVar	g_enemySpectreFactor;		// sikk - Spectre Factor
 extern idCVar	g_enemyPainElementalFactor;	// sikk - Pain Elemental Factor
 extern idCVar	g_enemyBaronFactor;			// sikk - Baron of Hell Factor
@@ -491,5 +492,12 @@ extern idCVar	r_filmgrainStrength;
 
 extern idCVar	r_useVignetting;
 // <---sikk
+//doomtrinity ->
+// These mouse Cvars do NOT affect directly the mouse settings, "sensitivity" and "m_smooth" are still used.
+extern idCVar	in_mouseSensitivity;
+extern idCVar	in_mouseSmooth;
+extern idCVar	pm_adsspeed;// player speed in zoomed mode
+extern idCVar	pm_adsbob;// bob in zoomed mode
+//<- doomtrinity
 
 #endif /* !__SYS_CVAR_H__ */

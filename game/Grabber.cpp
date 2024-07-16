@@ -1,49 +1,17 @@
-/*
-===========================================================================
-
-Doom 3 GPL Source Code
-Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-
-This file is part of the Doom 3 GPL Source Code ("Doom 3 Source Code").
-
-Doom 3 Source Code is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-Doom 3 Source Code is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Doom 3 Source Code.  If not, see <http://www.gnu.org/licenses/>.
-
-In addition, the Doom 3 Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 Source Code.  If not, please request a copy in writing from id Software at the address below.
-
-If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
-
-===========================================================================
-*/
+#include "../idlib/precompiled.h"
+#pragma hdrstop
 
 #ifdef _D3XP
 
-#include "sys/platform.h"
-
-#include "gamesys/SysCvar.h"
-#include "ai/AI.h"
-#include "Player.h"
-#include "Moveable.h"
+#include "Game_local.h"
 #include "Misc.h"
-
-#include "Grabber.h"
 
 #define MAX_DRAG_TRACE_DISTANCE			384.0f
 #define TRACE_BOUNDS_SIZE				3.f
 #define HOLD_DISTANCE					72.f
 #define FIRING_DELAY					1000.0f
 #define DRAG_FAIL_LEN					64.f
-#define	THROW_SCALE						2500 // 1000 PD3
+#define	THROW_SCALE						1000
 #define MAX_PICKUP_VELOCITY				1500 * 1500
 #define MAX_PICKUP_SIZE					96
 
@@ -281,7 +249,7 @@ void idGrabber::StartDrag( idEntity *grabEnt, int id ) {
 			aiEnt->StartRagdoll();
 		}
 	} else if ( grabEnt->IsType( idMoveableItem::Type ) ) {
-		grabEnt->PostEventMS( &EV_Touch, 250, thePlayer, 0 );
+		grabEnt->PostEventMS( &EV_Touch, 250, thePlayer, NULL );
 	}
 
 	// Get the current physics object to manipulate
@@ -346,7 +314,7 @@ void idGrabber::StopDrag( bool dropOnly ) {
 
 				aiEnt->Damage( thePlayer, thePlayer, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT );
 			}
-
+			
 			af->SetThrown( !dropOnly );
 
 			// Reset timers so that it isn't forcibly put to rest in mid-air
@@ -456,7 +424,7 @@ int idGrabber::Update( idPlayer *player, bool hide ) {
 		if ( !gameLocal.isMultiplayer && !abort && (( player->usercmd.flags & UCF_IMPULSE_SEQUENCE ) != ( oldUcmdFlags & UCF_IMPULSE_SEQUENCE )) && (player->usercmd.impulse == IMPULSE_13) ) {
 			abort = true;
 		}
-
+        
 		if ( abort ) {
 			StopDrag( true );
 			return 3;
@@ -466,7 +434,7 @@ int idGrabber::Update( idPlayer *player, bool hide ) {
 	owner = player;
 
 	// if no entity selected for dragging
-	if ( !dragEnt.GetEntity() ) {
+    if ( !dragEnt.GetEntity() ) {
 		idBounds bounds;
 		idVec3 end = player->firstPersonViewOrigin + player->firstPersonViewAxis[0] * dragTraceDist;
 
@@ -574,7 +542,7 @@ int idGrabber::Update( idPlayer *player, bool hide ) {
 		goalPos = player->firstPersonViewOrigin + localPlayerPoint * player->firstPersonViewAxis;
 
 		drag.SetGoalPosition( goalPos );
-		drag.Evaluate( gameLocal.time, true );	// sikk -  Use Function: Object Manipualtion - Added the grabber arg
+		drag.Evaluate( gameLocal.time );
 
 		// If an object is flying too fast toward the player, stop it hard
 		if ( g_grabberHardStop.GetBool() ) {
@@ -636,7 +604,6 @@ int idGrabber::Update( idPlayer *player, bool hide ) {
 
 		// Currently holding an object
 		return 2;
-
 	}
 
 	// Not holding, nothing to hold
@@ -726,12 +693,11 @@ bool idGrabber::grabbableAI( const char *aiName ) {
 	// skip "monster_"
 	aiName += 8;
 
-	if ( ( !idStr::Cmpn( aiName, "flying_lostsoul", 15 ) ||
-		   !idStr::Cmpn( aiName, "demon_trite", 11 ) ||
-		   !idStr::Cmp( aiName, "flying_forgotten" ) ||
-		   !idStr::Cmp( aiName, "demon_cherub" ) ||
-		   !idStr::Cmp( aiName, "demon_tick" ) ) &&
-		   g_grabbableAI.GetBool() ) {	// sikk - Grabbable Enemy Toggle
+	if (!idStr::Cmpn( aiName, "flying_lostsoul", 15 ) ||
+		!idStr::Cmpn( aiName, "demon_trite", 11 ) ||
+		!idStr::Cmp( aiName, "flying_forgotten" ) ||
+		!idStr::Cmp( aiName, "demon_cherub" ) ||
+		!idStr::Cmp( aiName, "demon_tick" )) {
 
 		return true;
 	}

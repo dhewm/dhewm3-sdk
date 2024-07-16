@@ -3504,19 +3504,19 @@ bool idGameLocal::InhibitEntitySpawn( idDict &spawnArgs ) {
 			 idStr::Icmp( name, "moveable_item_medkit" ) == 0 || idStr::Icmp( name, "moveable_item_medkit_small" ) == 0 ) {
 			result = true;
 
-// sikk---> Health Management System (Health Regen)
+// sikk---> Health Management System (Health Regen) PD3
 			// if medkit has a target, replace it with an adrenaline - This should be done in Nightmare difficulty as well
-			if ( spawnArgs.GetString( "target" ) != "" ) {
+			if ( idStr::Icmp( spawnArgs.GetString( "target" ), "" ) ) {
 				idEntity *ent;
 				idDict args;
-				args.Set( "classname", "moveable_powerup_adrenaline" );
+				args.Set( "classname", "powerup_adrenaline" );
 //				args.Set( "name", spawnArgs.GetString( "name" ) );
 				args.Set( "target", spawnArgs.GetString( "target" ) );
 				args.Set( "origin", spawnArgs.GetString( "origin" ) );
 				args.Set( "rotation", spawnArgs.GetString( "rotation" ) );
 				gameLocal.SpawnEntityDef( args, &ent );
 			}
-// <---sikk
+// <---sikk PD3
 		}
 	}
 

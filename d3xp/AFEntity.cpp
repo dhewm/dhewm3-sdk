@@ -1149,7 +1149,7 @@ bool idAFEntity_Gibbable::Collide( const trace_t &collision, const idVec3 &veloc
 	if ( !gibbed && wasThrown ) {
 
 		// Everything gibs (if possible)
-		if ( spawnArgs.GetBool( "gib" ) ) {
+// PD3	if ( spawnArgs.GetBool( "gib" ) ) {
 			idEntity	*ent;
 
 			ent = gameLocal.entities[ collision.c.entityNum ];
@@ -1157,10 +1157,15 @@ bool idAFEntity_Gibbable::Collide( const trace_t &collision, const idVec3 &veloc
 				ent->Damage( this, gameLocal.GetLocalPlayer(), collision.c.normal, "damage_thrown_ragdoll", 1.f, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) );
 			}
 
+			idVec3 vel = velocity; // PD3
+			vel.NormalizeFast(); // PD3
+
+/* PD3
 			idVec3 vel = velocity;
 			vel.NormalizeFast();
 			Gib( vel, "damage_gib" );
-		}
+*/
+//	PD3	}
 	}
 
 	return idAFEntity_Base::Collide( collision, velocity );
@@ -3560,12 +3565,22 @@ void idHarvestable::Event_Touch( idEntity *other, trace_t *trace ) {
 		bool okToGive = true;
 		idStr requiredWeapons = spawnArgs.GetString("required_weapons");
 
+/* PD3
 		if(requiredWeapons.Length() > 0) {
 			idStr playerWeap = thePlayer->GetCurrentWeapon();
 			if(playerWeap.Length() == 0 || requiredWeapons.Find(playerWeap, false) == -1) {
 				okToGive = false;
 			}
 		}
+*/
+
+		if(requiredWeapons.Length() > 0) {
+			int playerWeap = thePlayer->GetCurrentWeapon();
+			if(playerWeap != 12) {
+				okToGive = false;
+			}
+		}
+
 
 		if(okToGive) {
 			if(thePlayer->CanGive(spawnArgs.GetString("give_item"), spawnArgs.GetString("give_value"))) {

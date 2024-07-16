@@ -5168,19 +5168,32 @@ int	idAnimatedEntity::GetDefaultSurfaceType( void ) const {
 idAnimatedEntity::AddLocalDamageEffect
 ==============
 */
+// FIXME: the code behind _DENTONMOD_ENTITY_CPP is not used, or can't be used, because the calls to this function all
+//        use the old signature without soundEnt (which isn't used at all in the implementation of this function?!)
+//        and because TH_UPDATEWOUNDPARTICLES isn't defined anywhere
+#ifdef _DENTONMOD_ENTITY_CPP
+void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &origin, const idVec3 &normal, const idVec3 &dir, const idDeclEntityDef *def, const idMaterial *collisionMaterial /*, idEntity *soundEnt */ ) {
+#else
 void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &localOrigin, const idVec3 &localNormal, const idVec3 &localDir, const idDeclEntityDef *def, const idMaterial *collisionMaterial ) {
+#endif
 	const char *sound, *splat, *decal, *bleed, *key;
 	damageEffect_t	*de;
-	idVec3 origin, dir;
-	idMat3 axis;
+	idVec3 gravDir;
+	idPhysics *phys;
 
+#ifdef _DENTONMOD_ENTITY_CPP
+#else
+	idMat3 axis;
+	idVec3 origin, dir;
 	axis = renderEntity.joints[jointNum].ToMat3() * renderEntity.axis;
 	origin = renderEntity.origin + renderEntity.joints[jointNum].ToVec3() * renderEntity.axis;
 
 	origin = origin + localOrigin * axis;
 	dir = localDir * axis;
+#endif
 
 	int type = collisionMaterial->GetSurfaceType();
+
 	if ( type == SURFTYPE_NONE ) {
 		type = GetDefaultSurfaceType();
 	}
@@ -5189,10 +5202,13 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 
 	// start impact sound based on material type
 	key = va( "snd_%s", materialType );
+
 	sound = spawnArgs.GetString( key );
+
 	if ( *sound == '\0' ) {
 		sound = def->dict.GetString( key );
 	}
+
 	if ( *sound != '\0' ) {
 		StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
 	}
@@ -5200,42 +5216,119 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 	// blood splats are thrown onto nearby surfaces
 	key = va( "mtr_splat_%s", materialType );
 	splat = spawnArgs.RandomPrefix( key, gameLocal.random );
+
 	if ( *splat == '\0' ) {
 		splat = def->dict.RandomPrefix( key, gameLocal.random );
 	}
+
 	if ( *splat != '\0' ) {
 		gameLocal.BloodSplat( origin, dir, 64.0f, splat );
 	}
 
-	// can't see wounds on the player model in single player mode
-	if ( !( IsType( idPlayer::Type ) && !gameLocal.isMultiplayer ) ) {
+    //Create blood pools at feet, Only when alive - By Clone JCD
+	if (health > 0){ 
+		int bloodpoolTime;
+
+		if( gameLocal.time > nextBloodPoolTime ) {  // You can use this condition instead :- if (gameLocal.isNewFrame)
+			key = va( "mtr_bloodPool_%s", materialType );
+			splat = spawnArgs.RandomPrefix( key, gameLocal.random );
+			if ( *splat == '\0' ) {
+				splat = def->dict.RandomPrefix( key, gameLocal.random );
+			}
+			if ( *splat != '\0' ) {
+				phys = GetPhysics();
+				gravDir = phys->GetGravity();
+				gravDir.Normalize();
+				if( spawnArgs.GetBool("bloodPool_below_origin")  ) {
+					gameLocal.BloodSplat( phys->GetOrigin(), gravDir, def->dict.GetFloat ( va ("size_bloodPool_%s", materialType), "64.0f"), splat );
+				}
+				else {
+					gameLocal.BloodSplat( origin, gravDir, def->dict.GetFloat ( va ("size_bloodPool_%s", materialType), "64.0f"), splat );
+				}
+			}
+      /* Blood Mod deleted this 
+			// This condition makes sure that we dont spawn overlapping bloodpools in a single frame.
+			if(!spawnArgs.GetInt( "next_bloodpool_time", "050", bloodpoolTime) ){
+				bloodpoolTime = def->dict.GetInt( "next_bloodpool_time", "050");
+			}
+			nextBloodPoolTime = gameLocal.time +  bloodpoolTime; // This avoids excessive bloodpool overlapping
+      */
+		}
+	}
+
+	// can't see wounds on the player model in single player mode.
+  // Blood Mod deleted this. Needed for the Full Body Awareness mod so that wounds from zombie shots appear on the player\92s body
+	//if ( !( IsType( idPlayer::Type ) && !gameLocal.isMultiplayer ) ) {
+	
+		
+	// blood splats can be thrown on the body itself two - By Clone JC Denton
+		key = va( "mtr_splatSelf_%s", materialType );
+		splat = spawnArgs.RandomPrefix( key, gameLocal.random );
+		if ( *splat == '\0' ) {
+			splat = def->dict.RandomPrefix( key, gameLocal.random );
+		}
+		if ( *splat != '\0' ) {
+			ProjectOverlay( origin, dir, def->dict.GetFloat ( va ("size_splatSelf_%s", materialType), "15.0f"), splat ); 
+		}
+
 		// place a wound overlay on the model
+		if( g_debugDamage.GetBool() ) {
+			gameLocal.Printf("\nCollision Material Type: %s", materialType);
+			gameLocal.Printf("\n File: %s", collisionMaterial->GetFileName());
+			gameLocal.Printf("\n material: %s", collisionMaterial->ImageName());
+		}
+
 		key = va( "mtr_wound_%s", materialType );
 		decal = spawnArgs.RandomPrefix( key, gameLocal.random );
 		if ( *decal == '\0' ) {
 			decal = def->dict.RandomPrefix( key, gameLocal.random );
 		}
-		if ( *decal != '\0' ) {
-			ProjectOverlay( origin, dir, 20.0f, decal );
+		if ( *decal == '\0' ) {
+			decal = def->dict.GetString( "mtr_wound" ); // Default decal
 		}
+		if ( *decal != '\0' ) {
+			float size;	
+			if ( !def->dict.GetFloat( va( "size_wound_%s", materialType ), "6.0", size ) ) { // If Material Specific decal size not found, look for default size
+				size = def->dict.GetFloat( "size_wound", "6.0" );
+		}
+			ProjectOverlay( origin, dir, size, decal ); 
 	}
 
 	// a blood spurting wound is added
 	key = va( "smoke_wound_%s", materialType );
 	bleed = spawnArgs.GetString( key );
+
 	if ( *bleed == '\0' ) {
 		bleed = def->dict.GetString( key );
 	}
+
 	if ( *bleed != '\0' ) {
 		de = new damageEffect_t;
 		de->next = this->damageEffects;
 		this->damageEffects = de;
 
 		de->jointNum = jointNum;
+		de->type = static_cast<const idDeclParticle *>(declManager->FindType(DECL_PARTICLE, bleed));
+        
+#ifdef _DENTONMOD_ENTITY_CPP
+		idVec3 boneOrigin;
+		idMat3 boneAxis;
+
+		boneAxis = renderEntity.joints[jointNum].ToMat3() * renderEntity.axis;
+		boneOrigin = renderEntity.origin + renderEntity.joints[jointNum].ToVec3() * renderEntity.axis;
+
+		de->localOrigin = ( origin - boneOrigin ) * boneAxis.Transpose();
+		de->localNormal	= normal * boneAxis.Transpose();
+		de->time = -1; // used as flag, notifies UpdateDamageEffects that this effect is just started
+
+		if (!(thinkFlags & TH_UPDATEWOUNDPARTICLES)) // if flag was not set before set it now
+			BecomeActive( TH_UPDATEWOUNDPARTICLES );
+#else
 		de->localOrigin = localOrigin;
 		de->localNormal = localNormal;
-		de->type = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, bleed ) );
 		de->time = gameLocal.time;
+#endif
+
 	}
 }
 

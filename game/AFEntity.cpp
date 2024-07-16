@@ -1140,7 +1140,7 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 		}
 		list[i]->GetRenderEntity()->noShadow = true;
 		list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-		list[i]->PostEventSec( &EV_Remove, 4.0f );
+		list[i]->PostEventSec(&EV_Remove, 90000.0f); // Blood Mod 4.0 to 90000 Increases the time until gibs disappear. This is probably not enough to fully customize the disappearance since all gibs still disappear after exactly 5 minutes.
 	}
 }
 
@@ -1173,14 +1173,20 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	UnlinkCombat();
 
 	if ( g_bloodEffects.GetBool() ) {
-		if ( gameLocal.time > gameLocal.GetGibTime() ) {
+		// Blood Mod. Taken from the repository (https://github.com/RobertBeckebans/Sikkpin-Feedback)
+		// sikk - Since "nextGibTime" is a member of idGameLocal and not idAFEntity||idAFEntity_Gibbable
+		// the folloing if statement is only true once per damage event instead of per entity being damaged.
+		// This is why only one entity will get gibbed while the rest just disappear after a few seconds.
+		// I commented this out instead of moving the variable to the proper class because it's easier and
+		// the delay is only 200ms so the difference should be unnoticable
+		//if ( gameLocal.time > gameLocal.GetGibTime() ) {
 			gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
 			SpawnGibs( dir, damageDefName );
 			renderEntity.noShadow = true;
 			renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
 			StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
 			gibbed = true;
-		}
+		//}
 	} else {
 		gibbed = true;
 	}

@@ -1000,7 +1000,9 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 			}
 // sikk---> Entities hit directly by a projectile will no longer be ignored by splash damage PD3
 //			PostEventSec( &EV_RadiusDamage, delay, ignore );
-			PostEventSec( &EV_RadiusDamage, delay, NULL );
+			//PostEventSec( &EV_RadiusDamage, delay, NULL );
+			// DG: the previous line didn't compile, I hope this is equivalent to the original intention
+			PostEventSec( &EV_RadiusDamage, delay );
 		} else {
 //			Event_RadiusDamage( ignore );
 			Event_RadiusDamage( NULL );

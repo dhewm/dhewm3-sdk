@@ -36,6 +36,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Item.h"
 
+#define WEAPON_COUNT_STOP 2 // doomtrinity-dual weapon
+
 /*
 ===============================================================================
 
@@ -749,8 +751,6 @@ bool idItemPowerup::GiveToPlayer( idPlayer *player ) {
 }
 
 #ifdef CTF
-
-#define WEAPON_COUNT_STOP 2 // doomtrinity-dual weapon
 
 /*
 ===============================================================================

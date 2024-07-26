@@ -15,12 +15,15 @@ Visual Studio like you might be used to.
 
 This repository also contains ports of existing mods whichs authors released
 the source under GPL; you can find these in their own branches:
+[Blood Mod](https://github.com/dhewm/dhewm3-sdk/tree/bloodmod),
 [Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom),
 [Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod),
 [Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz),
 [Hard Corps](https://github.com/dhewm/dhewm3-sdk/tree/hardcorps),
-[Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin) and
-[Doom3: The Lost Mission](https://github.com/dhewm/dhewm3-sdk/tree/d3le)
+[Perfected Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/perfected),
+[Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin),
+[Doom3: The Lost Mission](https://github.com/dhewm/dhewm3-sdk/tree/d3le) and
+[Sikkmod](https://github.com/dhewm/dhewm3-sdk/tree/sikkmod)
 
 In addition to this repository, there is also the LibreCoop mod that implements Coop
 gameplay for dhewm3: [LibreCoop Github for the source code](https://github.com/Stradex/librecoop)

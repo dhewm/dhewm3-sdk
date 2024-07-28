@@ -45,7 +45,7 @@ class idRestoreGame;
 
 #define MAX_STRING_LEN		128
 #ifdef _D3XP
-#define MAX_GLOBALS			296608			// in bytes
+#define MAX_GLOBALS			393216			// in bytes
 #else
 #define MAX_GLOBALS			196608			// in bytes
 #endif

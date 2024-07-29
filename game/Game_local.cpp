@@ -254,6 +254,11 @@ void idGameLocal::Clear( void ) {
 	savedEventQueue.Init();
 
 	memset( lagometer, 0, sizeof( lagometer ) );
+	
+	portalSkyEnt			        = NULL;
+	portalSkyActive			= false;
+	playerOldEyePos.Zero();
+	globalPortalSky			= false;
 }
 
 /*
@@ -546,6 +551,14 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteInt( realClientTime );
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
+
+        portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
+	savegame.WriteBool( globalPortalSky );
+	savegame.WriteInt( currentPortalSkyType );
+	savegame.WriteVec3( playerOldEyePos );	
+	savegame.WriteVec3( portalSkyGlobalOrigin );
+	savegame.WriteVec3( portalSkyOrigin );
 
 	savegame.WriteBool( mapCycleLoaded );
 	savegame.WriteInt( spawnCount );
@@ -916,6 +929,11 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	framenum		= 0;
 	sessionCommand = "";
 	nextGibTime		= 0;
+
+        portalSkyEnt			        = NULL;
+	portalSkyActive			= false;
+	playerOldEyePos.Zero();
+	globalPortalSky			= false;
 
 	vacuumAreaNum = -1;		// if an info_vacuum is spawned, it will set this
 
@@ -1393,6 +1411,14 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( realClientTime );
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
+
+        portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+	savegame.ReadBool( globalPortalSky );
+	savegame.ReadInt( currentPortalSkyType );
+	savegame.ReadVec3( playerOldEyePos );
+	savegame.ReadVec3( portalSkyGlobalOrigin );
+	savegame.ReadVec3( portalSkyOrigin );
 
 	savegame.ReadBool( mapCycleLoaded );
 	savegame.ReadInt( spawnCount );
@@ -2035,6 +2061,23 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			playerConnectedAreas = GetClientPVS( player, PVS_CONNECTED_AREAS );
 		} else {
 			otherPVS = GetClientPVS( player, PVS_CONNECTED_AREAS );
+			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
+			pvs.FreeCurrentPVS( playerConnectedAreas );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerConnectedAreas = newPVS;
+		}
+		
+		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
+		if ( portalSkyEnt.GetEntity() ) {
+			idEntity *skyEnt = portalSkyEnt.GetEntity();
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerPVS, otherPVS );
+			pvs.FreeCurrentPVS( playerPVS );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerPVS = newPVS;
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
 			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
 			pvs.FreeCurrentPVS( playerConnectedAreas );
 			pvs.FreeCurrentPVS( otherPVS );
@@ -4314,6 +4357,66 @@ idGameLocal::ThrottleUserInfo
 */
 void idGameLocal::ThrottleUserInfo( void ) {
 	mpGame.ThrottleUserInfo();
+}
+
+/*
+=================
+idGameLocal::SetPortalSkyEnt
+=================
+*/
+void idGameLocal::SetPortalSkyEnt( idEntity *ent ) {
+	portalSkyEnt = ent;
+}
+
+/*
+=================
+idGameLocal::IsPortalSkyActive
+=================
+*/
+bool idGameLocal::IsPortalSkyActive() {
+	return portalSkyActive;
+}
+
+/*
+=================
+idGameLocal::CheckGlobalPortalSky
+=================
+*/
+bool idGameLocal::CheckGlobalPortalSky() {
+	return globalPortalSky;
+}
+
+/*
+=================
+idGameLocal::SetGlobalPortalSky
+=================
+*/
+void idGameLocal::SetGlobalPortalSky( const char *name ) {
+
+	if ( CheckGlobalPortalSky() ) {
+		Error( "idGameLocal::SetGlobalPortalSky : more than one global portalSky:\ndelete them until you have just one.\nportalSky '%s' causes it.", name );
+	}
+	else {
+		globalPortalSky = true;
+	}
+}
+
+/*
+=================
+idGameLocal::SetCurrentPortalSkyType
+=================
+*/
+void idGameLocal::SetCurrentPortalSkyType( int type ) {
+	currentPortalSkyType = type;
+}
+
+/*
+=================
+idGameLocal::GetCurrentPortalSkyType
+=================
+*/
+int idGameLocal::GetCurrentPortalSkyType() {
+	return currentPortalSkyType;
 }
 
 /*

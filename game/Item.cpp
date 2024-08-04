@@ -585,12 +585,12 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 	}
 
 	if ( val ) {
-		if ( spawnArgs.GetString( "scriptobject" ) != "" ) {
+		if ( spawnArgs.GetString( "scriptobject" ) != "" 
+		&& spawnArgs.GetBool( "inv_carry" ) ) { // if the item is ammo or health, game crashes, so that doesn't work in dhewm3
 			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool( "dontNotifyOnPickup" ) ) {
-				// CallFunc( "pickup_message" ); // doesn't work in dhewm3, crashes
-				player->ShowHudMessage( va("You got the %s\n", spawnArgs.GetString( "inv_name" )) );
+				CallFunc( "pickup_message" );
 			}
-			// CallFunc( "pickup_effect" ); // doesn't work in dhewm3, crashes
+			CallFunc( "pickup_effect" );
 		}
 
 		gameLocal.SetPersistentRemove( name.c_str() );

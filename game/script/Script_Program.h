@@ -230,8 +230,10 @@ ID_INLINE void idScriptVariable<type, etype, returnType>::LinkTo( idScriptObject
 
 template<class type, etype_t etype, class returnType>
 ID_INLINE idScriptVariable<type, etype, returnType> &idScriptVariable<type, etype, returnType>::operator=( const returnType &value ) {
+#if defined(_DEBUG) && 0
 	// check if we attempt to access the object before it's been linked
 	assert( data );
+#endif
 
 	// make sure we don't crash if we don't have a pointer
 	if ( data ) {

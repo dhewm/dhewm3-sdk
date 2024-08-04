@@ -981,8 +981,9 @@ ID_INLINE bool TestHugeTranslation( trace_t &results, const idClipModel *mdl, co
 		}
 
 		gameLocal.Printf( "  from (%.2f %.2f %.2f) to (%.2f %.2f %.2f)\n", start.x, start.y, start.z, end.x, end.y, end.z);
-
+#if defined(_DEBUG) && 0
 		assert( 0 );
+#endif
 		return true;
 	}
 	return false;
@@ -1205,9 +1206,9 @@ bool idClip::Motion( trace_t &results, const idVec3 &start, const idVec3 &end, c
 	trace_t translationalTrace, rotationalTrace, trace;
 	idRotation endRotation;
 	const idTraceModel *trm;
-
+#if defined(_DEBUG) && 0
 	assert( rotation.GetOrigin() == start );
-
+#endif
 	if ( TestHugeTranslation( results, mdl, start, end, trmAxis ) ) {
 		return true;
 	}
@@ -1669,4 +1670,14 @@ bool idClip::DrawModelContactFeature( const contactInfo_t &contact, const idClip
 	gameRenderWorld->DrawText( contact.material->GetName(), winding.GetCenter() - 4.0f * axis[2], 0.1f, colorWhite, axis, 1, 5000 );
 
 	return true;
+}
+
+/*
+============
+Zeroth
+idClipModel::GetRenderModelHandle
+============
+*/
+int idClipModel::GetRenderModelHandle( void ) {
+	return renderModelHandle;
 }

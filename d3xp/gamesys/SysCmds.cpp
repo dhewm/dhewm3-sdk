@@ -910,7 +910,7 @@ void Cmd_Damage_f( const idCmdArgs &args ) {
 		return;
 	}
 
-	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", atoi( args.Argv( 2 ) ), INVALID_JOINT );
+	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", atoi( args.Argv( 2 ) ), INVALID_JOINT, idVec3( 0, 0, 0 ) );
 }
 
 
@@ -1578,7 +1578,7 @@ static void Cmd_TestDamage_f( const idCmdArgs &args ) {
 	// give the player full health before and after
 	// running the damage
 	player->health = player->inventory.maxHealth;
-	player->Damage( NULL, NULL, dir, damageDefName, 1.0f, INVALID_JOINT );
+	player->Damage( NULL, NULL, dir, damageDefName, 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	player->health = player->inventory.maxHealth;
 }
 
@@ -1625,7 +1625,7 @@ static void Cmd_TestDeath_f( const idCmdArgs &args ) {
 	dir[2] = 0;
 
 	g_testDeath.SetBool( 1 );
-	player->Damage( NULL, NULL, dir, "damage_triggerhurt_1000", 1.0f, INVALID_JOINT );
+	player->Damage( NULL, NULL, dir, "damage_triggerhurt_1000", 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 	if ( args.Argc() >= 2) {
 		player->SpawnGibs( dir, "damage_triggerhurt_1000" );
 	}

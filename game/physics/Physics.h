@@ -91,6 +91,13 @@ public:
 	void						Save( idSaveGame *savefile ) const;
 	void						Restore( idRestoreGame *savefile );
 
+// HEXEN : Zeroth
+public:
+	idVec3					TransitionFromGravity;
+	idVec3					TransitionToGravity;
+	int						curTransition;
+	float					nextTransition;
+
 public:	// common physics interface
 								// set pointer to entity using physics
 	virtual void				SetSelf( idEntity *e ) = 0;

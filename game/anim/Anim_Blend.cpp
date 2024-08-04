@@ -3034,6 +3034,9 @@ idAnimator::idAnimator() {
 			channels[ i ][ j ].Reset( NULL );
 		}
 	}
+
+	// HEXEN : Zeroth
+	jointTransitions.Clear();
 }
 
 /*
@@ -3607,6 +3610,51 @@ void idAnimator::SetJointPos( jointHandle_t jointnum, jointModTransform_t transf
 		entity->BecomeActive( TH_ANIMATE );
 	}
 	ForceUpdate();
+}
+
+/*
+=====================
+HEXEN
+idAnimator::eoc_TransitionJointAngle
+=====================
+*/
+void idAnimator::eoc_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, idAngles &to, idAngles &from, float seconds, float transitions ) {
+	int i, c;
+
+	// find the joint if it's already got a transition going on
+	for ( i = 0; i < jointTransitions.Num(); i++ ) {
+		if ( jointTransitions[i].GetInt( "jointnum" ) == jointnum ) {
+			break;
+		}
+	}
+
+	// add the joint to our transition list if its not already there
+	if ( i == jointTransitions.Num() ) {
+		jointTransitions.Append( idDict() );
+		jointTransitions[i].SetInt( "jointnum", (int) jointnum );
+	}
+
+	jointTransitions[i].SetInt( "transform_type", (int) transform_type );
+	jointTransitions[i].SetInt( "transitions", (int) transitions );
+
+	// do position and calculations beforehand.
+	float curTime = gameLocal.time;
+	float tranLen = seconds / transitions ;
+	idAngles inc = ( to - from ) / transitions ;
+
+// a different method, trying to get the wind_dir relative to world, instead of facing angle of tree.
+//		idVec3 a = TJPfrom.ToForward();
+//		idVec3 b = TJPto.ToForward();
+//		a.Normalize();
+//		b.Normalize();
+//		idVec3 newVec	=	a	* TJPcurTransition +
+//							b	* (TJPtransitions-TJPcurTransition);
+//		idAngles inc = newVec.ToAngles();
+
+	for ( c = 0; c < transitions; c++ ) {
+		jointTransitions[ i ].SetFloat(va( "time_%i", c ), curTime + ( tranLen * c ) );
+		jointTransitions[ i ].SetAngles( va( "angle_%i", c ), inc * c + from );
+	}
 }
 
 /*
@@ -4189,6 +4237,8 @@ bool idAnimator::CreateFrame( int currentTime, bool force ) {
 	const int *			jointParent;
 	const jointMod_t *	jointMod;
 	const idJointQuat *	defaultPose;
+
+	transitionJoints(); // HEXEN : Zeroth
 
 	static idCVar		r_showSkel( "r_showSkel", "0", CVAR_RENDERER | CVAR_INTEGER, "", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
 
@@ -5032,4 +5082,54 @@ idRenderModel *idGameEdit::ANIM_CreateMeshForAnim( idRenderModel *model, const c
 	ent.joints = NULL;
 
 	return newmodel;
+}
+
+/*
+=====================
+Zeroth
+idAnimator::transitionJoints
+=====================
+*/
+void idAnimator::transitionJoints( void ) {
+	for ( int i = 0; i < jointTransitions.Num(); i++ ) {
+		int t;
+		int transitions = jointTransitions[i].GetInt( "transitions" );
+		int nextTran = jointTransitions[i].GetInt( "next_transition", "0" );
+		float curTime = gameLocal.time;
+		float time = jointTransitions[i].GetFloat( va( "time_%i", nextTran ) );
+
+		// make sure we aren't lagging behind the time.
+		for ( t = nextTran; t < transitions; t++ ) {
+			if ( curTime < time ) {
+				// t is the transition we're on for the current time.
+				break;
+			} else {
+				// get the next time and up the transition counter
+				time = jointTransitions[i].GetFloat( va( "time_%i", t ) );
+			}
+		}
+
+		// if we've cycled all the transitions and all of them are in the past, just set this to the last transition
+		if ( t == transitions ) {
+			t = transitions - 1;
+		}
+
+		// get the angle we need to set to
+		idAngles ang = jointTransitions[i].GetAngles( va( "angle_%i", t ) );
+
+		SetJointAxis(	(jointHandle_t)			jointTransitions[i].GetInt( "jointnum" ),
+						(jointModTransform_t)	jointTransitions[i].GetInt( "transform_type" ),
+						ang.ToMat3() );
+
+		// only up the transition if the current time is greater than the time to apply the current transition
+		if ( t < transitions && curTime > jointTransitions[i].GetFloat( va( "time_%i", t - 1 ) ) ) {
+			t++;
+		}
+
+		if ( t == transitions ) {
+			jointTransitions.RemoveIndex( i );
+		} else {
+			jointTransitions[i].SetInt( "next_transition", t );
+		}
+	}
 }

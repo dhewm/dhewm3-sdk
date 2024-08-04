@@ -82,7 +82,7 @@ public:
 
 	// Weapon definition management
 	void					Clear( void );
-	void					GetWeaponDef( const char *objectname, int ammoinclip );
+	void					GetWeaponDef( const char *objectname, float ammoinclip );
 	bool					IsLinked( void );
 	bool					IsWorldModelReady( void );
 
@@ -109,6 +109,8 @@ public:
 	void					OwnerDied( void );
 	void					BeginAttack( void );
 	void					EndAttack( void );
+	void					BeginAttack2( void ); // HEXEN : Zeroth
+	void					EndAttack2( void ); // HEXEN : Zeroth
 	bool					IsReady( void ) const;
 	bool					IsReloading( void ) const;
 	bool					IsHolstered( void ) const;
@@ -123,6 +125,7 @@ public:
 	void					SetState( const char *statename, int blendFrames );
 	void					UpdateScript( void );
 	void					EnterCinematic( void );
+	void					eoc_UnstickAllButtons( void ); // HEXEN : Zeroth
 	void					ExitCinematic( void );
 	void					NetCatchup( void );
 
@@ -138,12 +141,12 @@ public:
 	static const char		*GetAmmoNameForNum( ammo_t ammonum );
 	static const char		*GetAmmoPickupNameForNum( ammo_t ammonum );
 	ammo_t					GetAmmoType( void ) const;
-	int						AmmoAvailable( void ) const;
-	int						AmmoInClip( void ) const;
+	float					AmmoAvailable( void ) const;
+	float					AmmoInClip( void ) const;
 	void					ResetAmmoClip( void );
-	int						ClipSize( void ) const;
-	int						LowAmmo( void ) const;
-	int						AmmoRequired( void ) const;
+	float					ClipSize( void ) const;
+	float					LowAmmo( void ) const;
+	float					AmmoRequired( void ) const;
 
 	virtual void			WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void			ReadFromSnapshot( const idBitMsgDelta &msg );
@@ -161,6 +164,7 @@ public:
 private:
 	// script control
 	idScriptBool			WEAPON_ATTACK;
+	idScriptBool			WEAPON_ATTACK2; // HEXEN : Zeroth
 	idScriptBool			WEAPON_RELOAD;
 	idScriptBool			WEAPON_NETRELOAD;
 	idScriptBool			WEAPON_NETENDRELOAD;
@@ -176,7 +180,7 @@ private:
 	bool					isLinked;
 
 	// precreated projectile
-	idEntity				*projectileEnt;
+	idList<idEntity	*>		projectileEnts; // HEXEN : Zeroth. turned into an idList.
 
 	idPlayer *				owner;
 	idEntityPtr<idAnimatedEntity>	worldModel;
@@ -250,10 +254,10 @@ private:
 
 	// ammo management
 	ammo_t					ammoType;
-	int						ammoRequired;		// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
-	int						clipSize;			// 0 means no reload
-	int						ammoClip;
-	int						lowAmmo;			// if ammo in clip hits this threshold, snd_
+	float					ammoRequired;		// amount of ammo to use each shot.  0 means weapon doesn't need ammo.
+	float					clipSize;			// 0 means no reload
+	float					ammoClip;
+	float					lowAmmo;			// if ammo in clip hits this threshold, snd_
 	bool					powerAmmo;			// true if the clip reduction is a factor of the power setting when
 												// a projectile is launched
 	// mp client
@@ -326,8 +330,8 @@ private:
 	void					Event_WeaponHolstered( void );
 	void					Event_WeaponRising( void );
 	void					Event_WeaponLowering( void );
-	void					Event_UseAmmo( int amount );
-	void					Event_AddToClip( int amount );
+	void					Event_UseAmmo( float amount );
+	void					Event_AddToClip( float amount );
 	void					Event_AmmoInClip( void );
 	void					Event_AmmoAvailable( void );
 	void					Event_TotalAmmoCount( void );

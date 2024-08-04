@@ -154,7 +154,7 @@ ID_INLINE void idStrPool::FreeString( const idPoolStr *poolStr ) {
 				}
 			}
 		}
-#ifdef _DEBUG && 0
+#if defined(_DEBUG) && 0
 		assert( i != -1 );
 		assert( pool[i] == poolStr );
 #endif

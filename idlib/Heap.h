@@ -817,7 +817,7 @@ idDynamicBlock<type> *idDynamicBlockAlloc<type, baseBlockSize, minBlockSize>::Re
 
 template<class type, int baseBlockSize, int minBlockSize>
 void idDynamicBlockAlloc<type, baseBlockSize, minBlockSize>::FreeInternal( idDynamicBlock<type> *block ) {
-#ifdef _DEBUG && 0
+#if defined(_DEBUG) && 0
 	assert( block->node == NULL );
 #endif
 #ifdef DYNAMIC_BLOCK_ALLOC_CHECK

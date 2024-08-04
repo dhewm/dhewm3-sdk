@@ -1815,7 +1815,7 @@ idItem::SetOwner
 ================
 */
 void idItem::SetOwner( idPlayer *_owner ) {
-#ifdef _DEBUG && 0
+#if defined(_DEBUG) && 0
 	assert( !owner );
 #endif
 	owner = _owner;
@@ -1836,7 +1836,7 @@ idItem::CallFunc
 bool idItem::CallFunc( char *funcName ) {
 	const function_t *func = GetScriptFunction( (const char*) funcName );
 	if ( !func ) {
-#ifdef _DEBUG && 0
+#if defined(_DEBUG) && 0
 		assert( 0 );
 #endif
 		gameLocal.Error( "Can't find function use' in object '%s'", scriptObject.GetTypeName() );

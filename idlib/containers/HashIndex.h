@@ -370,7 +370,7 @@ idHashIndex::SetGranularity
 ================
 */
 ID_INLINE void idHashIndex::SetGranularity( const int newGranularity ) {
-#ifdef _DEBUG && 0
+#if defined(_DEBUG) && 0
 	assert( newGranularity > 0 );
 #endif
 	granularity = newGranularity;

@@ -161,6 +161,7 @@ public:
 
 	void					Spawn( void );
 	virtual void			Think( void );
+	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity ); // darknar, probably this can be useful if the splat fx moveable gib was causing lag. Allow idMoveableItem class spawn fx on collision
 	virtual bool			Pickup( idPlayer *player );
 
 	static void				DropItems( idAnimatedEntity *ent, const char *type, idList<idEntity *> *list );
@@ -174,7 +175,8 @@ private:
 	idClipModel *			trigger;
 	const idDeclParticle *	smoke;
 	int						smokeTime;
-
+	int						nextSoundTime; // darknar, fx collide data
+	idStr					fxCollide; // darknar, fx collide data
 	void					Gib( const idVec3 &dir, const char *damageDefName );
 
 	void					Event_DropToFloor( void );
@@ -225,5 +227,21 @@ private:
 	void					Event_HideObjective( idEntity *e );
 	void					Event_GetPlayerPos();
 };
+
+// darknar start change
+
+/*
+===============================================================================
+
+idMoveableGibItem
+
+===============================================================================
+*/
+class idMoveableGibItem : public idMoveableItem {
+public:
+	CLASS_PROTOTYPE(idMoveableGibItem);
+};
+
+// darknar end change
 
 #endif /* !__GAME_ITEM_H__ */

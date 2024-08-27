@@ -261,6 +261,22 @@ void Cmd_KillMovables_f( const idCmdArgs &args ) {
 	KillEntities( args, idMoveable::Type );
 }
 
+// darknar start change
+/*
+==================
+Cmd_ClearGibs_f
+
+Kill all gib moveable in a level.
+==================
+*/
+void Cmd_ClearGibs_f( const idCmdArgs &args ) {
+	if ( !gameLocal.GetLocalPlayer() ) {
+		return;
+	}
+	KillEntities( args, idMoveableGibItem::Type );
+}
+// darknar end change
+
 /*
 ==================
 Cmd_KillRagdolls_f
@@ -2334,6 +2350,13 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "remove",				Cmd_Remove_f,				CMD_FL_GAME|CMD_FL_CHEAT,	"removes an entity", idGameLocal::ArgCompletion_EntityName );
 	cmdSystem->AddCommand( "killMonsters",			Cmd_KillMonsters_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all monsters" );
 	cmdSystem->AddCommand( "killMoveables",			Cmd_KillMovables_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all moveables" );
+
+	// darlnar start change
+
+	cmdSystem->AddCommand( "ClearGibs",             Cmd_ClearGibs_f,            CMD_FL_GAME|CMD_FL_CHEAT,   "removes all gibs spawned" );
+
+	// darknar end change
+	
 	cmdSystem->AddCommand( "killRagdolls",			Cmd_KillRagdolls_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"removes all ragdolls" );
 	cmdSystem->AddCommand( "addline",				Cmd_AddDebugLine_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"adds a debug line" );
 	cmdSystem->AddCommand( "addarrow",				Cmd_AddDebugLine_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"adds a debug arrow" );

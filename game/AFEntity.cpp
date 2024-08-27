@@ -1104,6 +1104,8 @@ idAFEntity_Gibbable::SpawnGibs
 */
 void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefName ) {
 	int i;
+	float gibTime; // darknar
+	float gibPower; // darknar
 	bool gibNonSolid;
 	idVec3 entityCenter, velocity;
 	idList<idEntity *> list;
@@ -1114,7 +1116,8 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 	if ( !damageDef ) {
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
 	}
-
+	gibTime = g_gib_remove_time.GetFloat(); // darknar
+	gibPower = g_gib_power.GetFloat(); // darknar
 	// spawn gib articulated figures
 	idAFEntity_Base::DropAFs( this, "gib", &list );
 
@@ -1131,16 +1134,31 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 			list[i]->GetPhysics()->UnlinkClip();
 			list[i]->GetPhysics()->PutToRest();
 		} else {
-			list[i]->GetPhysics()->SetContents( CONTENTS_CORPSE );
+			//list[i]->GetPhysics()->SetContents( CONTENTS_CORPSE );
+			list[i]->GetPhysics()->SetContents( 0 ); // darknar
 			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
 			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
 			velocity.NormalizeFast();
 			velocity += ( i & 1 ) ? dir : -dir;
-			list[i]->GetPhysics()->SetLinearVelocity( velocity * 75.0f );
+			// list[i]->GetPhysics()->SetLinearVelocity( velocity * 75.0f );
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power
 		}
-		list[i]->GetRenderEntity()->noShadow = true;
-		list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-		list[i]->PostEventSec( &EV_Remove, 4.0f );
+		// darknar start change
+
+		/*
+				list[i]->GetRenderEntity()->noShadow = true;
+				list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
+				list[i]->PostEventSec(&EV_Remove, 4.0f);
+		*/
+		
+		if ( !g_gib_shadows.GetBool() ) {
+			list[i]->GetRenderEntity()->noShadow = true; // shadows can be optional, 1 = enable shadows, 0 = no shadows ( default )
+		}
+		//list[i]->GetRenderEntity()->shaderParms[SHADERPARM_TIME_OF_DEATH] = gameLocal.time * 0.001f; // disable burn effect for now
+		if ( gibTime > 0.0f ) { // darknar, if the float is > to 0, do the remove after x seconds
+			list[i]->PostEventSec(&EV_Remove, gibTime); // darknar, define a float in Cvar, gibs are removed after thes time
+		}
+        // darknar end change
 	}
 }
 
@@ -1173,14 +1191,20 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	UnlinkCombat();
 
 	if ( g_bloodEffects.GetBool() ) {
-		if ( gameLocal.time > gameLocal.GetGibTime() ) {
+		// Real Gibs - Taken from the repository (https://github.com/RobertBeckebans/Sikkpin-Feedback)
+		// sikk - Since "nextGibTime" is a member of idGameLocal and not idAFEntity||idAFEntity_Gibbable
+		// the folloing if statement is only true once per damage event instead of per entity being damaged.
+		// This is why only one entity will get gibbed while the rest just disappear after a few seconds.
+		// I commented this out instead of moving the variable to the proper class because it's easier and
+		// the delay is only 200ms so the difference should be unnoticable
+		//if ( gameLocal.time > gameLocal.GetGibTime() ) {
 			gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
 			SpawnGibs( dir, damageDefName );
 			renderEntity.noShadow = true;
 			renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
 			StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
 			gibbed = true;
-		}
+		//}
 	} else {
 		gibbed = true;
 	}

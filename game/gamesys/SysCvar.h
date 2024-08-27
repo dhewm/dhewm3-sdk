@@ -250,6 +250,11 @@ extern idCVar	si_spectators;
 extern idCVar	net_clientSelfSmoothing;
 extern idCVar	net_clientLagOMeter;
 
+// darknar add
+extern idCVar   g_gib_power;
+extern idCVar   g_gib_shadows;
+extern idCVar   g_gib_remove_time;
+
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];

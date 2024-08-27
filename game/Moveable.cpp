@@ -175,7 +175,7 @@ void idMoveable::Spawn( void ) {
 	if ( spawnArgs.GetBool( "nonsolid" ) ) {
 		BecomeNonSolid();
 	}
-		if ( spawnArgs.GetBool( "gibclear" ) ) { // makes the moveable burn at spawn, i don't know if this works!!!
+	if ( spawnArgs.GetBool( "gibclear" ) ) { // makes the moveable burn at spawn, i don't know if this works!!!
 		GetRenderEntity()->shaderParms[SHADERPARM_TIME_OF_DEATH] = gameLocal.time * 0.001f; // darknar, test custom gib clear for splat moveable for optimization
 		PostEventMS( &EV_Remove, 4000 ); // darknar, remove this after 4 seconds
 	}

@@ -2134,6 +2134,10 @@ void idActor::Gib( const idVec3 &dir, const char *damageDefName ) {
 	if ( head.GetEntity() ) {
 		head.GetEntity()->Hide();
 	}
+	// darknar
+	if (spawnArgs.GetBool("gib_remove")) {
+		Hide();
+	}
 	StopSound( SND_CHANNEL_VOICE, false );
 }
 
@@ -2191,7 +2195,7 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
+			if ( ( health < spawnArgs.GetInt("health_gib") ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) { // darknar
 				Gib( dir, damageDefName );
 			}
 		} else {

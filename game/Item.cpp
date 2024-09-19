@@ -870,6 +870,7 @@ idMoveableItem::idMoveableItem() {
 	trigger = NULL;
 	smoke = NULL;
 	smokeTime = 0;
+	nextSoundTime = 0; // darknar collide data
 }
 
 /*
@@ -895,6 +896,8 @@ void idMoveableItem::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteParticle( smoke );
 	savefile->WriteInt( smokeTime );
+	savefile->WriteString( fxCollide ); // darknar collide data
+	savefile->WriteInt( nextSoundTime ); // darknar collide data
 }
 
 /*
@@ -910,6 +913,8 @@ void idMoveableItem::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadParticle( smoke );
 	savefile->ReadInt( smokeTime );
+	savefile->ReadString( fxCollide ); // darknar collide data
+	savefile->ReadInt( nextSoundTime ); // darknar collide data
 }
 
 /*
@@ -945,7 +950,7 @@ void idMoveableItem::Spawn( void ) {
 	if ( spawnArgs.GetBool( "clipshrink" ) ) {
 		trm.Shrink( CM_CLIP_EPSILON );
 	}
-
+	fxCollide = spawnArgs.GetString( "fx_collide" ); // darknar collide data
 	// get rigid body properties
 	spawnArgs.GetFloat( "density", "0.5", density );
 	density = idMath::ClampFloat( 0.001f, 1000.0f, density );
@@ -968,6 +973,7 @@ void idMoveableItem::Spawn( void ) {
 
 	smoke = NULL;
 	smokeTime = 0;
+	nextSoundTime = 0; // darknar collide data
 	const char *smokeName = spawnArgs.GetString( "smoke_trail" );
 	if ( *smokeName != '\0' ) {
 		smoke = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, smokeName ) );
@@ -998,6 +1004,32 @@ void idMoveableItem::Think( void ) {
 	}
 
 	Present();
+}
+
+/*
+=================
+idMoveableItem::Collide // darknar collide data, allows idMoveableGibItem and idMoveableItem spawn a collide fx when collides. I was using a idMoveable to make the gib splats, if that was causing lag, this can help to make the blood decals.
+=================
+*/
+
+bool idMoveableItem::Collide( const trace_t &collision, const idVec3 &velocity ) {
+	float v, f;
+
+	v = -( velocity * collision.c.normal );
+	if ( v > 80 && gameLocal.time > nextSoundTime ) {
+		if ( fxCollide.Length() ) {
+		idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
+		}
+		f = v > 200 ? 1.0f : idMath::Sqrt( v - 80 ) * 0.091f;
+		if ( StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL ) ) {
+			// don't set the volume unless there is a bounce sound as it overrides the entire channel
+			// which causes footsteps on ai's to not honor their shader parms
+			SetSoundVolume( f );
+		}
+		nextSoundTime = gameLocal.time + 500;
+	}
+
+	return false;
 }
 
 /*
@@ -1356,3 +1388,18 @@ void idObjectiveComplete::Event_HideObjective( idEntity *e ) {
 		}
 	}
 }
+
+// darknar start change
+
+/*
+================
+
+idMoveableGibItem
+
+================
+*/
+
+CLASS_DECLARATION( idMoveableItem, idMoveableGibItem )
+END_CLASS
+
+// darknar end change

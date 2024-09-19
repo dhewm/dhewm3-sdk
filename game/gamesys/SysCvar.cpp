@@ -335,3 +335,8 @@ idCVar mod_validSkins(				"mod_validSkins",			"skins/characters/player/marine_mp
 idCVar net_serverDownload(			"net_serverDownload",		"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "enable server download redirects. 0: off 1: redirect to si_serverURL 2: use builtin download. see net_serverDl cvars for configuration" );
 idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_ARCHIVE, "base URL for the download redirection" );
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
+
+// darknar add
+idCVar g_gib_power(                 "g_gib_power",              "75.0",         CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT, "gibs are launched with this force when the monster gibs" );
+idCVar g_gib_shadows(               "g_gib_shadows",            "0",            CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_BOOL, "enable shadows for spawned gibs, 0 = no shadows" );
+idCVar g_gib_remove_time(           "g_gib_remove_time",        "0.0",          CVAR_GAME | CVAR_NOCHEAT | CVAR_ARCHIVE | CVAR_FLOAT, "remove the gibs after x seconds, 0.0 = unlimited" );

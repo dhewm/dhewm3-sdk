@@ -39,13 +39,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "gamesys/Event.h"
 #include "Game_local.h"
 
-// the following is from bloodmod
-#ifdef _DENTONMOD
-#ifndef _DENTONMOD_ENTITY_CPP
-#define _DENTONMOD_ENTITY_CPP
-#endif
-#endif
-
 /*
 ===============================================================================
 
@@ -530,6 +523,7 @@ protected:
 
 private:
 	int						nextBloodPoolTime; // Blood Mod 
+	int						nextSplatTime; // Blood Mod
 
 	void					Event_GetJointHandle( const char *jointname );
 	void					Event_ClearAllJoints( void );

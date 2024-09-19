@@ -2191,7 +2191,7 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health <= 0 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) { // Blood Mod change "< -20" to "<= 0". Makes zombies drop gibs immediately after death
+			if ( ( health <= spawnArgs.GetInt( va( "health_gib" ), "0" ) ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) { // Blood Mod - Uses a custom value for gibbing, 0 = default
 				Gib( dir, damageDefName );
 			}
 		} else {

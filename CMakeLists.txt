@@ -4,9 +4,6 @@ project(dhewm3sdk)
 option(BASE		"Build the base (game/) game code" ON)
 set(BASE_NAME	"bloodmod" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
 set(BASE_DEFS	"GAME_DLL" CACHE STRING "Compiler definitions for the mod built from game/")
-# FIXME: there is some bloodmod code hidden behind #ifdef _DENTONMOD, but when adding _DENTONMOD to BASE_DEFS
-#        it doesn't compile (idAnimatedEntity::AddLocalDamageEffect() uses TH_UPDATEWOUNDPARTICLES
-#        which isn't defined anywhere)
 
 option(D3XP		"Build the d3xp/ game code" OFF)
 set(D3XP_NAME	"d3xp" CACHE STRING "Name of the mod built from d3xp/ (will result in \${D3XP_NAME}.dll)")

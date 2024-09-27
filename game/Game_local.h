@@ -656,19 +656,4 @@ extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
 extern const int	CINEMATIC_SKIP_DELAY;
 
-#include "physics/Physics_Parametric.h"
-#include "physics/Physics_RigidBody.h"
-#include "physics/Physics_AF.h"
-#include "physics/Physics_Liquid.h"
-
-#include "SmokeParticles.h"
-
-#include "AF.h"
-#include "IK.h"
-#include "AFEntity.h"
-#include "Liquid.h"
-#include "Misc.h"
-#include "Actor.h"
-#include "Projectile.h"
-
 #endif	/* !__GAME_LOCAL_H__ */

@@ -304,7 +304,8 @@ idLangDict::GetHashKey
 int idLangDict::GetHashKey( const char *str ) const {
 	int hashKey = 0;
 	for ( str += STRTABLE_ID_LENGTH; str[0] != '\0'; str++ ) {
-		assert( str[0] >= '0' && str[0] <= '9' );
+		// DG: desolated uses string ids like #str_quest_4 or similar, so get rid of the assertion
+		//assert( str[0] >= '0' && str[0] <= '9' );
 		hashKey = hashKey * 10 + str[0] - '0';
 	}
 	return hashKey;

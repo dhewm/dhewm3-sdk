@@ -18,6 +18,11 @@
 ===============================================================================
 */
 
+#ifndef _GAME_PHYSICS_LIQUID_H_
+#define _GAME_PHYSICS_LIQUID_H_
+
+#include "Physics_Static.h"
+
 class idPhysics_Liquid : public idPhysics_Static {
 public:
 	CLASS_PROTOTYPE( idPhysics_Liquid );
@@ -58,3 +63,5 @@ private:
 	idVec3				minWaveVelocity;
 	idVec3				minSplashVelocity;
 };
+
+#endif // _GAME_PHYSICS_LIQUID_H_

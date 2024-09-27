@@ -1,7 +1,7 @@
-#include "../idlib/precompiled.h"
-#pragma hdrstop
 
-#include "Game_local.h"
+#include "Liquid.h"
+#include "SmokeParticles.h"
+#include "physics/Physics_Actor.h"
 
 // We do these splashes if the mass of the colliding object is less than these values.
 // Anything large than MEDIUM_SPLASH does a large splash. (get it?)

@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Entity.h"
 
 #include "physics/Physics_Base.h"
+#include "Physics_Liquid.h"
 
 CLASS_DECLARATION( idPhysics, idPhysics_Base )
 END_CLASS

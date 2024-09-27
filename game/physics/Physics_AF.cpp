@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "physics/Physics_AF.h"
 
+#include "Physics_Liquid.h"
+
 CLASS_DECLARATION( idPhysics_Base, idPhysics_AF )
 END_CLASS
 

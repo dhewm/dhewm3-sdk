@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "ai/AI.h"
 
+#include <limits.h>
+
 static const char *moveCommandString[ NUM_MOVE_COMMANDS ] = {
 	"MOVE_NONE",
 	"MOVE_FACE_ENEMY",

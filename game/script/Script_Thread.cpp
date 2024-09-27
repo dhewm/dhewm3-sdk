@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "script/Script_Thread.h"
 
+#include <limits.h>
+
 const idEventDef EV_Thread_Execute( "<execute>", NULL );
 const idEventDef EV_Thread_SetCallback( "<script_setcallback>", NULL );
 
@@ -2108,7 +2110,7 @@ void idThread::Event_SetTestVarGui1( float value ) {
 	player->inventory.testVarGui1 = value;
 	
 	if( player->inventory.testVarGui1 < 0 || 
-		player->inventory.testVarGui1 > INT_MAX ) {
+		player->inventory.testVarGui1 > INT_MAX ) { // DG: FIXME: this check will never be true..
 
 		player->inventory.testVarGui1 = 0;
 	}

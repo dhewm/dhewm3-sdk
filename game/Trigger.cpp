@@ -30,6 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "script/Script_Thread.h"
 #include "Player.h"
 
+#include "idlib/LangDict.h"
+#include "gamesys/SysCvar.h"
+
 #include "Trigger.h"
 
 /*

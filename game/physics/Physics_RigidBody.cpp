@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Player.h"
 
 #include "physics/Physics_RigidBody.h"
+#include "Physics_Liquid.h"
 
 CLASS_DECLARATION( idPhysics_Base, idPhysics_RigidBody )
 END_CLASS

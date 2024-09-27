@@ -54,6 +54,16 @@ idPlayerView::idPlayerView() {
 	bloodSprayMaterial = declManager->FindMaterial( "textures/decals/bloodspray" );
 	bfgMaterial = declManager->FindMaterial( "textures/decals/bfgvision" );
 	lagoMaterial = declManager->FindMaterial( LAGO_MATERIAL, false );
+
+// sikk---> Brilliant Bloom/Motion Blur/DoF/Scene Effect PostProcess
+	bloomAddMaterial = declManager->FindMaterial( "textures/AFX/AFXadd" );
+	bloomBlurMaterial = declManager->FindMaterial( "textures/AFX/AFXblurB" );
+	bloomWeightMaterial = declManager->FindMaterial( "textures/AFX/AFXweight" );
+	motionblurMaterial = declManager->FindMaterial( "textures/sfx/motionblur" );
+	dofMaterial = declManager->FindMaterial( "textures/sfx/zoomDoF" );
+	celMaterial = declManager->FindMaterial( "textures/sfx/cel" );
+// <---sikk
+
 	bfgVision = false;
 	dvFinishTime = 0;
 	kickFinishTime = 0;
@@ -448,6 +458,17 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		return;
 	}
 
+	//###// by MacX - using code by Cameron
+	if( player->diaryUIOpen ) {
+		player->diaryUI->Redraw( gameLocal.time );
+		return;
+	}
+	if( player->questlogUIOpen ) {
+		player->questlogUI->Redraw( gameLocal.time );
+		return;
+	}
+	//###//
+
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t	hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
@@ -458,8 +479,13 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		return;
 	}
 
+//###// by MacX
+
 	// draw screen blobs
-	if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() ) {
+	//if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() ) {
+	if ( !g_skipViewEffects.GetBool() ) {
+
+//###//
 		for ( int i = 0 ; i < MAX_SCREEN_BLOBS ; i++ ) {
 			screenBlob_t	*blob = &screenBlobs[i];
 			if ( blob->finishTime <= gameLocal.time ) {
@@ -477,7 +503,8 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 				renderSystem->DrawStretchPic( blob->x, blob->y, blob->w, blob->h,blob->s1, blob->t1, blob->s2, blob->t2, blob->material );
 			}
 		}
-		player->DrawHUD( hud );
+
+//		player->DrawHUD( hud );	// sikk - Draw the hud after postprocessing effects
 
 		// armor impulse feedback
 		float	armorPulse = ( gameLocal.time - player->lastArmorPulse ) / 250.0f;
@@ -486,7 +513,6 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 			renderSystem->SetColor4( 1, 1, 1, 1.0 - armorPulse );
 			renderSystem->DrawStretchPic( 0, 0, 640, 480, 0, 0, 1, 1, armorMaterial );
 		}
-
 
 		// tunnel vision
 		float	health = 0.0f;
@@ -523,6 +549,27 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, bfgMaterial );
 		}
 
+// sikk---> Brilliant Bloom/Filmgrain/Motion Blur/DoF/Cel Shading PostProcessing Effects
+		if( z_bloom.GetBool() &&
+			!player->PowerUpActive( BERSERK ) &&
+			//###// by MacX
+			( cvarSystem->GetCVarFloat( "timeScale" ) == 1 ) ) {	
+			//###//
+
+			PostprocessBloom();
+		}
+		if ( r_useCelShading.GetBool() ) {
+			PostprocessCelShading();
+		}
+		if ( r_useMotionBlur.GetBool() ) {
+			PostprocessMotionBlur();
+		}
+		if ( r_useZoomDoF.GetBool() ) {
+			PostprocessZoomDoF();
+		}
+// <---sikk
+
+		player->DrawHUD( hud );	// sikk - Draw the hud after postprocessing effects
 	}
 
 	// test a single material drawn over everything
@@ -711,7 +758,10 @@ void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
 			InfluenceVision( hud, view );
 		} else if ( gameLocal.time < dvFinishTime ) {
 			DoubleVision( hud, view, dvFinishTime - gameLocal.time );
-		} else if ( player->PowerUpActive( BERSERK ) ) {
+			//CAMERON LAW START
+//		} else if ( player->PowerUpActive( BERSERK ) ) {
+		} else if ( player->PowerUpActive( BERSERK ) || cvarSystem->GetCVarFloat("timeScale") !=1) {
+			//CAMERON LAW END
 			BerserkVision( hud, view );
 		} else {
 			SingleView( hud, view );
@@ -724,3 +774,121 @@ void idPlayerView::RenderPlayerView( idUserInterface *hud ) {
 		renderSystem->DrawStretchPic( 10.0f, 380.0f, 64.0f, 64.0f, 0.0f, 0.0f, 1.0f, 1.0f, lagoMaterial );
 	}
 }
+
+
+// sikk---> Brilliant Bloom Fullscreen PostProcess Effect
+/*
+===================
+idPlayerView::PostprocessBloom
+
+- original code by mahaX
+===================
+*/
+void idPlayerView::PostprocessBloom() {
+	int		bW, bH, rbW, rbH;	// buffer and renderBuffer (currentRender)
+	float	rbMx, rbMy;			// renderBuffer margin
+	
+	// notes: outside the source code I might have mixed the bloom buffer as "render buffer"...
+
+	// determine AFX buffer size
+	switch ( z_bloomBufferSize.GetInteger() ) {
+	case 0:
+		bW = 64; bH = 32; break;
+	case 1:
+		bW = 128; bH = 64; break;
+	case 2:
+		bW = 256; bH = 128; break;
+	case 3:
+		bW = 512; bH = 256; break;
+	case 4:
+		bW = 1024; bH = 512; break;
+	default:
+		bW = 256; bH = 128; break;
+	}
+
+	// determine currentRender buffer size
+	if ( renderSystem->GetScreenWidth() > 1024 )
+		rbW = 2048;
+	else
+		rbW = 1024;
+
+	if ( renderSystem->GetScreenHeight() > 1024 )
+		rbH = 2048;
+	else if ( renderSystem->GetScreenHeight() < 512 )
+		rbH = 512;
+	else
+		rbH = 1024;
+	
+	rbMx = renderSystem->GetScreenWidth()  / (float)rbW;
+	rbMy = renderSystem->GetScreenHeight() / (float)rbH;
+
+	// capture original
+	renderSystem->CaptureRenderToImage( "_currentRender" );
+
+	// create weight map
+	renderSystem->CropRenderSize( 2, 2, true, true );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, bloomWeightMaterial );
+	renderSystem->CaptureRenderToImage( "_zweight" );
+	renderSystem->UnCrop();
+	
+	// create lower res map
+	renderSystem->CropRenderSize( bW, bH, true, true );
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, rbMy, rbMx, 0, declManager->FindMaterial( "_currentRender" ) );
+	renderSystem->CaptureRenderToImage( "_zbloom" );
+
+	// loop iterations
+	for ( int i = 0; i < z_bloomIterations.GetInteger(); i++ ) {
+		renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, bloomBlurMaterial );
+		renderSystem->CaptureRenderToImage( "_zbloom" );
+	}
+	renderSystem->UnCrop();
+
+	// blend original and bloom
+	renderSystem->DrawStretchPic( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1, 1, 0, bloomAddMaterial );
+}
+// <---sikk
+
+// sikk---> Motion Blur Fullscreen PostProcess Effect
+/*
+===================
+idPlayerView::PostprocessMotionBlur
+===================
+*/
+void idPlayerView::PostprocessMotionBlur() {
+	if ( ( player->viewAngles.pitch >= mbPrevAngles.pitch + 5 ) ||
+		 ( player->viewAngles.pitch <= mbPrevAngles.pitch - 5 ) ||
+		 ( player->viewAngles.yaw >= mbPrevAngles.yaw + 5 ) ||
+		 ( player->viewAngles.yaw <= mbPrevAngles.yaw - 5 ) ) {
+
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+		renderSystem->DrawStretchPic( 0, 0, 640, 480, 0, 0, 1, 1, motionblurMaterial );
+	}
+
+	mbPrevAngles = player->viewAngles;
+}
+// <---sikk
+
+// sikk---> Zoom DoF Fullscreen PostProcess Effect
+/*
+===================
+idPlayerView::PostprocessZoomDoF
+===================
+*/
+void idPlayerView::PostprocessZoomDoF() {
+	if ( player->bIsZoomed ) {
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+		renderSystem->DrawStretchPic( 0, 0, 640, 480, 0, 0, 1, 1, dofMaterial );
+	}	
+}
+
+// sikk---> Cel-Shading Fullscreen PostProcess Effect
+/*
+===================
+idPlayerView::PostprocessCelShading
+===================
+*/
+void idPlayerView::PostprocessCelShading() {
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+		renderSystem->DrawStretchPic( 0, 0, 640, 480, 0, 0, 1, 1, celMaterial);
+}
+// <---sikk

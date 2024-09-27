@@ -146,6 +146,10 @@ idCVar g_showTestModelFrame(		"g_showTestModelFrame",		"0",			CVAR_GAME | CVAR_B
 idCVar g_showActiveEntities(		"g_showActiveEntities",		"0",			CVAR_GAME | CVAR_BOOL, "draws boxes around thinking entities.  dormant entities (outside of pvs) are drawn yellow.  non-dormant are green." );
 idCVar g_showEnemies(				"g_showEnemies",			"0",			CVAR_GAME | CVAR_BOOL, "draws boxes around monsters that have targeted the the player" );
 
+//###// by MacX
+idCVar g_showSubtitle(				"g_showSubtitle",			"0",			CVAR_GAME | CVAR_BOOL, "displays subtitle 1=on/0=off" );
+//###//
+
 idCVar g_frametime(					"g_frametime",				"0",			CVAR_GAME | CVAR_BOOL, "displays timing information for each game frame" );
 idCVar g_timeentities(				"g_timeEntities",			"0",			CVAR_GAME | CVAR_FLOAT, "when non-zero, shows entities whose think functions exceeded the # of milliseconds specified" );
 
@@ -196,6 +200,12 @@ idCVar af_useLinearTime(			"af_useLinearTime",			"1",			CVAR_GAME | CVAR_BOOL, "
 idCVar af_useImpulseFriction(		"af_useImpulseFriction",	"0",			CVAR_GAME | CVAR_BOOL, "use impulse based contact friction" );
 idCVar af_useJointImpulseFriction(	"af_useJointImpulseFriction","0",			CVAR_GAME | CVAR_BOOL, "use impulse based joint friction" );
 idCVar af_useSymmetry(				"af_useSymmetry",			"1",			CVAR_GAME | CVAR_BOOL, "use constraint matrix symmetry" );
+
+//###// by MacX - using code of water physics mod
+idCVar af_useBodyDensityBuoyancy(	"af_useBodyDensityBuoyancy","0",			CVAR_GAME | CVAR_BOOL, "uses density of each body to calculate buoyancy");
+idCVar af_useFixedDensityBuoyancy(	"af_useFixedDensityBuoyancy","1",			CVAR_GAME | CVAR_BOOL, "if set, use liquidDensity as a fixed density for each body when calculating buoyancy.  If clear, bodies are floated uniformly by a scalar liquidDensity as defined in the decls." );
+//###//
+
 idCVar af_skipSelfCollision(		"af_skipSelfCollision",		"0",			CVAR_GAME | CVAR_BOOL, "skip self collision detection" );
 idCVar af_skipLimits(				"af_skipLimits",			"0",			CVAR_GAME | CVAR_BOOL, "skip joint limits" );
 idCVar af_skipFriction(				"af_skipFriction",			"0",			CVAR_GAME | CVAR_BOOL, "skip friction" );
@@ -230,6 +240,10 @@ idCVar rb_showInertia(				"rb_showInertia",			"0",			CVAR_GAME | CVAR_BOOL, "sho
 idCVar rb_showVelocity(				"rb_showVelocity",			"0",			CVAR_GAME | CVAR_BOOL, "show the velocity of each rigid body" );
 idCVar rb_showActive(				"rb_showActive",			"0",			CVAR_GAME | CVAR_BOOL, "show rigid bodies that are not at rest" );
 
+//###// by MacX - using code of water physics mod
+idCVar rb_showBuoyancy(				"rb_showBuoyancy",			"0",			CVAR_GAME | CVAR_BOOL, "show rigid body buoyancy information" );
+//###//
+
 // The default values for player movement cvars are set in def/player.def
 idCVar pm_jumpheight(				"pm_jumpheight",			"48",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "approximate height the player can jump" );
 idCVar pm_stepsize(					"pm_stepsize",				"16",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "maximum height the player can step up without jumping" );
@@ -245,6 +259,12 @@ idCVar pm_maxviewpitch(				"pm_maxviewpitch",			"89",			CVAR_GAME | CVAR_NETWORK
 idCVar pm_stamina(					"pm_stamina",				"24",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "length of time player can run" );
 idCVar pm_staminathreshold(			"pm_staminathreshold",		"45",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "when stamina drops below this value, player gradually slows to a walk" );
 idCVar pm_staminarate(				"pm_staminarate",			"0.75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "rate that player regains stamina. divide pm_stamina by this value to determine how long it takes to fully recharge." );
+
+//###// by MacX
+idCVar pm_slowmotion(				"pm_slowmotion",			"60",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "length of time in slow motion" );
+idCVar pm_slowmotionrate(			"pm_slowmotionrate",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "rate to regain slow motion time" );
+//###//
+
 idCVar pm_crouchheight(				"pm_crouchheight",			"38",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while crouched" );
 idCVar pm_crouchviewheight(			"pm_crouchviewheight",		"32",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's view while crouched" );
 idCVar pm_normalheight(				"pm_normalheight",			"74",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while standing" );
@@ -335,3 +355,17 @@ idCVar mod_validSkins(				"mod_validSkins",			"skins/characters/player/marine_mp
 idCVar net_serverDownload(			"net_serverDownload",		"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "enable server download redirects. 0: off 1: redirect to si_serverURL 2: use builtin download. see net_serverDl cvars for configuration" );
 idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_ARCHIVE, "base URL for the download redirection" );
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
+
+// ### z_mod ###
+
+idCVar z_bloom("z_bloom", "1", CVAR_GAME | CVAR_BOOL, "Enable bloom" );
+idCVar z_bloomBufferSize("z_bloomBufferSize", "2",	CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "bloom render to texture size: \n0 = 64x32\n1 = 128x64\n2 = 256x128\n3 = 512x256\n4 = 1024x512" );
+idCVar z_bloomIterations("z_bloomIterations", "12",	CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "Number of times the blur filter is applied" );
+
+//idCVar z_decalPP("z_decalPP", "1", CVAR_GAME | CVAR_BOOL, "Enable decal post processing effects" );
+
+// sikk---> Motion Blur/DoF post processing effects
+idCVar r_useMotionBlur( "r_useMotionBlur", "0", CVAR_GAME | CVAR_NOCHEAT | CVAR_BOOL | CVAR_ARCHIVE, "Enable motion blur postprocessing effect." );
+idCVar r_useZoomDoF( "r_useZoomDoF", "0", CVAR_GAME | CVAR_NOCHEAT | CVAR_BOOL | CVAR_ARCHIVE, "Enable fake depth of field postprocessing effect when zoomed." );
+idCVar r_useCelShading( "r_useCelShading", "1", CVAR_GAME | CVAR_NOCHEAT | CVAR_BOOL | CVAR_ARCHIVE, "Enable cel shading." );
+// <---sikk

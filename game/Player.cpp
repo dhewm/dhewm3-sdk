@@ -128,6 +128,7 @@ idVec3 idPlayer::colorBarTable[ 5 ] = {
 	idVec3( 1.00f, 0.80f, 0.10f )
 };
 
+
 /*
 ==============
 idInventory::Clear
@@ -139,6 +140,34 @@ void idInventory::Clear( void ) {
 	powerups		= 0;
 	armor			= 0;
 	maxarmor		= 0;
+
+//###// by MacX
+
+	money			= 0;
+	diary.Clear();
+	quest.Clear();
+	questState.Clear();
+
+	enemiesKilled	= 0;
+
+	testVarGui1		= 0;
+	testVarGui2		= 0;
+	testVarGui3		= 0;
+	testVarGui4		= 0;
+	testVarGui5		= 0;
+	testVar1		= 0;
+	testVar2		= 0;
+	testVar3		= 0;
+	testVar4		= 0;
+	testVar5		= 0;
+	testVar6		= 0;
+	testVar7		= 0;
+	testVar8		= 0;
+	testVar9		= 0;
+	testVar10		= 0;
+
+//###//
+
 	deplete_armor	= 0;
 	deplete_rate	= 0.0f;
 	deplete_ammount	= 0;
@@ -239,6 +268,46 @@ void idInventory::GetPersistantData( idDict &dict ) {
 	// armor
 	dict.SetInt( "armor", armor );
 
+	//###// by MacX
+	dict.SetInt( "money", money );
+
+	for ( i = 0; i < diary.Num(); i++ ) {
+		sprintf( key, "diary_%i", i );
+		dict.Set( key, diary[ i ].c_str() );
+	}
+	dict.SetInt( "diary", diary.Num() );
+
+	for ( i = 0; i < quest.Num(); i++ ) {
+		sprintf( key, "quest_%i", i );
+		dict.Set( key, quest[ i ].c_str() );
+	}
+	dict.SetInt( "quest", quest.Num() );
+
+	for ( i = 0; i < questState.Num(); i++ ) {
+		sprintf( key, "questState_%i", i );
+		dict.Set( key, questState[ i ].c_str() );
+	}
+	dict.SetInt( "questState", questState.Num() );
+
+	dict.SetInt( "enemiesKilled", enemiesKilled );
+
+	dict.SetInt( "testVarGui1", testVarGui1 );
+	dict.SetInt( "testVarGui2", testVarGui2 );
+	dict.SetInt( "testVarGui3", testVarGui3 );
+	dict.SetInt( "testVarGui4", testVarGui4 );
+	dict.SetInt( "testVarGui5", testVarGui5 );
+	dict.SetInt( "testVar1", testVar1 );
+	dict.SetInt( "testVar2", testVar2 );
+	dict.SetInt( "testVar3", testVar3 );
+	dict.SetInt( "testVar4", testVar4 );
+	dict.SetInt( "testVar5", testVar5 );
+	dict.SetInt( "testVar6", testVar6 );
+	dict.SetInt( "testVar7", testVar7 );
+	dict.SetInt( "testVar8", testVar8 );
+	dict.SetInt( "testVar9", testVar9 );
+	dict.SetInt( "testVar10", testVar10 );
+	//###//
+
 	// don't bother with powerups, maxhealth, maxarmor, or the clip
 
 	// ammo
@@ -332,6 +401,52 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 	maxHealth		= dict.GetInt( "maxhealth", "100" );
 	armor			= dict.GetInt( "armor", "50" );
 	maxarmor		= dict.GetInt( "maxarmor", "100" );
+
+	//###// by MacX
+	money			= dict.GetInt( "money", "0" );
+
+	// diary
+	num = dict.GetInt( "diary" );
+	diary.SetNum( num );
+	for ( i = 0; i < num; i++ ) {
+		sprintf( itemname, "diary_%i", i );
+		diary[i] = dict.GetString( itemname, "default" );
+	}
+
+	//quest
+	num = dict.GetInt( "quest" );
+	quest.SetNum( num );
+	for ( i = 0; i < num; i++ ) {
+		sprintf( itemname, "quest_%i", i );
+		quest[i] = dict.GetString( itemname, "default" );
+	}
+
+	// questState
+	num = dict.GetInt( "questState" );
+	questState.SetNum( num );
+	for ( i = 0; i < num; i++ ) {
+		sprintf( itemname, "questState_%i", i );
+		questState[i] = dict.GetString( itemname, "default" );
+	}
+
+	enemiesKilled		= dict.GetInt( "enemiesKilled", "0" );
+
+	testVarGui1			= dict.GetInt( "testVarGui1", "0" );
+	testVarGui2			= dict.GetInt( "testVarGui2", "0" );
+	testVarGui3			= dict.GetInt( "testVarGui3", "0" );
+	testVarGui4			= dict.GetInt( "testVarGui4", "0" );
+	testVarGui5			= dict.GetInt( "testVarGui5", "0" );
+	testVar1			= dict.GetInt( "testVar1", "0" );
+	testVar2			= dict.GetInt( "testVar2", "0" );
+	testVar3			= dict.GetInt( "testVar3", "0" );
+	testVar4			= dict.GetInt( "testVar4", "0" );
+	testVar5			= dict.GetInt( "testVar5", "0" );
+	testVar6			= dict.GetInt( "testVar6", "0" );
+	testVar7			= dict.GetInt( "testVar7", "0" );
+	testVar8			= dict.GetInt( "testVar8", "0" );
+	testVar9			= dict.GetInt( "testVar9", "0" );
+	//###//
+
 	deplete_armor	= dict.GetInt( "deplete_armor", "0" );
 	deplete_rate	= dict.GetFloat( "deplete_rate", "2.0" );
 	deplete_ammount	= dict.GetInt( "deplete_ammount", "1" );
@@ -432,6 +547,44 @@ void idInventory::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( powerups );
 	savefile->WriteInt( armor );
 	savefile->WriteInt( maxarmor );
+
+	//###// by MacX
+	savefile->WriteInt( money );
+
+	savefile->WriteInt( diary.Num() );
+	for( i = 0; i < diary.Num(); i++ ) {
+		savefile->WriteString( diary[ i ] );
+	}
+
+	savefile->WriteInt( quest.Num() );
+	for( i = 0; i < quest.Num(); i++ ) {
+		savefile->WriteString( quest[ i ] );
+	}
+
+	savefile->WriteInt( questState.Num() );
+	for( i = 0; i < questState.Num(); i++ ) {
+		savefile->WriteString( questState[ i ] );
+	}
+
+	savefile->WriteInt( enemiesKilled );
+
+	savefile->WriteInt( testVarGui1 );
+	savefile->WriteInt( testVarGui2 );
+	savefile->WriteInt( testVarGui3 );
+	savefile->WriteInt( testVarGui4 );
+	savefile->WriteInt( testVarGui5 );
+	savefile->WriteInt( testVar1 );
+	savefile->WriteInt( testVar2 );
+	savefile->WriteInt( testVar3 );
+	savefile->WriteInt( testVar4 );
+	savefile->WriteInt( testVar5 );
+	savefile->WriteInt( testVar6 );
+	savefile->WriteInt( testVar7 );
+	savefile->WriteInt( testVar8 );
+	savefile->WriteInt( testVar9 );
+	savefile->WriteInt( testVar10 );
+	//###//
+
 	savefile->WriteInt( ammoPredictTime );
 	savefile->WriteInt( deplete_armor );
 	savefile->WriteFloat( deplete_rate );
@@ -528,6 +681,50 @@ void idInventory::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( powerups );
 	savefile->ReadInt( armor );
 	savefile->ReadInt( maxarmor );
+
+	//###// by MacX
+	savefile->ReadInt( money );
+
+	savefile->ReadInt( num );
+	for( i = 0; i < num; i++ ) {
+		idStr strDiary;
+		savefile->ReadString( strDiary );
+		diary.Append( strDiary );
+	}
+
+	savefile->ReadInt( num );
+	for( i = 0; i < num; i++ ) {
+		idStr strQuest;
+		savefile->ReadString( strQuest );
+		quest.Append( strQuest );
+	}
+
+	savefile->ReadInt( num );
+	for( i = 0; i < num; i++ ) {
+		idStr strQuest;
+		savefile->ReadString( strQuest );
+		questState.Append( strQuest );
+	}
+
+	savefile->ReadInt( enemiesKilled );
+
+	savefile->ReadInt( testVarGui1 );
+	savefile->ReadInt( testVarGui2 );
+	savefile->ReadInt( testVarGui3 );
+	savefile->ReadInt( testVarGui4 );
+	savefile->ReadInt( testVarGui5 );
+	savefile->ReadInt( testVar1 );
+	savefile->ReadInt( testVar2 );
+	savefile->ReadInt( testVar3 );
+	savefile->ReadInt( testVar4 );
+	savefile->ReadInt( testVar5 );
+	savefile->ReadInt( testVar6 );
+	savefile->ReadInt( testVar7 );
+	savefile->ReadInt( testVar8 );
+	savefile->ReadInt( testVar9 );
+	savefile->ReadInt( testVar10 );
+	//###//
+
 	savefile->ReadInt( ammoPredictTime );
 	savefile->ReadInt( deplete_armor );
 	savefile->ReadFloat( deplete_rate );
@@ -762,7 +959,22 @@ bool idInventory::Give( idPlayer *owner, const idDict &spawnArgs, const char *st
 				AddPickupName( name, "" );
 			}
 		}
-	} else if ( !idStr::Icmp( statname, "armor" ) ) {
+	}
+//###// by MacX
+
+	else if ( !idStr::Icmp( statname, "money" ) ) {
+		amount = atoi( value );
+		if ( amount ) {
+			money += amount;
+			if ( money > 999999 ) {
+				money = 999999;
+			}
+		}
+	}
+
+//###//
+
+	else if ( !idStr::Icmp( statname, "armor" ) ) {
 		if ( armor >= maxarmor ) {
 			return false;	// can't hold any more, so leave the item
 		}
@@ -977,6 +1189,14 @@ idPlayer::idPlayer() {
 	objectiveSystem			= NULL;
 	objectiveSystemOpen		= false;
 
+	//###//by MacX
+	diaryUI					= NULL;
+	diaryUIOpen				= false;
+
+	questlogUI				= NULL;
+	questlogUIOpen			= false;
+	//###//
+
 	heartRate				= BASE_HEARTRATE;
 	heartInfo.Init( 0, 0, 0, 0 );
 	lastHeartAdjust			= 0;
@@ -1133,6 +1353,8 @@ idPlayer::idPlayer() {
 	isChatting				= false;
 
 	selfSmooth				= false;
+
+	bIsZoomed				= false;	// sikk - Zoom DoF Fullscreen PostProcess Effect
 }
 
 /*
@@ -1285,6 +1507,11 @@ void idPlayer::Init( void ) {
 			kv = spawnArgs.MatchPrefix( "pm_", kv );
 		}
 	}
+
+	//###// by MacX
+	slowmotion		= pm_slowmotion.GetFloat();
+	startslow		= 0;
+	//###//
 
 	// disable stamina on hell levels
 	if ( gameLocal.world && gameLocal.world->spawnArgs.GetBool( "no_stamina" ) ) {
@@ -1469,6 +1696,14 @@ void idPlayer::Spawn( void ) {
 
 		objectiveSystem = uiManager->FindGui( "guis/pda.gui", true, false, true );
 		objectiveSystemOpen = false;
+
+		//###// by  MacX
+		diaryUI = uiManager->FindGui( "guis/diary.gui", true, false, true );
+		diaryUIOpen = false;
+
+		questlogUI = uiManager->FindGui( "guis/questlog.gui", true, false, true );
+		questlogUIOpen = false;
+		//###//
 	}
 
 	SetLastHitTime( 0 );
@@ -1642,6 +1877,18 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 	savefile->WriteUserInterface( objectiveSystem, false );
 	savefile->WriteBool( objectiveSystemOpen );
 
+	//Cameron Law START		- edited by MacX
+	savefile->WriteFloat( slowmotion );
+	savefile->WriteInt( startslow );
+	//Cameron Law END
+
+	//###// by MacX
+	savefile->WriteUserInterface( diaryUI, false );
+	savefile->WriteBool( diaryUIOpen );
+	savefile->WriteUserInterface( questlogUI, false );
+	savefile->WriteBool( questlogUIOpen );
+	//###//
+
 	savefile->WriteInt( weapon_soulcube );
 	savefile->WriteInt( weapon_pda );
 	savefile->WriteInt( weapon_fists );
@@ -1811,6 +2058,11 @@ void idPlayer::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteFloat( pm_stamina.GetFloat() );
 
+	//###// by MacX
+	savefile->WriteFloat( pm_slowmotion.GetFloat() );
+	savefile->WriteFloat( pm_slowmotionrate.GetFloat() );
+	//###//
+
 	if ( hud ) {
 		hud->SetStateString( "message", common->GetLanguageDict()->GetString( "#str_02916" ) );
 		hud->HandleNamedEvent( "Message" );
@@ -1865,6 +2117,16 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 	savefile->ReadUserInterface( hud );
 	savefile->ReadUserInterface( objectiveSystem );
 	savefile->ReadBool( objectiveSystemOpen );
+	//Cameron Law START		- edited by MacX
+	savefile->ReadFloat( slowmotion );
+	savefile->ReadInt( startslow );
+	//Cameron Law END
+	//###// by MacX
+	savefile->ReadUserInterface( diaryUI );
+	savefile->ReadBool( diaryUIOpen );
+	savefile->ReadUserInterface( questlogUI );
+	savefile->ReadBool( questlogUIOpen );
+	//###//
 
 	savefile->ReadInt( weapon_soulcube );
 	savefile->ReadInt( weapon_pda );
@@ -2060,6 +2322,13 @@ void idPlayer::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadFloat( set );
 	pm_stamina.SetFloat( set );
+
+	//###// by MacX
+	savefile->ReadFloat( set );
+	pm_slowmotion.SetFloat( set );
+	savefile->ReadFloat( set );
+	pm_slowmotionrate.SetFloat( set );
+	//###//
 
 	// create combat collision hull for exact collision detection
 	SetCombatModel();
@@ -2532,6 +2801,29 @@ void idPlayer::UpdateHudStats( idUserInterface *_hud ) {
 	_hud->SetStateInt( "player_armor", inventory.armor );
 	_hud->SetStateInt( "player_hr", heartRate );
 	_hud->SetStateInt( "player_nostamina", ( max_stamina == 0 ) ? 1 : 0 );
+
+//###// by MacX
+
+	_hud->SetStateInt( "player_money", inventory.money );
+
+	if( pm_thirdPerson.GetBool() == true ) {
+		_hud->SetStateInt( "thirdperson", 1 );
+	} else {
+		_hud->SetStateInt( "thirdperson", 0 );
+	}
+
+	int slowmopercentage = idMath::FtoiFast( 100.0f * slowmotion / pm_slowmotion.GetFloat() );
+	_hud->SetStateInt( "player_slowmotion", slowmopercentage );
+
+	_hud->SetStateInt( "player_enemiesKilled", inventory.enemiesKilled );
+
+	_hud->SetStateInt( "player_testVarGui1", inventory.testVarGui1 );
+	_hud->SetStateInt( "player_testVarGui2", inventory.testVarGui2 );
+	_hud->SetStateInt( "player_testVarGui3", inventory.testVarGui3 );
+	_hud->SetStateInt( "player_testVarGui4", inventory.testVarGui4 );
+	_hud->SetStateInt( "player_testVarGui5", inventory.testVarGui5 );
+
+//###//
 
 	_hud->HandleNamedEvent( "updateArmorHealthAir" );
 
@@ -3804,9 +4096,17 @@ idPlayer::ActiveGui
 ===============
 */
 idUserInterface *idPlayer::ActiveGui( void ) {
-	if ( objectiveSystemOpen ) {
+	//###// by MacX
+	if ( objectiveSystemOpen || diaryUIOpen || questlogUIOpen ) {
+		if ( diaryUIOpen ) {
+			return diaryUI;
+		}
+		if ( questlogUIOpen ) {
+			return questlogUI;
+		}
 		return objectiveSystem;
 	}
+	//###//
 
 	return focusUI;
 }
@@ -3977,7 +4277,9 @@ idPlayer::Weapon_GUI
 */
 void idPlayer::Weapon_GUI( void ) {
 
-	if ( !objectiveSystemOpen ) {
+//###// by MacX
+	if ( !objectiveSystemOpen && !diaryUIOpen && !questlogUIOpen ) {
+//###//
 		if ( idealWeapon != currentWeapon ) {
 			Weapon_Combat();
 		}
@@ -4488,6 +4790,12 @@ void idPlayer::UpdateFocus( void ) {
 			focusGUIent = ent;
 			focusUI = ui;
 
+//###// by MacX
+
+			focusUI->SetStateString( "player_money", va( "%i%", inventory.money ) );
+
+//###//
+
 			if ( oldFocus != ent ) {
 				// new activation
 				// going to see if we have anything in inventory a gui might be interested in
@@ -4873,7 +5181,10 @@ void idPlayer::UpdateViewAngles( void ) {
 	int i;
 	idAngles delta;
 
-	if ( !noclip && ( gameLocal.inCinematic || privateCameraView || gameLocal.GetCamera() || influenceActive == INFLUENCE_LEVEL2 || objectiveSystemOpen ) ) {
+//###// by MacX
+	if ( !noclip && ( gameLocal.inCinematic || privateCameraView || gameLocal.GetCamera() || influenceActive == INFLUENCE_LEVEL2 || objectiveSystemOpen || 
+		diaryUIOpen || questlogUIOpen ) ) {
+//###//
 		// no view changes at all, but we still want to update the deltas or else when
 		// we get out of this mode, our view will snap to a kind of random angle
 		UpdateDeltaViewAngles( viewAngles );
@@ -5053,6 +5364,10 @@ void idPlayer::UpdateAir( void ) {
 		return;
 	}
 
+	//###//  by MacX  - using code of water physics Mod
+	idPhysics_Player *phys = dynamic_cast<idPhysics_Player *>(this->GetPhysics());
+	//###//
+
 	// see if the player is connected to the info_vacuum
 	bool	newAirless = false;
 
@@ -5072,6 +5387,14 @@ void idPlayer::UpdateAir( void ) {
 			newAirless = gameRenderWorld->AreasAreConnected( gameLocal.vacuumAreaNum, areaNum, PS_BLOCK_AIR );
 		}
 	}
+
+	//###//  by MacX  - using code of water physics Mod
+
+	// check if the player is in water
+	if( phys != NULL && phys->GetWaterLevel() >= WATERLEVEL_HEAD )
+		newAirless = true;
+
+	//###//
 
 	if ( newAirless ) {
 		if ( !airless ) {
@@ -5430,6 +5753,222 @@ void idPlayer::TogglePDA( void ) {
 	objectiveSystemOpen ^= 1;
 }
 
+//###// by MacX
+
+/*
+==============
+idPlayer::ToggleDiary
+==============
+*/
+void idPlayer::ToggleDiary( void ) {
+	if ( diaryUI == NULL ) {
+		return;
+	}
+	assert( hud );
+
+	if( !diaryUIOpen )
+	{
+		idStrList	diary = inventory.diary;
+
+		inventory.diaryInfo.currentPage = 0;
+		inventory.diaryInfo.diaryText	= "";
+		inventory.diaryInfo.diaryText2	= "";
+		inventory.diaryInfo.diaryText3	= "";
+		inventory.diaryInfo.diaryText4	= "";
+		inventory.diaryInfo.pageLeft	= "";
+		inventory.diaryInfo.pageRight	= "";
+
+		int i = 0;
+
+		if( diary.Num() > 0 && diary.Num() < 1000 /* something goes wrong */ ) {
+
+			i = diary.Num();
+			if( i == 1 ) {
+				inventory.diaryInfo.diaryText = diary[i-1];
+				inventory.diaryInfo.pageLeft = va( "-%i-", i );
+				inventory.diaryInfo.pageRight = va( "-%i-", i+1 );
+				inventory.diaryInfo.currentPage = (( i+1 ) / 2 );
+			}
+			else {
+				if( ( i % 2 ) == 1  ) {
+					inventory.diaryInfo.diaryText = diary[i-1];
+					inventory.diaryInfo.pageLeft = va( "-%i-", i );
+					inventory.diaryInfo.pageRight = va( "-%i-", i+1 );
+					inventory.diaryInfo.currentPage = (( i+1 ) / 2 );
+				}
+				else {
+					inventory.diaryInfo.diaryText = diary[i-2];
+					inventory.diaryInfo.diaryText2 = diary[i-1];
+					inventory.diaryInfo.pageLeft = va( "-%i-", i-1 );
+					inventory.diaryInfo.pageRight = va( "-%i-", i );
+					inventory.diaryInfo.currentPage = ( i / 2 );
+				}
+			}
+
+			if( inventory.diaryInfo.currentPage > 1 ) {
+				diaryUI->HandleNamedEvent( "prevPageOn" );
+				diaryUI->HandleNamedEvent( "nextPageOff" );
+			}
+
+			diaryUI->SetStateString( "pageLeft", inventory.diaryInfo.pageLeft );
+			diaryUI->SetStateString( "pageRight", inventory.diaryInfo.pageRight );
+			diaryUI->SetStateString( "diaryText", inventory.diaryInfo.diaryText );
+			diaryUI->SetStateString( "diaryText2", inventory.diaryInfo.diaryText2 );
+		}
+		else {
+			diaryUI->SetStateString( "pageLeft", "-1-" );
+			diaryUI->SetStateString( "pageRight", "-2-" );
+		}
+
+		diaryUI->Activate( true, gameLocal.time );
+	}
+	else {
+		diaryUI->Activate( false, gameLocal.time );
+	}
+
+	diaryUIOpen ^= 1;
+}
+
+/*
+==============
+idPlayer::ToggleQuestlog
+==============
+*/
+void idPlayer::ToggleQuestlog( void ) {
+	if ( questlogUI == NULL ) {
+		return;
+	}
+	assert( hud );
+
+	if( !questlogUIOpen )
+	{
+		idStrList	quest = inventory.quest;
+
+		inventory.diaryInfo.currentPage = 0;
+		inventory.diaryInfo.diaryText	= "";
+		inventory.diaryInfo.diaryText2	= "";
+		inventory.diaryInfo.diaryText3	= "";
+		inventory.diaryInfo.diaryText4	= "";
+		inventory.diaryInfo.pageLeft	= "";
+		inventory.diaryInfo.pageRight	= "";
+
+		int i = 0;
+
+		questlogUI->HandleNamedEvent( "StateLeftTopBoxOff" );
+		questlogUI->HandleNamedEvent( "StateLeftBottomBoxOff" );
+		questlogUI->HandleNamedEvent( "StateRightTopBoxOff" );
+		questlogUI->HandleNamedEvent( "StateRightBottomBoxOff" );
+		questlogUI->HandleNamedEvent( "StateLeftTopDoneOff" );
+		questlogUI->HandleNamedEvent( "StateLeftBottomDoneOff" );
+		questlogUI->HandleNamedEvent( "StateRightTopDoneOff" );
+		questlogUI->HandleNamedEvent( "StateRightBottomDoneOff" );
+
+		if( quest.Num() > 0 && quest.Num() < 1000 /* something goes wrong */ ) {
+			i = quest.Num();
+
+			if( (i % 4) == 1 ) {
+				inventory.diaryInfo.diaryText = quest[i-1];
+				inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) + 1 );
+				inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) + 2 );
+				inventory.diaryInfo.currentPage = ((i + 3) / 4 );
+				questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+				if( inventory.questState[i-1] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+				}
+			}
+			else if( (i % 4) == 2  ) {
+				inventory.diaryInfo.diaryText = quest[i-2];
+				inventory.diaryInfo.diaryText2 = quest[i-1];
+				inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) );
+				inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) + 1 );
+				inventory.diaryInfo.currentPage = ((i + 2) / 4 );
+				questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+				questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+				if( inventory.questState[i-2] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+				}
+				if( inventory.questState[i-1] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+				}
+			}
+			else if( (i % 4) == 3 ) {
+				inventory.diaryInfo.diaryText = quest[i-3];
+				inventory.diaryInfo.diaryText2 = quest[i-2];
+				inventory.diaryInfo.diaryText3 = quest[i-1];
+				inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) );
+				inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) + 1 );
+				inventory.diaryInfo.currentPage = ((i + 1) / 4 );
+
+				questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+				questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+				questlogUI->HandleNamedEvent( "StateRightTopBoxOn" );
+
+				if( inventory.questState[i-3] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+				}
+				if( inventory.questState[i-2] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+				}
+				if( inventory.questState[i-1] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateRightTopDoneOn" );
+				}
+			}
+			else if( (i % 4) == 0 ) {
+				inventory.diaryInfo.diaryText = quest[i-4];
+				inventory.diaryInfo.diaryText2 = quest[i-3];
+				inventory.diaryInfo.diaryText3 = quest[i-2];
+				inventory.diaryInfo.diaryText4 = quest[i-1];
+				inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) - 1 );
+				inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) );
+				inventory.diaryInfo.currentPage = ( i / 4 );
+
+				questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+				questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+				questlogUI->HandleNamedEvent( "StateRightTopBoxOn" );
+				questlogUI->HandleNamedEvent( "StateRightBottomBoxOn" );
+
+				if( inventory.questState[i-4] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+				}
+				if( inventory.questState[i-3] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+				}
+				if( inventory.questState[i-2] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateRightTopDoneOn" );
+				}
+				if( inventory.questState[i-1] == "solved" ) {
+					questlogUI->HandleNamedEvent( "StateRightBottomDoneOn" );
+				}
+			}
+
+			if( inventory.diaryInfo.currentPage > 1 ) {
+				questlogUI->HandleNamedEvent( "prevPageOn" );
+				questlogUI->HandleNamedEvent( "nextPageOff" );
+			}
+
+			questlogUI->SetStateString( "pageLeft", inventory.diaryInfo.pageLeft );
+			questlogUI->SetStateString( "pageRight", inventory.diaryInfo.pageRight );
+			questlogUI->SetStateString( "diaryText", inventory.diaryInfo.diaryText );
+			questlogUI->SetStateString( "diaryText2", inventory.diaryInfo.diaryText2 );
+			questlogUI->SetStateString( "diaryText3", inventory.diaryInfo.diaryText3 );
+			questlogUI->SetStateString( "diaryText4", inventory.diaryInfo.diaryText4 );
+		}
+		else {
+			questlogUI->SetStateString( "pageLeft", "-1-" );
+			questlogUI->SetStateString( "pageRight", "-2-" );
+		}
+
+		questlogUI->Activate( true, gameLocal.time );
+	}
+	else {
+		questlogUI->Activate( false, gameLocal.time );
+	}
+
+	questlogUIOpen ^= 1;
+}
+
+//###//
+
 /*
 ==============
 idPlayer::ToggleScoreboard
@@ -5565,7 +6104,9 @@ void idPlayer::PerformImpulse( int impulse ) {
 		SelectWeapon( impulse, false );
 		return;
 	}
-
+	//Cameron Law START
+	idPlayer *player=gameLocal.GetLocalPlayer();
+	//Cameron Law END
 	switch( impulse ) {
 		case IMPULSE_13: {
 			Reload();
@@ -5625,6 +6166,47 @@ void idPlayer::PerformImpulse( int impulse ) {
 			}
 			break;
 		}
+		//Cameron Law START
+		case IMPULSE_35: {
+			if ( cvarSystem->GetCVarFloat( "timeScale" ) == 1 ) {
+				idLib::common->DPrintf( "pm_slowmotion (20%): %f\n", pm_slowmotion.GetFloat() );
+				idLib::common->DPrintf( "Slowmotion: %f\n", player->slowmotion );
+				if ( player->slowmotion > ( pm_slowmotion.GetFloat() * 0.2f ) ) {
+					cvarSystem->SetCVarFloat( "timeScale", 0.5 );
+					player->startslow = gameLocal.time;
+				}
+			} else {
+				cvarSystem->SetCVarFloat( "timeScale", 1 );
+				player->startslow = gameLocal.time;
+			}
+			break;
+		}
+		//Cameron Law End
+		//###// by MacX
+		case IMPULSE_37: {
+			ToggleDiary();
+			break;
+		}
+		case IMPULSE_38: {
+			ToggleQuestlog();
+			break;
+		}
+		//###//
+		//Cameron Law START (Toggle thirdperson)
+		//###// by MacX
+		case IMPULSE_39: {	// 39 -> IMPULSE_39 ( defined in framework/usercmdgen.h )
+		//###// 
+			if ( pm_thirdPerson.GetBool() == 1 )
+			{
+				pm_thirdPerson.SetBool(0);
+			}
+			else
+			{
+				pm_thirdPerson.SetBool(1);
+			}
+			break;
+		} 
+		//Cameron Law END
 		case IMPULSE_40: {
 			UseVehicle();
 			break;
@@ -5641,6 +6223,16 @@ bool idPlayer::HandleESC( void ) {
 		TogglePDA();
 		return true;
 	}
+	//###// by MacX
+	if( diaryUIOpen ) {
+		ToggleDiary();
+		return true;
+	}
+	if( questlogUIOpen ) {
+		ToggleQuestlog();
+		return true;
+	}
+	//###//
 
 	return false;
 }
@@ -5737,7 +6329,14 @@ void idPlayer::AdjustSpeed( void ) {
 		speed *= 0.33f;
 	}
 
-	physicsObj.SetSpeed( speed, pm_crouchspeed.GetFloat() );
+	//###// by MacX
+	if ( cvarSystem->GetCVarFloat( "timeScale" ) == 1 ) {
+		physicsObj.SetSpeed( speed, pm_crouchspeed.GetFloat() );
+	}
+	else {
+		physicsObj.SetSpeed( speed + 100, pm_crouchspeed.GetFloat() + 80 );
+	}
+	//###//
 }
 
 /*
@@ -6197,6 +6796,33 @@ void idPlayer::Think( void ) {
 
 	UpdatePlayerIcons();
 
+	//Cameron Law END	- edited by MacX
+	if ( cvarSystem->GetCVarFloat( "timeScale" ) != 1 ) {
+		if ( slowmotion <= 0 ) {
+			slowmotion = 0.0f;
+			cvarSystem->SetCVarFloat( "timeScale", 1 );
+			startslow = gameLocal.time;
+		} else {
+			if ( ( startslow + 250 ) < gameLocal.time ) {
+				slowmotion -= 2.0f;
+				startslow = gameLocal.time;
+			}
+		}
+	}
+	//Cameron Law END
+	//###// by MacX
+	else {
+		if ( slowmotion >= pm_slowmotion.GetFloat() ) {
+			slowmotion = pm_slowmotion.GetFloat();
+		} else {
+			if ( ( startslow + 1000 ) < gameLocal.time ) {
+				slowmotion += pm_slowmotionrate.GetFloat();
+				startslow = gameLocal.time;
+			}
+		}
+	}
+	//###//
+
 	// latch button actions
 	oldButtons = usercmd.buttons;
 
@@ -6221,10 +6847,20 @@ void idPlayer::Think( void ) {
 		oldFlags = usercmd.flags;
 	}
 
-	if ( objectiveSystemOpen || gameLocal.inCinematic || influenceActive ) {
+//###// by MacX - using code by Cameron
+	if ( objectiveSystemOpen || gameLocal.inCinematic || influenceActive  ||
+		diaryUIOpen || questlogUIOpen ) {
+
 		if ( objectiveSystemOpen && AI_PAIN ) {
 			TogglePDA();
 		}
+		if( diaryUIOpen && AI_PAIN ) {
+			ToggleDiary();
+		}
+		if( questlogUIOpen && AI_PAIN ) {
+			ToggleQuestlog();
+		}
+//###//
 		usercmd.forwardmove = 0;
 		usercmd.rightmove = 0;
 		usercmd.upmove = 0;
@@ -6256,8 +6892,10 @@ void idPlayer::Think( void ) {
 	if ( ( usercmd.buttons ^ oldCmd.buttons ) & BUTTON_ZOOM ) {
 		if ( ( usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ) {
 			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
+			bIsZoomed = true;	// sikk - Zoom DoF Fullscreen PostProcess Effect
 		} else {
 			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
+			bIsZoomed = false;	// sikk - Zoom DoF Fullscreen PostProcess Effect
 		}
 	}
 
@@ -7167,6 +7805,19 @@ void idPlayer::OffsetThirdPersonView( float angle, float range, float height, bo
 	angles = viewAngles;
 	GetViewPos( origin, axis );
 
+	//Cameron Law START (Zoom camera in and out)
+	if( usercmd.buttons & BUTTON_5 && range < MAX_PLAYER_CAM )
+	{
+		range++;
+	}
+	else if( usercmd.buttons & BUTTON_6 && range > MIN_PLAYER_CAM )
+	{
+		range--;
+	}
+	//save range
+	pm_thirdPersonRange.SetFloat(range);
+	//Cameron Law END
+
 	if ( angle ) {
 		angles.pitch = 0.0f;
 	}
@@ -7812,11 +8463,13 @@ void idPlayer::ClientPredictionThink( void ) {
 	buttonMask &= usercmd.buttons;
 	usercmd.buttons &= ~buttonMask;
 
-	if ( objectiveSystemOpen ) {
+//###// by MacX - using code by Cameron
+	if ( objectiveSystemOpen || diaryUIOpen || questlogUIOpen ) {
 		usercmd.forwardmove = 0;
 		usercmd.rightmove = 0;
 		usercmd.upmove = 0;
 	}
+//###//
 
 	// clear the ik before we do anything else so the skeleton doesn't get updated twice
 	walkIK.ClearJointMods();

@@ -928,6 +928,16 @@ bool idAF::Load( idEntity *ent, const char *fileName ) {
 		}
 	}
 
+	// load how the body will be floated in liquid
+	bool isFixedDensity;
+	if( ent->spawnArgs.GetBool( "fixedDensityBuoyancy", "1", isFixedDensity ) )
+		physicsObj.SetFixedDensityBuoyancy( isFixedDensity );
+
+	// load liquid density from file
+	float liquidDensity;
+	if( ent->spawnArgs.GetFloat( "liquidDensity", "", liquidDensity ) )
+		physicsObj.SetLiquidDensity( liquidDensity );
+
 	physicsObj.SetMass( file->totalMass );
 	physicsObj.SetChanged();
 

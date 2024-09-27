@@ -38,8 +38,13 @@ If you have questions concerning this license or the applicable additional terms
 CLASS_DECLARATION( idPhysics_Base, idPhysics_RigidBody )
 END_CLASS
 
-const float STOP_SPEED		= 10.0f;
+const int STOP_SPEED			= 10.0f;
 
+// if linearVelocity < WATER_STOP_LINEAR && angularVelocity < WATER_STOP_ANGULAR then set the RB to rest
+// and we need  this->noMoveTime + NO_MOVE_TIME < gameLocal.getTime()
+const idVec3 WATER_STOP_LINEAR(10.0f,10.0f,10.0f);
+const idVec3 WATER_STOP_ANGULAR(500000.0f,500000.0f,500000.0f);
+const int NO_MOVE_TIME			= 200;
 
 #undef RB_TIMINGS
 
@@ -73,9 +78,127 @@ void RigidBodyDerivatives( const float t, const void *clientData, const float *s
 	// derivatives
 	d->linearVelocity = p->inverseMass * s->linearMomentum;
 	d->angularMatrix = SkewSymmetric( angularVelocity ) * s->orientation;
-	d->force = - p->linearFriction * s->linearMomentum + p->current.externalForce;
-	d->torque = - p->angularFriction * s->angularMomentum + p->current.externalTorque;
+
+	// underwater we have a higher friction
+	if( p->GetWaterLevelf() == 0.0f  ) {
+
+		d->force = - p->linearFriction * s->linearMomentum + p->current.externalForce;
+		d->torque = - p->angularFriction * s->angularMomentum + p->current.externalTorque;
+	}
+	else {		
+		// don't let water friction go less than 25% of the water viscosity
+		float percent = Max(0.25f,p->GetSubmergedPercent(s->position,s->orientation.Transpose()));
+
+		d->force = (-p->linearFriction * p->water->GetViscosity() * percent) * s->linearMomentum + p->current.externalForce;
+		d->torque = (-p->angularFriction * p->water->GetViscosity()) * s->angularMomentum + p->current.externalTorque;
+	}	
 }
+
+
+/*
+================
+idPhysics_RigidBody::GetSubmergedPercent
+
+	Approximates the percentage of the body that is submerged
+================
+*/
+float idPhysics_RigidBody::GetSubmergedPercent( const idVec3 &pos, const idMat3 &rotation ) const
+{
+	idVec3 depth,bottom(pos);
+	idBounds bounds = this->GetBounds();
+	float height,d;
+
+	if( this->water == NULL ) 
+		return 0.0f;
+
+	// offset and rotate the bounding box
+	bounds += -centerOfMass;
+	bounds *= rotation;
+
+	// gets the position of the object relative to the surface of the water
+	height = abs(bounds[1] * gravityNormal * 2);
+
+	// calculates the depth of the bottom of the object
+	bottom += (height * 0.5f) * gravityNormal;
+	depth = this->water->GetDepth(bottom);
+	d = abs(depth * gravityNormal);
+
+	if( d > height ) {
+		// the body is totally submerged
+		return 1.0f;
+	}
+	else if( d <= 0 ) {
+		return 0.0f;
+	}
+	else {
+		// the body is partly submerged
+		return d / height;
+	}
+}
+
+/*
+================
+idPhysics_RigidBody::GetBuoyancy
+
+	Gets buoyancy information for this RB
+================
+*/
+bool idPhysics_RigidBody::GetBuoyancy( const idVec3 &pos, const idMat3 &rotation, idVec3 &bCenter, float &percent ) const
+{
+	// pos - position of the RB
+	// rotation - axis for the RB
+	// bCenter - after the function is called this is an approximation for the center of buoyancy
+	// percent - rough percentage of the body that is under water
+	//				used to calculate the volume of the submersed object (volume * percent) to give 
+	//				the body somewhat realistic bobbing.
+	//
+	// return true if the body is in water, false otherwise
+
+	idVec3 tbCenter(pos);
+	idBounds bounds = this->GetBounds();
+	idTraceModel tm = *this->GetClipModel()->GetTraceModel();
+	int i,count;
+
+	percent = this->GetSubmergedPercent(pos,rotation);
+	bCenter = pos;
+	
+	if( percent == 1.0f ) {
+		// the body is totally submerged
+		return true;
+	}
+	else {
+		// the body is partly submerged (or not in the water)
+		//
+		// We do a rough approximation for center of buoyancy.
+		// Normally this is done by calculating the volume of the submersed part of the body
+		// so the center of buoyancy is the center of mass of the submersed volume.  This is
+		// probably a slow computation so what I do is take an average of the submersed
+		// vertices of the trace model.
+		//
+		// I was suprized when this first worked but you can use rb_showBuoyancy to see
+		// what the approximation looks like.
+
+		// set up clip model for approximation of center of buoyancy
+		tm.Translate(-centerOfMass);
+		tm.Rotate(rotation);
+		tm.Translate(pos);
+
+		// calculate which vertices are under water
+		for( i = 0, count = 1; i < tm.numVerts; i++ ) {
+			if( gameLocal.clip.Contents(tm.verts[i],NULL,this->GetAxis(),MASK_WATER,NULL) ) {
+				tbCenter += tm.verts[i];
+				count += 1;
+			}
+		}
+
+		if( count == 1 )
+			bCenter = pos;
+		else
+			bCenter = tbCenter / count;
+		return (count != 1);
+	}
+}
+
 
 /*
 ================
@@ -95,8 +218,39 @@ void idPhysics_RigidBody::Integrate( float deltaTime, rigidBodyPState_t &next ) 
 	integrator->Evaluate( (float *) &current.i, (float *) &next.i, 0, deltaTime );
 	next.i.orientation.OrthoNormalizeSelf();
 
-	// apply gravity
-	next.i.linearMomentum += deltaTime * gravityVector * mass;
+	// apply a water gravity if the body is out of water
+	if( this->SetWaterLevelf() != 0.0f ) {	
+		idVec3 bCenter;
+		idVec3 bForce(gravityVector),rForce(-gravityVector);
+		float bMass,fraction,liquidMass;
+		bool inWater;
+
+		inWater = this->GetBuoyancy(next.i.position,next.i.orientation.Transpose(),bCenter,fraction);
+
+		// calculate water mass
+		liquidMass = this->volume * this->water->GetDensity() * fraction;
+		// don't let liquid mass get too high
+		liquidMass = Min( liquidMass, 3 * this->mass );
+
+		bMass = this->mass - liquidMass;
+
+		// calculate buoyancy force
+		bForce *= deltaTime * bMass;
+		rForce *= deltaTime * liquidMass;
+
+		// apply water force
+		// basically here we do a ::ApplyImpulse() but we apply it to next, not current
+		next.i.linearMomentum += bForce;
+		next.i.angularMomentum += (bCenter - next.i.position).Cross(rForce);
+
+		// take the body out of water if it's not in water.
+		if( !inWater )
+			this->SetWater(NULL);
+	}
+	else {
+		// apply normal gravity
+		next.i.linearMomentum += deltaTime * gravityVector * mass;
+	}
 
 	current.i.orientation.TransposeSelf();
 	next.i.orientation.TransposeSelf();
@@ -177,6 +331,8 @@ bool idPhysics_RigidBody::CheckForCollisions( const float deltaTime, rigidBodyPS
 //#define TEST_COLLISION_DETECTION
 	idMat3 axis;
 	idRotation rotation;
+	idVec3 pos;
+	trace_t	waterCollision;
 	bool collided = false;
 
 #ifdef TEST_COLLISION_DETECTION
@@ -189,15 +345,53 @@ bool idPhysics_RigidBody::CheckForCollisions( const float deltaTime, rigidBodyPS
 	TransposeMultiply( current.i.orientation, next.i.orientation, axis );
 	rotation = axis.ToRotation();
 	rotation.SetOrigin( current.i.position );
+	pos = next.i.position;
 
 	// if there was a collision
-	if ( gameLocal.clip.Motion( collision, current.i.position, next.i.position, rotation, clipModel, current.i.orientation, clipMask, self ) ) {
+	if ( collided || gameLocal.clip.Motion( collision, current.i.position, next.i.position, rotation, clipModel, current.i.orientation, clipMask, self ) ) {
 		// set the next state to the state at the moment of impact
 		next.i.position = collision.endpos;
 		next.i.orientation = collision.endAxis;
 		next.i.linearMomentum = current.i.linearMomentum;
 		next.i.angularMomentum = current.i.angularMomentum;
 		collided = true;
+	}
+
+	// Check for water collision
+	// ideally we could do this check in one step but if a body moves quickly in shallow water
+	// they will occasionally clip through a solid entity (ie. fall through the floor)
+	if ( gameLocal.clip.Motion( waterCollision, current.i.position, pos, rotation, clipModel, current.i.orientation, MASK_WATER, self ) ) {
+		idEntity *ent = gameLocal.entities[waterCollision.c.entityNum];
+
+		// make sure the object didn't collide with something before hitting the water (we don't splash for that case)
+		if( !collided || waterCollision.fraction < collision.fraction ) {
+
+			// if the object collides with something with a physics_liquid
+			if( ent->GetPhysics()->IsType( idPhysics_Liquid::Type ) ) {
+				idPhysics_Liquid *liquid = static_cast<idPhysics_Liquid *>(ent->GetPhysics());
+				impactInfo_t info;
+
+				self->GetImpactInfo(ent,waterCollision.c.id,waterCollision.c.point,&info);
+
+				// apply water splash friction
+				if( this->water == NULL ) {	
+					idVec3 impulse = -info.velocity * this->volume * liquid->GetDensity() * 0.25f;
+					impulse = (impulse * gravityNormal) * gravityNormal;
+
+					if( next.i.linearMomentum.LengthSqr() < impulse.LengthSqr() ) {
+						// cancel falling, maintain sideways movement (lateral?)
+						next.i.linearMomentum -= (next.i.linearMomentum * gravityNormal) * gravityNormal;
+					}
+					else {
+						next.i.angularMomentum += ( waterCollision.c.point - ( next.i.position + centerOfMass * next.i.orientation ) ).Cross( impulse );
+						next.i.linearMomentum += impulse * 0.5f;
+					}
+				}
+
+				this->SetWater(liquid);
+				this->water->Splash(this->self,this->volume,info,waterCollision);
+			}
+		}
 	}
 
 #ifdef TEST_COLLISION_DETECTION
@@ -275,7 +469,7 @@ idPhysics_RigidBody::TestIfAtRest
   Does not catch all cases where the body is at rest but is generally good enough.
 ================
 */
-bool idPhysics_RigidBody::TestIfAtRest( void ) const {
+bool idPhysics_RigidBody::TestIfAtRest( void ) {
 	int i;
 	float gv;
 	idVec3 v, av, normal, point;
@@ -284,6 +478,25 @@ bool idPhysics_RigidBody::TestIfAtRest( void ) const {
 
 	if ( current.atRest >= 0 ) {
 		return true;
+	}
+
+	// do some special checks if the body is in water
+	if( this->water != NULL )
+	{
+		if( this->current.i.linearMomentum.LengthSqr() < WATER_STOP_LINEAR.LengthSqr() &&
+			this->current.i.angularMomentum.LengthSqr() < WATER_STOP_ANGULAR.LengthSqr() ) {
+		
+			if( this->noMoveTime == 0 ) {
+				this->noMoveTime = gameLocal.GetTime();	
+			}
+			else if( this->noMoveTime+NO_MOVE_TIME < gameLocal.GetTime() ) {
+				this->noMoveTime = 0;
+				return true;
+			}
+		}
+		else {
+			this->noMoveTime = 0;
+		}
 	}
 
 	// need at least 3 contact points to come to rest
@@ -414,7 +627,19 @@ void idPhysics_RigidBody::DebugDraw( void ) {
 	}
 
 	if ( rb_showMass.GetBool() ) {
-		gameRenderWorld->DrawText( va( "\n%1.2f", mass ), current.i.position, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+		if( this->water != NULL )  {
+			idVec3 pos;
+			float  percent, liquidMass;
+
+			pos = this->current.i.position + this->centerOfMass*this->current.i.orientation;
+			percent = this->GetSubmergedPercent(pos,this->current.i.orientation.Transpose());
+
+			liquidMass = this->mass - ( this->volume * this->water->GetDensity() * percent );
+
+			gameRenderWorld->DrawText( va( "\n%1.2f", liquidMass), current.i.position, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
+		}
+		else
+			gameRenderWorld->DrawText( va( "\n%1.2f", mass ), current.i.position, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3(), 1 );
 	}
 
 	if ( rb_showInertia.GetBool() ) {
@@ -428,6 +653,18 @@ void idPhysics_RigidBody::DebugDraw( void ) {
 
 	if ( rb_showVelocity.GetBool() ) {
 		DrawVelocity( clipModel->GetId(), 0.1f, 4.0f );
+	}
+
+	if( rb_showBuoyancy.GetBool() && this->water != NULL ) {
+		idVec3 pos;
+		idVec3 bCenter;
+		float  percent;
+
+		pos = this->current.i.position + this->centerOfMass*this->current.i.orientation;
+		this->GetBuoyancy(pos,this->current.i.orientation.Transpose(),bCenter,percent);
+
+		gameRenderWorld->DebugArrow(colorGreen,pos,bCenter,1);
+		gameRenderWorld->DrawText( va( "%1.2f",percent), pos, 0.08f, colorCyan, gameLocal.GetLocalPlayer()->viewAngles.ToMat3());
 	}
 }
 
@@ -463,6 +700,8 @@ idPhysics_RigidBody::idPhysics_RigidBody( void ) {
 	inertiaTensor.Identity();
 	inverseInertiaTensor.Identity();
 
+	this->water = NULL;
+
 	// use the least expensive euler integrator
 	integrator = new idODE_Euler( sizeof(rigidBodyIState_t) / sizeof(float), RigidBodyDerivatives, this );
 
@@ -472,6 +711,8 @@ idPhysics_RigidBody::idPhysics_RigidBody( void ) {
 
 	hasMaster = false;
 	isOrientated = false;
+
+	this->noMoveTime = 0.0f;
 
 #ifdef RB_TIMINGS
 	lastTimerReset = 0;
@@ -548,6 +789,7 @@ void idPhysics_RigidBody::Save( idSaveGame *savefile ) const {
 	savefile->WriteClipModel( clipModel );
 
 	savefile->WriteFloat( mass );
+	savefile->WriteFloat( volume );
 	savefile->WriteFloat( inverseMass );
 	savefile->WriteVec3( centerOfMass );
 	savefile->WriteMat3( inertiaTensor );
@@ -579,6 +821,7 @@ void idPhysics_RigidBody::Restore( idRestoreGame *savefile ) {
 	savefile->ReadClipModel( clipModel );
 
 	savefile->ReadFloat( mass );
+	savefile->ReadFloat( volume );
 	savefile->ReadFloat( inverseMass );
 	savefile->ReadVec3( centerOfMass );
 	savefile->ReadMat3( inertiaTensor );
@@ -626,6 +869,8 @@ void idPhysics_RigidBody::SetClipModel( idClipModel *model, const float density,
 		centerOfMass.Zero();
 		inertiaTensor.Identity();
 	}
+
+	this->volume = mass / density;
 
 	// check whether or not the inertia tensor is balanced
 	minIndex = Min3Index( inertiaTensor[0][0], inertiaTensor[1][1], inertiaTensor[2][2] );
@@ -687,7 +932,18 @@ idPhysics_RigidBody::GetMass
 ================
 */
 float idPhysics_RigidBody::GetMass( int id ) const {
-	return mass;
+	if( this->water != NULL ) {
+		idVec3 pos;
+		float  percent,bMass;
+
+		pos = this->current.i.position + this->centerOfMass*this->current.i.orientation;
+		percent = this->GetSubmergedPercent(pos,this->current.i.orientation);		
+		bMass = mass - (this->volume * this->water->GetDensity() * percent);
+
+		return bMass;
+	}
+	else
+		return mass;
 }
 
 /*

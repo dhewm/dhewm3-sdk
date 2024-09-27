@@ -537,33 +537,6 @@ private:
 /*
 ===============================================================================
 
-  idLiquid
-
-===============================================================================
-*/
-
-class idRenderModelLiquid;
-
-class idLiquid : public idEntity {
-public:
-	CLASS_PROTOTYPE( idLiquid );
-
-	void				Spawn( void );
-
-	void				Save( idSaveGame *savefile ) const;
-	void				Restore( idRestoreGame *savefile );
-
-private:
-	void				Event_Touch( idEntity *other, trace_t *trace );
-
-
-	idRenderModelLiquid *model;
-};
-
-
-/*
-===============================================================================
-
   idShaking
 
 ===============================================================================

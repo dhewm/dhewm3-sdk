@@ -120,6 +120,8 @@ const idEventDef EV_StartFx( "startFx", "s" );
 const idEventDef EV_HasFunction( "hasFunction", "s", 'd' );
 const idEventDef EV_CallFunction( "callFunction", "s" );
 const idEventDef EV_SetNeverDormant( "setNeverDormant", "d" );
+const idEventDef EV_GetMass("getMass","d",'f');
+const idEventDef EV_IsInLiquid("isInLiquid",NULL,'d');
 
 ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_GetName,				idEntity::Event_GetName )
@@ -185,6 +187,8 @@ ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_HasFunction,			idEntity::Event_HasFunction )
 	EVENT( EV_CallFunction,			idEntity::Event_CallFunction )
 	EVENT( EV_SetNeverDormant,		idEntity::Event_SetNeverDormant )
+	EVENT( EV_GetMass,				idEntity::Event_GetMass )
+	EVENT( EV_IsInLiquid,			idEntity::Event_IsInLiquid )
 END_CLASS
 
 /*
@@ -432,6 +436,8 @@ idEntity::idEntity() {
 
 	memset( &renderEntity, 0, sizeof( renderEntity ) );
 	modelDefHandle	= -1;
+	modelDefHandlePost = -1;                                    // new 6th venom
+	shaderPost = NULL;                                          // new
 	memset( &refSound, 0, sizeof( refSound ) );
 
 	mpGUIState = -1;
@@ -477,6 +483,13 @@ void idEntity::Spawn( void ) {
 
 	// parse static models the same way the editor display does
 	gameEdit->ParseSpawnArgsToRenderEntity( &spawnArgs, &renderEntity );
+
+	//new 6th venom
+	temp = spawnArgs.GetString( "shader_post" );
+
+	if( temp[0] != '\0' )
+	      shaderPost = (idMaterial *)declManager->FindMaterial( temp );
+
 
 	renderEntity.entityNum = entityNumber;
 
@@ -663,6 +676,8 @@ void idEntity::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteRenderEntity( renderEntity );
 	savefile->WriteInt( modelDefHandle );
+	savefile->WriteInt( modelDefHandlePost );                   // new 6th venom
+	savefile->WriteMaterial( shaderPost );                      // new
 	savefile->WriteRefSound( refSound );
 
 	savefile->WriteObject( bindMaster );
@@ -738,6 +753,8 @@ void idEntity::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadRenderEntity( renderEntity );
 	savefile->ReadInt( modelDefHandle );
+	savefile->ReadInt( modelDefHandlePost );                    // new 6th venom
+	savefile->ReadMaterial( shaderPost );                       // new
 	savefile->ReadRefSound( refSound );
 
 	savefile->ReadObject( reinterpret_cast<idClass *&>( bindMaster ) );
@@ -778,6 +795,17 @@ void idEntity::Restore( idRestoreGame *savefile ) {
 	if ( modelDefHandle != -1 ) {
 		modelDefHandle = gameRenderWorld->AddEntityDef( &renderEntity );
 	}
+
+	// new 6th venom
+	if( shaderPost )
+	{
+		  renderEntity_t post = renderEntity;
+		  post.customShader = shaderPost;
+
+		  if( modelDefHandlePost != -1 )
+		        modelDefHandlePost = gameRenderWorld->AddEntityDef( &post );
+	}
+
 }
 
 /*
@@ -1144,6 +1172,14 @@ void idEntity::FreeModelDef( void ) {
 		gameRenderWorld->FreeEntityDef( modelDefHandle );
 		modelDefHandle = -1;
 	}
+
+	//new 6th venom
+	if( modelDefHandlePost != -1 )
+	{
+	      gameRenderWorld->FreeEntityDef( modelDefHandlePost );
+	      modelDefHandlePost = -1;
+	}
+
 }
 
 /*
@@ -1421,6 +1457,18 @@ void idEntity::Present( void ) {
 		modelDefHandle = gameRenderWorld->AddEntityDef( &renderEntity );
 	} else {
 		gameRenderWorld->UpdateEntityDef( modelDefHandle, &renderEntity );
+	}
+
+	//new 6th venom
+	if( shaderPost )
+	{
+	      renderEntity_t post = renderEntity;
+	      post.customShader = shaderPost;
+
+	      if( modelDefHandlePost == -1 )
+	            modelDefHandlePost = gameRenderWorld->AddEntityDef( &post );
+	      else
+	            gameRenderWorld->UpdateEntityDef( modelDefHandlePost, &post );
 	}
 }
 
@@ -4567,6 +4615,24 @@ void idEntity::Event_CallFunction( const char *funcname ) {
 
 	// function args will be invalid after this call
 	thread->CallFunction( this, func, false );
+}
+
+/*
+================
+idEntity::Event_GetMass
+================
+*/
+void idEntity::Event_GetMass( int id ) {
+	idThread::ReturnFloat(physics->GetMass(id));
+}
+
+/*
+================
+idEntity::Event_IsInLiquid
+================
+*/
+void idEntity::Event_IsInLiquid( void ) {
+	idThread::ReturnInt(physics->GetWater() != NULL);
 }
 
 /*

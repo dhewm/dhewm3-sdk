@@ -689,12 +689,18 @@ public:
 	float					GetContactFriction( void ) const { return contactFriction; }
 	void					SetBouncyness( float bounce );
 	float					GetBouncyness( void ) const { return bouncyness; }
+	float					GetVolume( void ) const { return volume; }
 	void					SetDensity( float density, const idMat3 &inertiaScale = mat3_identity );
 	float					GetInverseMass( void ) const { return invMass; }
 	idMat3					GetInverseWorldInertia( void ) const { return current->worldAxis.Transpose() * inverseInertiaTensor * current->worldAxis; }
 
 	void					SetFrictionDirection( const idVec3 &dir );
 	bool					GetFrictionDirection( idVec3 &dir ) const;
+
+	// returns the depth of the object in the water
+	// 0.0f if out of water
+	float					GetWaterLevel() const;
+	float					SetWaterLevel( idPhysics_Liquid *l, const idVec3 &gravityNormal, bool fixedDensityBuoyancy );
 
 	void					SetContactMotorDirection( const idVec3 &dir );
 	bool					GetContactMotorDirection( idVec3 &dir ) const;
@@ -723,6 +729,7 @@ private:
 	float					angularFriction;			// rotational friction
 	float					contactFriction;			// friction with contact surfaces
 	float					bouncyness;					// bounce
+	float					volume;						// volume of body
 	int						clipMask;					// contents this body collides with
 	idVec3					frictionDir;				// specifies a single direction of friction in body space
 	idVec3					contactMotorDir;			// contact motor direction
@@ -732,6 +739,9 @@ private:
 							// derived properties
 	float					mass;						// mass of body
 	float					invMass;					// inverse mass
+	float					liquidMass;					// mass of object in a liquid
+	float					invLiquidMass;				// inverse liquid mass
+	float					waterLevel;					// percent of body in water
 	idVec3					centerOfMass;				// center of mass of body
 	idMat3					inertiaTensor;				// inertia tensor
 	idMat3					inverseInertiaTensor;		// inverse inertia tensor
@@ -893,6 +903,14 @@ public:
 							// update the clip model positions
 	void					UpdateClipModels( void );
 
+		// buoyancy stuff
+	void					SetLiquidDensity( float density );
+	float					GetLiquidDensity() const;
+
+							// this will reset liquidDensity so be careful when using it
+	void					SetFixedDensityBuoyancy( bool fixed );
+	bool					GetFixedDensityBuoyancy() const;
+
 public:	// common physics interface
 	void					SetClipModel( idClipModel *model, float density, int id = 0, bool freeOld = true );
 	idClipModel *			GetClipModel( int id = 0 ) const;
@@ -1016,6 +1034,9 @@ private:
 							// physics state
 	AFPState_t				current;
 	AFPState_t				saved;
+	bool					fixedDensityBuoyancy;			// treats liquid Density as THE density for each body when the AF is in liquid.
+															// otherwise liquidDensity is just a gravity scalar for the AF in any liquid.
+	float					liquidDensity;					// explained above.
 
 	idAFBody *				masterBody;						// master body
 	idLCP *					lcp;							// linear complementarity problem solver

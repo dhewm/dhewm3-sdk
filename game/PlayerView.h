@@ -98,6 +98,13 @@ private:
 	void				InfluenceVision( idUserInterface *hud, const renderView_t *view );
 	void				ScreenFade();
 
+// sikk---> Brilliant Bloom/Motion Blur/DoF PostProcessing Effects
+	void				PostprocessBloom();
+	void				PostprocessMotionBlur();
+	void				PostprocessZoomDoF();
+	void				PostprocessCelShading();
+// <---sikk
+
 	screenBlob_t *		GetScreenBlob();
 
 	screenBlob_t		screenBlobs[MAX_SCREEN_BLOBS];
@@ -117,6 +124,18 @@ private:
 	const idMaterial *	bloodSprayMaterial; // blood spray
 	const idMaterial *	bfgMaterial;		// when targeted with BFG
 	const idMaterial *	lagoMaterial;		// lagometer drawing
+
+// sikk---> Brilliant Bloom/Filmgrain/Motion Blur/DoF/Scene Effect PostProcess
+	const idMaterial *	bloomAddMaterial;		// Bloom Add material
+	const idMaterial *	bloomBlurMaterial;		// Bloom Blur material
+	const idMaterial *	bloomWeightMaterial;	// Bloom Weight material
+	const idMaterial *	dofMaterial;			// DoF material
+	const idMaterial *	motionblurMaterial;		// Motion Blur material
+	const idMaterial *	celMaterial;			// Cel Shading
+
+	idAngles			mbPrevAngles;			// sikk - Holds previous frame's player view angle for motion blur
+// <---sikk
+
 	float				lastDamageTime;		// accentuate the tunnel effect for a while
 
 	idVec4				fadeColor;			// fade color

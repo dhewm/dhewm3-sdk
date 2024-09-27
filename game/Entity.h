@@ -68,6 +68,8 @@ extern const idEventDef EV_SetSkin;
 extern const idEventDef EV_StartSoundShader;
 extern const idEventDef EV_StopSound;
 extern const idEventDef EV_CacheSoundShader;
+extern const idEventDef EV_GetMass;
+extern const idEventDef EV_IsInLiquid;
 
 // Think flags
 enum {
@@ -364,6 +366,8 @@ public:
 protected:
 	renderEntity_t			renderEntity;						// used to present a model to the renderer
 	int						modelDefHandle;						// handle to static renderer model
+    int                     modelDefHandlePost;					// new 6th venom
+    const idMaterial        *shaderPost;						// new
 	refSound_t				refSound;							// used to present sound to the audio engine
 
 private:
@@ -465,6 +469,8 @@ private:
 	void					Event_HasFunction( const char *name );
 	void					Event_CallFunction( const char *name );
 	void					Event_SetNeverDormant( int enable );
+	void					Event_GetMass( int body );
+	void					Event_IsInLiquid( void );
 };
 
 /*

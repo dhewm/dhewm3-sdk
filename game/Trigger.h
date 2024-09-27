@@ -102,6 +102,13 @@ private:
 	bool				triggerFirst;
 	bool				triggerWithSelf;
 
+//###// by MacX
+	idStr				diaryTextKey;
+	idStr				questlogTextKey;
+	idStr				questDone;
+	idStr				subtitle;
+//###//
+
 	bool				CheckFacing( idEntity *activator );
 	void				TriggerAction( idEntity *activator );
 	void				Event_TriggerAction( idEntity *activator );

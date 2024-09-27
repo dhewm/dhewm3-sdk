@@ -1465,6 +1465,26 @@ void idStaticEntity::Think( void ) {
 						renderEntity.gui[2]->StateChanged( gameLocal.time, true );
 					}
 				}
+				//###// by MacX - using code by Cameron
+				if( !player->diaryUIOpen ) {
+					renderEntity.gui[0]->StateChanged( gameLocal.time, true );
+					if ( renderEntity.gui[1] ) {
+						renderEntity.gui[1]->StateChanged( gameLocal.time, true );
+					}
+					if ( renderEntity.gui[2] ) {
+						renderEntity.gui[2]->StateChanged( gameLocal.time, true );
+					}
+				}
+				if( !player->questlogUIOpen ) {
+					renderEntity.gui[0]->StateChanged( gameLocal.time, true );
+					if ( renderEntity.gui[1] ) {
+						renderEntity.gui[1]->StateChanged( gameLocal.time, true );
+					}
+					if ( renderEntity.gui[2] ) {
+						renderEntity.gui[2]->StateChanged( gameLocal.time, true );
+					}
+				}
+				//###//
 			}
 		}
 		if ( fadeEnd > 0 ) {
@@ -2290,69 +2310,6 @@ void idBeam::ReadFromSnapshot( const idBitMsgDelta &msg ) {
 	if ( msg.HasChanged() ) {
 		UpdateVisuals();
 	}
-}
-
-
-/*
-===============================================================================
-
-	idLiquid
-
-===============================================================================
-*/
-
-CLASS_DECLARATION( idEntity, idLiquid )
-	EVENT( EV_Touch,			idLiquid::Event_Touch )
-END_CLASS
-
-/*
-================
-idLiquid::Save
-================
-*/
-void idLiquid::Save( idSaveGame *savefile ) const {
-	// Nothing to save
-}
-
-/*
-================
-idLiquid::Restore
-================
-*/
-void idLiquid::Restore( idRestoreGame *savefile ) {
-	//FIXME: NO!
-	Spawn();
-}
-
-/*
-================
-idLiquid::Spawn
-================
-*/
-void idLiquid::Spawn() {
-/*
-	model = dynamic_cast<idRenderModelLiquid *>( renderEntity.hModel );
-	if ( !model ) {
-		gameLocal.Error( "Entity '%s' must have liquid model", name.c_str() );
-	}
-	model->Reset();
-	GetPhysics()->SetContents( CONTENTS_TRIGGER );
-*/
-}
-
-/*
-================
-idLiquid::Event_Touch
-================
-*/
-void idLiquid::Event_Touch( idEntity *other, trace_t *trace ) {
-	// FIXME: for QuakeCon
-/*
-	idVec3 pos;
-
-	pos = other->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
-	model->IntersectBounds( other->GetPhysics()->GetBounds().Translate( pos ), -10.0f );
-*/
 }
 
 

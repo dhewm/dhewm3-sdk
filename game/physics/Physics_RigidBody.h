@@ -166,6 +166,7 @@ private:
 	float					angularFriction;			// rotational friction
 	float					contactFriction;			// friction with contact surfaces
 	float					bouncyness;					// bouncyness
+	float					volume;						// object volume
 	idClipModel *			clipModel;					// clip model used for collision detection
 
 	// derived properties
@@ -185,6 +186,9 @@ private:
 	bool					hasMaster;
 	bool					isOrientated;
 
+	// buoyancy
+	int						noMoveTime;						// suspend simulation if hardly any movement for this many seconds
+
 private:
 	friend void				RigidBodyDerivatives( const float t, const void *clientData, const float *state, float *derivatives );
 	void					Integrate( const float deltaTime, rigidBodyPState_t &next );
@@ -192,9 +196,15 @@ private:
 	bool					CollisionImpulse( const trace_t &collision, idVec3 &impulse );
 	void					ContactFriction( float deltaTime );
 	void					DropToFloorAndRest( void );
-	bool					TestIfAtRest( void ) const;
+	bool					TestIfAtRest( void );
 	void					Rest( void );
 	void					DebugDraw( void );
+
+	// Buoyancy stuff
+	// Approximates the center of mass of the submerged portion of the rigid body.
+	virtual bool				GetBuoyancy( const idVec3 &pos, const idMat3 &rotation, idVec3 &bCenter, float &percent ) const;
+	// Returns rough a percentage of which percent of the body is in water.
+	virtual float				GetSubmergedPercent( const idVec3 &pos, const idMat3 &rotation ) const;
 };
 
 #endif /* !__PHYSICS_RIGIDBODY_H__ */

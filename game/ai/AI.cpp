@@ -3398,6 +3398,28 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	if ( ( attacker && attacker->IsType( idPlayer::Type ) ) && ( inflictor && !inflictor->IsType( idSoulCubeMissile::Type ) ) ) {
 		static_cast< idPlayer* >( attacker )->AddAIKill();
 	}
+
+//###// by MacX
+	srand( (unsigned)time( NULL ) );
+
+	int randMoney = 50 + ( rand() % ( 100 - 50 + 1 ) ); // random value between 50 and 100 
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+	if( player->inventory.money < 999999 ) {
+		player->inventory.money += randMoney;
+		if( player->inventory.money > 999999 ) {
+			player->inventory.money = 999999;
+		}
+	}
+
+	if( player->inventory.enemiesKilled < INT_MAX ) {
+		player->inventory.enemiesKilled += 1;
+	}
+	if( player->inventory.enemiesKilled < 0 ) {
+		player->inventory.enemiesKilled = 0;
+	}
+
+//###//
 }
 
 /***********************************************************************

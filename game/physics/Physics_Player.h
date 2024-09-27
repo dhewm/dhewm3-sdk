@@ -51,13 +51,6 @@ typedef enum {
 	PM_NOCLIP				// flying without collision detection nor gravity
 } pmtype_t;
 
-typedef enum {
-	WATERLEVEL_NONE,
-	WATERLEVEL_FEET,
-	WATERLEVEL_WAIST,
-	WATERLEVEL_HEAD
-} waterLevel_t;
-
 #define	MAXTOUCH					32
 
 typedef struct playerPState_s {
@@ -91,8 +84,6 @@ public:
 	void					SetKnockBack( const int knockBackTime );
 	void					SetDebugLevel( bool set );
 							// feed back from last physics frame
-	waterLevel_t			GetWaterLevel( void ) const;
-	int						GetWaterType( void ) const;
 	bool					HasJumped( void ) const;
 	bool					HasSteppedUp( void ) const;
 	float					GetStepUp( void ) const;
@@ -165,10 +156,6 @@ private:
 	bool					ladder;
 	idVec3					ladderNormal;
 
-	// results of last evaluate
-	waterLevel_t			waterLevel;
-	int						waterType;
-
 private:
 	float					CmdScale( const usercmd_t &cmd ) const;
 	void					Accelerate( const idVec3 &wishdir, const float wishspeed, const float accel );
@@ -189,7 +176,6 @@ private:
 	void					CheckLadder( void );
 	bool					CheckJump( void );
 	bool					CheckWaterJump( void );
-	void					SetWaterLevel( void );
 	void					DropTimers( void );
 	void					MovePlayer( int msec );
 };

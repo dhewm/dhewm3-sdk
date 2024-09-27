@@ -302,18 +302,26 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		give_all = false;
 	}
 
-	if ( give_all || ( idStr::Cmpn( name, "weapon", 6 ) == 0 ) ) {
-		if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) {
-			gameLocal.world->spawnArgs.SetBool( "no_Weapons", false );
-			for( i = 0; i < gameLocal.numClients; i++ ) {
-				if ( gameLocal.entities[ i ] ) {
-					gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon1" ) );
-				}
-			}
-		}
-	}
+//###// by MacX
+	//if ( give_all || ( idStr::Cmpn( name, "weapon", 6 ) == 0 ) ) {
+	//	if ( gameLocal.world->spawnArgs.GetBool( "no_Weapons" ) ) {
+	//		gameLocal.world->spawnArgs.SetBool( "no_Weapons", false );
+	//		for( i = 0; i < gameLocal.numClients; i++ ) {
+	//			if ( gameLocal.entities[ i ] ) {
+	//				gameLocal.entities[ i ]->PostEventSec( &EV_Player_SelectWeapon, 0.5f, gameLocal.entities[ i ]->spawnArgs.GetString( "def_weapon1" ) );
+	//			}
+	//		}
+	//	}
+	//}
+//###//
 
-	if ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) || ( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
+	if ( ( ( idStr::Cmpn( name, "weapon_", 7 ) == 0 ) && 
+//###// by MacX
+		( idStr::Cmpn( name, "weapon_soulcube", 15 ) != 0 ) &&
+		( idStr::Cmpn( name, "weapon_bfg", 10 ) != 0 ) &&
+		( idStr::Cmpn( name, "weapon_handgrenade", 18 ) != 0 ) ) ||
+//###//
+		( idStr::Cmpn( name, "item_", 5 ) == 0 ) || ( idStr::Cmpn( name, "ammo_", 5 ) == 0 ) ) {
 		player->GiveItem( name );
 		return;
 	}
@@ -325,14 +333,16 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		}
 	}
 
-	if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
-		player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
-		player->CacheWeapons();
+//###// by MacX
+	//if ( give_all || idStr::Icmp( name, "weapons" ) == 0 ) {
+	//	player->inventory.weapons = BIT( MAX_WEAPONS ) - 1;
+	//	player->CacheWeapons();
 
-		if ( !give_all ) {
-			return;
-		}
-	}
+	//	if ( !give_all ) {
+	//		return;
+	//	}
+	//}
+//###//
 
 	if ( give_all || idStr::Icmp( name, "ammo" ) == 0 ) {
 		for ( i = 0 ; i < AMMO_NUMTYPES; i++ ) {
@@ -343,12 +353,16 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		}
 	}
 
-	if ( give_all || idStr::Icmp( name, "armor" ) == 0 ) {
-		player->inventory.armor = player->inventory.maxarmor;
-		if ( !give_all ) {
-			return;
-		}
-	}
+//###// by MacX
+
+	//if ( give_all || idStr::Icmp( name, "armor" ) == 0 ) {
+	//	player->inventory.armor = player->inventory.maxarmor;
+	//	if ( !give_all ) {
+	//		return;
+	//	}
+	//}
+
+//###// 
 
 	if ( idStr::Icmp( name, "berserk" ) == 0 ) {
 		player->GivePowerUp( BERSERK, SEC2MS( 30.0f ) );

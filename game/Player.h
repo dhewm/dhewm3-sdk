@@ -31,6 +31,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/math/Interpolate.h"
 
+//Cameron Law START Max and Min camera settings
+const float MIN_PLAYER_CAM=20;
+const float MAX_PLAYER_CAM=300;
+//Cameron Law END
+
 #include "physics/Physics_Player.h"
 #include "Item.h"
 #include "Actor.h"
@@ -122,6 +127,20 @@ enum {
 	INFLUENCE_LEVEL3,			// slow player movement
 };
 
+//###// by MacX
+
+struct idDiaryInfo{
+	int		currentPage;
+	idStr	diaryText;
+	idStr	diaryText2;
+	idStr	diaryText3;
+	idStr	diaryText4;
+	idStr	pageLeft;		// page number, i.e. "-1-"
+	idStr	pageRight;		// page number, i.e. "-2-"
+};
+
+//###//
+
 class idInventory {
 public:
 	int						maxHealth;
@@ -129,6 +148,33 @@ public:
 	int						powerups;
 	int						armor;
 	int						maxarmor;
+
+//###// by MacX
+	int						money;
+	idStrList				diary;
+	idStrList				quest;
+	idStrList				questState;
+	idDiaryInfo				diaryInfo;
+
+	int						enemiesKilled;
+
+	int						testVarGui1;
+	int						testVarGui2;
+	int						testVarGui3;
+	int						testVarGui4;
+	int						testVarGui5;
+	int						testVar1;
+	int						testVar2;
+	int						testVar3;
+	int						testVar4;
+	int						testVar5;
+	int						testVar6;
+	int						testVar7;
+	int						testVar8;
+	int						testVar9;
+	int						testVar10;
+//###//
+
 	int						ammo[ AMMO_NUMTYPES ];
 	int						clip[ MAX_WEAPONS ];
 	int						powerupEndTime[ MAX_POWERUPS ];
@@ -265,6 +311,15 @@ public:
 	idUserInterface *		objectiveSystem;
 	bool					objectiveSystemOpen;
 
+	//###// by MacX
+
+	idUserInterface*		diaryUI;
+	bool					diaryUIOpen;
+	idUserInterface*		questlogUI;
+	bool					questlogUIOpen;
+
+	//###//
+
 	int						weapon_soulcube;
 	int						weapon_pda;
 	int						weapon_fists;
@@ -320,6 +375,11 @@ public:
 	int						minRespawnTime;		// can respawn when time > this, force after g_forcerespawn
 	int						maxRespawnTime;		// force respawn after this time
 
+	//Cameron Law Start		- edited by MacX
+	float					slowmotion;
+	int						startslow;
+	//Cameron Law End
+
 	// the first person view values are always calculated, even
 	// if a third person view is used
 	idVec3					firstPersonViewOrigin;
@@ -327,6 +387,7 @@ public:
 
 	idDragEntity			dragEntity;
 
+	bool					bIsZoomed;	// sikk - Zoom DoF Fullscreen PostProcess Effect
 public:
 	CLASS_PROTOTYPE( idPlayer );
 
@@ -460,6 +521,12 @@ public:
 	void					PerformImpulse( int impulse );
 	void					Spectate( bool spectate );
 	void					TogglePDA( void );
+
+	//###// by MacX
+	void					ToggleDiary( void );
+	void					ToggleQuestlog( void );
+	//###//
+
 	void					ToggleScoreboard( void );
 	void					RouteGuiMouse( idUserInterface *gui );
 	void					UpdateHud( void );

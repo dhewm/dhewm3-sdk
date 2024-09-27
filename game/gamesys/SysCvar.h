@@ -83,6 +83,10 @@ extern idCVar	g_showTestModelFrame;
 extern idCVar	g_showActiveEntities;
 extern idCVar	g_showEnemies;
 
+//###// by MacX
+extern idCVar	g_showSubtitle;
+//###//
+
 extern idCVar	g_frametime;
 extern idCVar	g_timeentities;
 
@@ -126,6 +130,12 @@ extern idCVar	af_useLinearTime;
 extern idCVar	af_useImpulseFriction;
 extern idCVar	af_useJointImpulseFriction;
 extern idCVar	af_useSymmetry;
+
+//###// by MacX - using code of water physics mod
+extern idCVar	af_useBodyDensityBuoyancy;
+extern idCVar	af_useFixedDensityBuoyancy;
+//###// 
+
 extern idCVar	af_skipSelfCollision;
 extern idCVar	af_skipLimits;
 extern idCVar	af_skipFriction;
@@ -160,6 +170,10 @@ extern idCVar	rb_showInertia;
 extern idCVar	rb_showVelocity;
 extern idCVar	rb_showActive;
 
+//###// by MacX - using code of water physics mod
+extern idCVar	rb_showBuoyancy;
+//###//
+
 extern idCVar	pm_jumpheight;
 extern idCVar	pm_stepsize;
 extern idCVar	pm_crouchspeed;
@@ -174,6 +188,12 @@ extern idCVar	pm_maxviewpitch;
 extern idCVar	pm_stamina;
 extern idCVar	pm_staminathreshold;
 extern idCVar	pm_staminarate;
+
+//###// by MacX
+extern idCVar	pm_slowmotion;
+extern idCVar	pm_slowmotionrate;
+//###//
+
 extern idCVar	pm_crouchheight;
 extern idCVar	pm_crouchviewheight;
 extern idCVar	pm_normalheight;
@@ -253,5 +273,19 @@ extern idCVar	net_clientLagOMeter;
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
+
+// ### z_mod ###
+extern idCVar	z_bloom;
+extern idCVar	z_bloomBufferSize;
+extern idCVar	z_bloomIterations;
+
+//extern idCVar	z_decalPP;	// decal post process
+
+// sikk---> Motion Blur/DoF/Cel Shading PostProcessing Effects
+extern idCVar	r_useMotionBlur;
+extern idCVar	r_useZoomDoF;
+extern idCVar	r_useCelShading;
+// <---sikk
+
 
 #endif /* !__SYS_CVAR_H__ */

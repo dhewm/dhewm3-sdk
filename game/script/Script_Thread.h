@@ -175,6 +175,55 @@ private:
 	void						Event_StrSkip( const char *string, int num );
 	void						Event_StrMid( const char *string, int start, int num );
 	void						Event_StrToFloat( const char *string );
+
+//###// by MacX
+
+	void						Event_GetMoney( void );
+	void						Event_DecreaseMoney( float value );
+	void						Event_LooseMoney( void );
+	void						Event_SetPlayerHealth( void );
+	void						Event_DecreasePlayerHealth( float hp );
+	void						Event_PreviousPageDiary( void );
+	void						Event_NextPageDiary( void );
+	void						Event_PreviousPageQuestlog( void );
+	void						Event_NextPageQuestlog( void );
+
+	void						Event_GetEnemiesKilled( void );
+
+	void						Event_GetTestVarGui1( void );
+	void						Event_GetTestVarGui2( void );
+	void						Event_GetTestVarGui3( void );
+	void						Event_GetTestVarGui4( void );
+	void						Event_GetTestVarGui5( void );
+	void						Event_GetTestVar1( void );
+	void						Event_GetTestVar2( void );
+	void						Event_GetTestVar3( void );
+	void						Event_GetTestVar4( void );
+	void						Event_GetTestVar5( void );
+	void						Event_GetTestVar6( void );
+	void						Event_GetTestVar7( void );
+	void						Event_GetTestVar8( void );
+	void						Event_GetTestVar9( void );
+	void						Event_GetTestVar10( void );
+
+	void						Event_SetTestVarGui1( float value );
+	void						Event_SetTestVarGui2( float value );
+	void						Event_SetTestVarGui3( float value );
+	void						Event_SetTestVarGui4( float value );
+	void						Event_SetTestVarGui5( float value );
+	void						Event_SetTestVar1( float value );
+	void						Event_SetTestVar2( float value );
+	void						Event_SetTestVar3( float value );
+	void						Event_SetTestVar4( float value );
+	void						Event_SetTestVar5( float value );
+	void						Event_SetTestVar6( float value );
+	void						Event_SetTestVar7( float value );
+	void						Event_SetTestVar8( float value );
+	void						Event_SetTestVar9( float value );
+	void						Event_SetTestVar10( float value );
+
+//###//
+
 	void						Event_RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEntity *attacker, idEntity *ignore, const char *damageDefName, float dmgPower );
 	void						Event_IsClient( void );
 	void						Event_IsMultiplayer( void );

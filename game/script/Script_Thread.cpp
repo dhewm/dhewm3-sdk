@@ -102,6 +102,55 @@ const idEventDef EV_Thread_StrRight( "strRight", "sd", 's' );
 const idEventDef EV_Thread_StrSkip( "strSkip", "sd", 's' );
 const idEventDef EV_Thread_StrMid( "strMid", "sdd", 's' );
 const idEventDef EV_Thread_StrToFloat( "strToFloat", "s", 'f' );
+
+//###// by MacX
+
+const idEventDef EV_Thread_GetMoney( "getMoney", NULL, 'f' );
+const idEventDef EV_Thread_DecreaseMoney( "decreaseMoney", "f" );
+const idEventDef EV_Thread_LooseMoney( "looseMoney", NULL );
+const idEventDef EV_Thread_SetPlayerHealth( "setPlayerHealth", NULL );
+const idEventDef EV_Thread_DecreasePlayerHealth( "decreasePlayerHealth", "f" );
+const idEventDef EV_Thread_PreviousPageDiary( "previousPageDiary", NULL );
+const idEventDef EV_Thread_NextPageDiary( "nextPageDiary", NULL );
+const idEventDef EV_Thread_PreviousPageQuestlog( "previousPageQuestlog", NULL );
+const idEventDef EV_Thread_NextPageQuestlog( "nextPageQuestlog", NULL );
+
+const idEventDef EV_Thread_GetEnemiesKilled( "getEnemiesKilled", NULL, 'f' );
+
+const idEventDef EV_Thread_GetTestVarGui1( "getTestVarGui1", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVarGui2( "getTestVarGui2", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVarGui3( "getTestVarGui3", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVarGui4( "getTestVarGui4", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVarGui5( "getTestVarGui5", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar1( "getTestVar1", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar2( "getTestVar2", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar3( "getTestVar3", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar4( "getTestVar4", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar5( "getTestVar5", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar6( "getTestVar6", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar7( "getTestVar7", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar8( "getTestVar8", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar9( "getTestVar9", NULL, 'f' );
+const idEventDef EV_Thread_GetTestVar10( "getTestVar10", NULL, 'f' );
+
+const idEventDef EV_Thread_SetTestVarGui1( "setTestVarGui1", "f" );
+const idEventDef EV_Thread_SetTestVarGui2( "setTestVarGui2", "f" );
+const idEventDef EV_Thread_SetTestVarGui3( "setTestVarGui3", "f" );
+const idEventDef EV_Thread_SetTestVarGui4( "setTestVarGui4", "f" );
+const idEventDef EV_Thread_SetTestVarGui5( "setTestVarGui5", "f" );
+const idEventDef EV_Thread_SetTestVar1( "setTestVar1", "f" );
+const idEventDef EV_Thread_SetTestVar2( "setTestVar2", "f" );
+const idEventDef EV_Thread_SetTestVar3( "setTestVar3", "f" );
+const idEventDef EV_Thread_SetTestVar4( "setTestVar4", "f" );
+const idEventDef EV_Thread_SetTestVar5( "setTestVar5", "f" );
+const idEventDef EV_Thread_SetTestVar6( "setTestVar6", "f" );
+const idEventDef EV_Thread_SetTestVar7( "setTestVar7", "f" );
+const idEventDef EV_Thread_SetTestVar8( "setTestVar8", "f" );
+const idEventDef EV_Thread_SetTestVar9( "setTestVar9", "f" );
+const idEventDef EV_Thread_SetTestVar10( "setTestVar10", "f" );
+
+//###//
+
 const idEventDef EV_Thread_RadiusDamage( "radiusDamage", "vEEEsf" );
 const idEventDef EV_Thread_IsClient( "isClient", NULL, 'f' );
 const idEventDef EV_Thread_IsMultiplayer( "isMultiplayer", NULL, 'f' );
@@ -181,6 +230,55 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_StrSkip,				idThread::Event_StrSkip )
 	EVENT( EV_Thread_StrMid,				idThread::Event_StrMid )
 	EVENT( EV_Thread_StrToFloat,			idThread::Event_StrToFloat )
+
+//###// by MacX
+
+	EVENT( EV_Thread_GetMoney,				idThread::Event_GetMoney )
+	EVENT( EV_Thread_DecreaseMoney,			idThread::Event_DecreaseMoney )
+	EVENT( EV_Thread_LooseMoney,			idThread::Event_LooseMoney )
+	EVENT( EV_Thread_SetPlayerHealth,		idThread::Event_SetPlayerHealth )
+	EVENT( EV_Thread_DecreasePlayerHealth,	idThread::Event_DecreasePlayerHealth )
+	EVENT( EV_Thread_PreviousPageDiary,		idThread::Event_PreviousPageDiary )
+	EVENT( EV_Thread_NextPageDiary,			idThread::Event_NextPageDiary )
+	EVENT( EV_Thread_PreviousPageQuestlog,	idThread::Event_PreviousPageQuestlog )
+	EVENT( EV_Thread_NextPageQuestlog,		idThread::Event_NextPageQuestlog )
+
+	EVENT( EV_Thread_GetEnemiesKilled,		idThread::Event_GetEnemiesKilled )
+
+	EVENT( EV_Thread_GetTestVarGui1,		idThread::Event_GetTestVarGui1 )
+	EVENT( EV_Thread_GetTestVarGui2,		idThread::Event_GetTestVarGui2 )
+	EVENT( EV_Thread_GetTestVarGui3,		idThread::Event_GetTestVarGui3 )
+	EVENT( EV_Thread_GetTestVarGui4,		idThread::Event_GetTestVarGui4 )
+	EVENT( EV_Thread_GetTestVarGui5,		idThread::Event_GetTestVarGui5 )
+	EVENT( EV_Thread_GetTestVar1,			idThread::Event_GetTestVar1 )
+	EVENT( EV_Thread_GetTestVar2,			idThread::Event_GetTestVar2 )
+	EVENT( EV_Thread_GetTestVar3,			idThread::Event_GetTestVar3 )
+	EVENT( EV_Thread_GetTestVar4,			idThread::Event_GetTestVar4 )
+	EVENT( EV_Thread_GetTestVar5,			idThread::Event_GetTestVar5 )
+	EVENT( EV_Thread_GetTestVar6,			idThread::Event_GetTestVar6 )
+	EVENT( EV_Thread_GetTestVar7,			idThread::Event_GetTestVar7 )
+	EVENT( EV_Thread_GetTestVar8,			idThread::Event_GetTestVar8 )
+	EVENT( EV_Thread_GetTestVar9,			idThread::Event_GetTestVar9 )
+	EVENT( EV_Thread_GetTestVar10,			idThread::Event_GetTestVar10 )
+
+	EVENT( EV_Thread_SetTestVarGui1,		idThread::Event_SetTestVarGui1 )
+	EVENT( EV_Thread_SetTestVarGui2,		idThread::Event_SetTestVarGui2 )
+	EVENT( EV_Thread_SetTestVarGui3,		idThread::Event_SetTestVarGui3 )
+	EVENT( EV_Thread_SetTestVarGui4,		idThread::Event_SetTestVarGui4 )
+	EVENT( EV_Thread_SetTestVarGui5,		idThread::Event_SetTestVarGui5 )
+	EVENT( EV_Thread_SetTestVar1,			idThread::Event_SetTestVar1 )
+	EVENT( EV_Thread_SetTestVar2,			idThread::Event_SetTestVar2 )
+	EVENT( EV_Thread_SetTestVar3,			idThread::Event_SetTestVar3 )
+	EVENT( EV_Thread_SetTestVar4,			idThread::Event_SetTestVar4 )
+	EVENT( EV_Thread_SetTestVar5,			idThread::Event_SetTestVar5 )
+	EVENT( EV_Thread_SetTestVar6,			idThread::Event_SetTestVar6 )
+	EVENT( EV_Thread_SetTestVar7,			idThread::Event_SetTestVar7 )
+	EVENT( EV_Thread_SetTestVar8,			idThread::Event_SetTestVar8 )
+	EVENT( EV_Thread_SetTestVar9,			idThread::Event_SetTestVar9 )
+	EVENT( EV_Thread_SetTestVar10,			idThread::Event_SetTestVar10 )
+
+//###//
+
 	EVENT( EV_Thread_RadiusDamage,			idThread::Event_RadiusDamage )
 	EVENT( EV_Thread_IsClient,				idThread::Event_IsClient )
 	EVENT( EV_Thread_IsMultiplayer,			idThread::Event_IsMultiplayer )
@@ -1726,6 +1824,786 @@ void idThread::Event_StrToFloat( const char *string ) {
 	result = atof( string );
 	idThread::ReturnFloat( result );
 }
+
+
+//###// by MacX
+
+/*
+================
+idThread::Event_GetMoney( void )
+================
+*/
+void idThread::Event_GetMoney( void ) {
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.money );
+}
+
+/*
+================
+idThread::Event_DecreaseMoney( float value )
+================
+*/
+void idThread::Event_DecreaseMoney( float value ) {
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	if( player->inventory.money > 0 ) {
+		player->inventory.money -= value;
+		if( player->inventory.money < 0 ) {
+			player->inventory.money = 0;
+		}
+	}
+}
+
+/*
+================
+idThread::Event_LooseMoney()
+================
+*/
+void idThread::Event_LooseMoney( void ) {
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.money = 0;
+}
+
+/*
+================
+idThread::Event_SetPlayerHealth()
+================
+*/
+void idThread::Event_SetPlayerHealth( void ) {
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+	player->hud->HandleNamedEvent( "hideHealth" );
+
+	int newPlayerHealth;
+
+	if ( g_skill.GetInteger() == 0 ) {
+		newPlayerHealth = 4;
+	} else if ( g_skill.GetInteger() == 1 ) {
+		newPlayerHealth = 2;
+	} else {
+		newPlayerHealth = 1;
+	}
+
+	if( !(player->health > player->inventory.maxHealth) &&
+		!( player->health <= 0 ) ) {
+
+		player->health += newPlayerHealth;
+
+		if( player->health > player->inventory.maxHealth ) {
+			player->health = player->inventory.maxHealth;
+		}
+	} 
+	if( player->inventory.armor > 0 ) {
+		player->inventory.armor -= 1;
+	}
+}
+
+/*
+================
+idThread::Event_DecreasePlayerHealth()
+================
+*/
+void idThread::Event_DecreasePlayerHealth( float hp ) {
+
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	if( player->health > 0 ) {
+		player->health -= hp;
+
+		if( player->health <= 0 ) {
+			player->health = 0;
+			player->Damage( player, player, vec3_origin, "damage_suicide", 1.0f, INVALID_JOINT );
+		}
+	} 
+}
+
+/*
+================
+idThread::Event_GetEnemiesKilled
+================
+*/
+void idThread::Event_GetEnemiesKilled( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+	idThread::ReturnFloat( player->inventory.enemiesKilled );
+}
+
+/*
+================
+idThread::Event_GetTestVarGui1()
+================
+*/
+void idThread::Event_GetTestVarGui1( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVarGui1 );
+}
+
+/*
+================
+idThread::Event_GetTestVarGui2()
+================
+*/
+void idThread::Event_GetTestVarGui2( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVarGui2 );
+}
+
+/*
+================
+idThread::Event_GetTestVarGui3()
+================
+*/
+void idThread::Event_GetTestVarGui3( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVarGui3 );
+}
+
+/*
+================
+idThread::Event_GetTestVarGui4()
+================
+*/
+void idThread::Event_GetTestVarGui4( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVarGui4 );
+}
+
+/*
+================
+idThread::Event_GetTestVarGui5()
+================
+*/
+void idThread::Event_GetTestVarGui5( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVarGui5 );
+}
+
+/*
+================
+idThread::Event_GetTestVar1()
+================
+*/
+void idThread::Event_GetTestVar1( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar1 );
+}
+
+/*
+================
+idThread::Event_GetTestVar2()
+================
+*/
+void idThread::Event_GetTestVar2( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar2 );
+}
+
+/*
+================
+idThread::Event_GetTestVar3()
+================
+*/
+void idThread::Event_GetTestVar3( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar3 );
+}
+
+/*
+================
+idThread::Event_GetTestVar4()
+================
+*/
+void idThread::Event_GetTestVar4( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar4 );
+}
+
+/*
+================
+idThread::Event_GetTestVar5()
+================
+*/
+void idThread::Event_GetTestVar5( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar5 );
+}
+
+/*
+================
+idThread::Event_GetTestVar6()
+================
+*/
+void idThread::Event_GetTestVar6( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar6 );
+}
+
+/*
+================
+idThread::Event_GetTestVar7()
+================
+*/
+void idThread::Event_GetTestVar7( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar7 );
+}
+
+/*
+================
+idThread::Event_GetTestVar8()
+================
+*/
+void idThread::Event_GetTestVar8( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar8 );
+}
+
+/*
+================
+idThread::Event_GetTestVar9()
+================
+*/
+void idThread::Event_GetTestVar9( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar9 );
+}
+
+/*
+================
+idThread::Event_GetTestVar10()
+================
+*/
+void idThread::Event_GetTestVar10( void ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idThread::ReturnFloat( player->inventory.testVar10 );
+}
+
+/*
+================
+idThread::Event_SetTestVarGui1()
+================
+*/
+void idThread::Event_SetTestVarGui1( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVarGui1 = value;
+	
+	if( player->inventory.testVarGui1 < 0 || 
+		player->inventory.testVarGui1 > INT_MAX ) {
+
+		player->inventory.testVarGui1 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVarGui2()
+================
+*/
+void idThread::Event_SetTestVarGui2( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVarGui2 = value;
+	
+	if( player->inventory.testVarGui2 < 0 || 
+		player->inventory.testVarGui2 > INT_MAX ) {
+
+		player->inventory.testVarGui2 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVarGui3()
+================
+*/
+void idThread::Event_SetTestVarGui3( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVarGui3 = value;
+	
+	if( player->inventory.testVarGui3 < 0 || 
+		player->inventory.testVarGui3 > INT_MAX ) {
+
+		player->inventory.testVarGui3 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVarGui4()
+================
+*/
+void idThread::Event_SetTestVarGui4( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVarGui4 = value;
+	
+	if( player->inventory.testVarGui4 < 0 || 
+		player->inventory.testVarGui4 > INT_MAX ) {
+
+		player->inventory.testVarGui4 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVarGui5()
+================
+*/
+void idThread::Event_SetTestVarGui5( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVarGui5 = value;
+	
+	if( player->inventory.testVarGui5 < 0 || 
+		player->inventory.testVarGui5 > INT_MAX ) {
+
+		player->inventory.testVarGui5 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar1()
+================
+*/
+void idThread::Event_SetTestVar1( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar1 = value;
+	
+	if( player->inventory.testVar1 < 0 || 
+		player->inventory.testVar1 > INT_MAX ) {
+
+		player->inventory.testVar1 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar2()
+================
+*/
+void idThread::Event_SetTestVar2( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar2 = value;
+	
+	if( player->inventory.testVar2 < 0 || 
+		player->inventory.testVar2 > INT_MAX ) {
+
+		player->inventory.testVar2 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar3()
+================
+*/
+void idThread::Event_SetTestVar3( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar3 = value;
+	
+	if( player->inventory.testVar3 < 0 || 
+		player->inventory.testVar3 > INT_MAX ) {
+
+		player->inventory.testVar3 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar4()
+================
+*/
+void idThread::Event_SetTestVar4( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar4 = value;
+	
+	if( player->inventory.testVar4 < 0 || 
+		player->inventory.testVar4 > INT_MAX ) {
+
+		player->inventory.testVar4 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar5()
+================
+*/
+void idThread::Event_SetTestVar5( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar5 = value;
+	
+	if( player->inventory.testVar5 < 0 || 
+		player->inventory.testVar5 > INT_MAX ) {
+
+		player->inventory.testVar5 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar6()
+================
+*/
+void idThread::Event_SetTestVar6( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar6 = value;
+	
+	if( player->inventory.testVar6 < 0 || 
+		player->inventory.testVar6 > INT_MAX ) {
+
+		player->inventory.testVar6 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar7()
+================
+*/
+void idThread::Event_SetTestVar7( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar7 = value;
+	
+	if( player->inventory.testVar7 < 0 || 
+		player->inventory.testVar7 > INT_MAX ) {
+
+		player->inventory.testVar7 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar8()
+================
+*/
+void idThread::Event_SetTestVar8( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar8 = value;
+	
+	if( player->inventory.testVar8 < 0 || 
+		player->inventory.testVar8 > INT_MAX ) {
+
+		player->inventory.testVar8 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar9()
+================
+*/
+void idThread::Event_SetTestVar9( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar9 = value;
+	
+	if( player->inventory.testVar9 < 0 || 
+		player->inventory.testVar9 > INT_MAX ) {
+
+		player->inventory.testVar9 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_SetTestVar10()
+================
+*/
+void idThread::Event_SetTestVar10( float value ) {
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	player->inventory.testVar10 = value;
+	
+	if( player->inventory.testVar10 < 0 || 
+		player->inventory.testVar10 > INT_MAX ) {
+
+		player->inventory.testVar10 = 0;
+	}
+}
+
+/*
+================
+idThread::Event_PreviousPageDiary()
+================
+*/
+void idThread::Event_PreviousPageDiary( void ) {
+	idPlayer*	player	= gameLocal.GetLocalPlayer();
+	idStrList	diary	= player->inventory.diary;
+	
+	player->inventory.diaryInfo.currentPage--;
+
+	if( player->inventory.diaryInfo.currentPage == 1 ) {
+		player->diaryUI->HandleNamedEvent( "prevPageOff" );
+	}
+	
+	player->diaryUI->HandleNamedEvent( "nextPageOn" );
+
+	int i = ( player->inventory.diaryInfo.currentPage * 2 );
+
+	player->inventory.diaryInfo.diaryText = diary[i-2];
+	player->inventory.diaryInfo.diaryText2 = diary[i-1];
+	player->inventory.diaryInfo.pageLeft = va( "-%i-",  i-1 );
+	player->inventory.diaryInfo.pageRight = va( "-%i-", i );
+
+	player->diaryUI->SetStateString( 
+								"pageLeft", player->inventory.diaryInfo.pageLeft );
+	player->diaryUI->SetStateString(
+								"pageRight", player->inventory.diaryInfo.pageRight );
+	player->diaryUI->SetStateString(
+								"diaryText", player->inventory.diaryInfo.diaryText );
+	player->diaryUI->SetStateString(
+								"diaryText2", player->inventory.diaryInfo.diaryText2 );
+}
+
+/*
+================
+idThread::Event_NextPageDiary()
+================
+*/
+void idThread::Event_NextPageDiary( void ) {
+	idPlayer*	player			= gameLocal.GetLocalPlayer();
+	idStrList	diary			= player->inventory.diary;
+
+	player->inventory.diaryInfo.currentPage++;
+	int i = ( player->inventory.diaryInfo.currentPage * 2 );
+
+	if( i >= diary.Num() ) {
+		player->diaryUI->HandleNamedEvent( "nextPageOff" );
+	}
+	player->diaryUI->HandleNamedEvent( "prevPageOn" );
+
+	player->inventory.diaryInfo.diaryText = diary[i-2];
+	player->inventory.diaryInfo.pageLeft = va( "-%i-",  i-1 );
+	player->inventory.diaryInfo.pageRight = va( "-%i-", i );
+
+	if( (i-1) == diary.Num() && i > diary.Num() ) {
+		player->inventory.diaryInfo.diaryText2 = "";
+	}
+	else {
+		player->inventory.diaryInfo.diaryText2 = diary[i-1];
+	}
+
+	player->diaryUI->SetStateString(
+								"pageLeft", player->inventory.diaryInfo.pageLeft );
+	player->diaryUI->SetStateString(
+								"pageRight", player->inventory.diaryInfo.pageRight );
+	player->diaryUI->SetStateString(
+								"diaryText", player->inventory.diaryInfo.diaryText );
+	player->diaryUI->SetStateString(
+								"diaryText2", player->inventory.diaryInfo.diaryText2 );
+}
+
+/*
+================
+idThread::Event_PreviousPageQuestlog()
+================
+*/
+void idThread::Event_PreviousPageQuestlog( void ) {
+	idPlayer*	player			= gameLocal.GetLocalPlayer();
+	idStrList	quest			= player->inventory.quest;
+	
+	player->inventory.diaryInfo.currentPage--;
+
+	player->inventory.diaryInfo.diaryText	= "";
+	player->inventory.diaryInfo.diaryText2	= "";
+	player->inventory.diaryInfo.diaryText3	= "";
+	player->inventory.diaryInfo.diaryText4	= "";
+
+	if( player->inventory.diaryInfo.currentPage == 1 ) {
+		player->questlogUI->HandleNamedEvent( "prevPageOff" );
+	}
+	
+	player->questlogUI->HandleNamedEvent( "nextPageOn" );
+
+	player->questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+	player->questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+	player->questlogUI->HandleNamedEvent( "StateRightTopBoxOn" );
+	player->questlogUI->HandleNamedEvent( "StateRightBottomBoxOn" );
+
+	player->questlogUI->HandleNamedEvent( "StateLeftTopDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightTopDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightBottomDoneOff" );
+
+	int i = ( player->inventory.diaryInfo.currentPage * 4 );
+
+	player->inventory.diaryInfo.diaryText = quest[i-4];
+	player->inventory.diaryInfo.diaryText2 = quest[i-3];
+	player->inventory.diaryInfo.diaryText3 = quest[i-2];
+	player->inventory.diaryInfo.diaryText4 = quest[i-1];
+	player->inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) - 1 );
+	player->inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) );
+
+	if( player->inventory.questState[i-4] == "solved" ) {
+		player->questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+	}
+	if( player->inventory.questState[i-3] == "solved" ) {
+		player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+	}
+	if( player->inventory.questState[i-2] == "solved" ) {
+		player->questlogUI->HandleNamedEvent( "StateRightTopDoneOn" );
+	}
+	if( player->inventory.questState[i-1] == "solved" ) {
+		player->questlogUI->HandleNamedEvent( "StateRightBottomDoneOn" );
+	}
+
+	player->questlogUI->SetStateString( 
+								"pageLeft", player->inventory.diaryInfo.pageLeft );
+	player->questlogUI->SetStateString(
+								"pageRight", player->inventory.diaryInfo.pageRight );
+	player->questlogUI->SetStateString(
+								"diaryText", player->inventory.diaryInfo.diaryText );
+	player->questlogUI->SetStateString(
+								"diaryText2", player->inventory.diaryInfo.diaryText2 );
+	player->questlogUI->SetStateString(
+								"diaryText3", player->inventory.diaryInfo.diaryText3 );
+	player->questlogUI->SetStateString(
+								"diaryText4", player->inventory.diaryInfo.diaryText4 );
+}
+
+/*
+================
+idThread::Event_NextPageQuestlog()
+================
+*/
+void idThread::Event_NextPageQuestlog( void ) {
+	idPlayer*	player			= gameLocal.GetLocalPlayer();
+	idStrList	quest			= player->inventory.quest;
+
+	player->inventory.diaryInfo.currentPage++;
+
+	player->inventory.diaryInfo.diaryText	= "";
+	player->inventory.diaryInfo.diaryText2	= "";
+	player->inventory.diaryInfo.diaryText3	= "";
+	player->inventory.diaryInfo.diaryText4	= "";
+
+	int i = ( player->inventory.diaryInfo.currentPage * 4 );
+
+	if( i >= quest.Num() ) {
+		player->questlogUI->HandleNamedEvent( "nextPageOff" );
+	}
+	player->questlogUI->HandleNamedEvent( "prevPageOn" );
+
+	player->questlogUI->HandleNamedEvent( "StateLeftTopBoxOff" );
+	player->questlogUI->HandleNamedEvent( "StateLeftBottomBoxOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightTopBoxOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightBottomBoxOff" );
+
+	player->questlogUI->HandleNamedEvent( "StateLeftTopDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightTopDoneOff" );
+	player->questlogUI->HandleNamedEvent( "StateRightBottomDoneOff" );
+
+	int diff = 0;
+
+	if( i <= quest.Num() ) {
+		diff = i;
+	} else {
+		diff = quest.Num();
+	}
+
+	player->inventory.diaryInfo.diaryText = quest[i-4];
+	player->inventory.diaryInfo.pageLeft = va( "-%i-", (i / 2) - 1 );
+	player->inventory.diaryInfo.pageRight = va( "-%i-", (i / 2) );
+
+	player->questlogUI->HandleNamedEvent( "StateLeftTopBoxOn" );
+
+	if( player->inventory.questState[i-4] == "solved" ) {
+		player->questlogUI->HandleNamedEvent( "StateLeftTopDoneOn" );
+	}
+
+	if( (diff % 4) == 1 ) {
+		player->inventory.diaryInfo.diaryText2 = "";
+		player->inventory.diaryInfo.diaryText3 = "";
+		player->inventory.diaryInfo.diaryText4 = "";
+	}
+	else if( (diff % 4) == 2 ) {
+		player->inventory.diaryInfo.diaryText2 = quest[i-3];
+		player->questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+		if( player->inventory.questState[i-3] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+		}
+		player->inventory.diaryInfo.diaryText3 = "";
+		player->inventory.diaryInfo.diaryText4 = "";
+	}
+	else if( (diff % 4) == 3 ) {
+		player->inventory.diaryInfo.diaryText2 = quest[i-3];
+		player->inventory.diaryInfo.diaryText3 = quest[i-2];
+		player->questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+		player->questlogUI->HandleNamedEvent( "StateRightTopBoxOn" );
+		if( player->inventory.questState[i-3] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+		}
+		if( player->inventory.questState[i-2] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateRightTopDoneOn" );
+		}
+		player->inventory.diaryInfo.diaryText4 = "";
+	}
+	else {
+		player->inventory.diaryInfo.diaryText2 = quest[i-3];
+		player->inventory.diaryInfo.diaryText3 = quest[i-2];
+		player->inventory.diaryInfo.diaryText4 = quest[i-1];
+		player->questlogUI->HandleNamedEvent( "StateLeftBottomBoxOn" );
+		player->questlogUI->HandleNamedEvent( "StateRightTopBoxOn" );
+		player->questlogUI->HandleNamedEvent( "StateRightBottomBoxOn" );
+		if( player->inventory.questState[i-3] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateLeftBottomDoneOn" );
+		}
+		if( player->inventory.questState[i-2] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateRightTopDoneOn" );
+		}
+		if( player->inventory.questState[i-1] == "solved" ) {
+			player->questlogUI->HandleNamedEvent( "StateRightBottomDoneOn" );
+		}
+	}
+
+	player->questlogUI->SetStateString(
+								"pageLeft", player->inventory.diaryInfo.pageLeft );
+	player->questlogUI->SetStateString(
+								"pageRight", player->inventory.diaryInfo.pageRight );
+	player->questlogUI->SetStateString(
+								"diaryText", player->inventory.diaryInfo.diaryText );
+	player->questlogUI->SetStateString(
+								"diaryText2", player->inventory.diaryInfo.diaryText2 );
+	player->questlogUI->SetStateString(
+								"diaryText3", player->inventory.diaryInfo.diaryText3 );
+	player->questlogUI->SetStateString(
+								"diaryText4", player->inventory.diaryInfo.diaryText4 );
+}
+
+//###//
+
 
 /*
 ================

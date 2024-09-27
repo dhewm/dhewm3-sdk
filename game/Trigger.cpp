@@ -287,6 +287,14 @@ void idTrigger_Multi::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( touchOther );
 	savefile->WriteBool( triggerFirst );
 	savefile->WriteBool( triggerWithSelf );
+
+//###// by MacX
+	savefile->WriteString( diaryTextKey );
+	savefile->WriteString( questlogTextKey );
+	savefile->WriteString( questDone );
+	savefile->WriteString( subtitle );
+//###//
+
 }
 
 /*
@@ -306,6 +314,14 @@ void idTrigger_Multi::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( touchOther );
 	savefile->ReadBool( triggerFirst );
 	savefile->ReadBool( triggerWithSelf );
+
+//###// by MacX
+	savefile->ReadString( diaryTextKey );
+	savefile->ReadString( questlogTextKey );
+	savefile->ReadString( questDone );
+	savefile->ReadString( subtitle );
+//###//
+
 }
 
 /*
@@ -340,6 +356,13 @@ void idTrigger_Multi::Spawn( void ) {
 	spawnArgs.GetInt( "removeItem", "0", removeItem );
 	spawnArgs.GetBool( "triggerFirst", "0", triggerFirst );
 	spawnArgs.GetBool( "triggerWithSelf", "0", triggerWithSelf );
+
+//###// by MacX
+	spawnArgs.GetString( "diaryTextKey", "", diaryTextKey );
+	spawnArgs.GetString( "questlogTextKey", "", questlogTextKey );
+	spawnArgs.GetString( "questDone", "", questDone );
+	spawnArgs.GetString( "subtitle", "", subtitle );
+//###//
 
 	if ( spawnArgs.GetBool( "anyTouch" ) ) {
 		touchClient = true;
@@ -402,6 +425,72 @@ void idTrigger_Multi::TriggerAction( idEntity *activator ) {
 		nextTriggerTime = gameLocal.time + 1;
 		PostEventMS( &EV_Remove, 0 );
 	}
+
+//###// by MacX
+
+	idStr str;
+	idPlayer* player = gameLocal.GetLocalPlayer();
+
+	idStr diaryString = "";
+	if( !diaryTextKey.IsEmpty() ) {
+		diaryString = "#str_";
+		diaryString += diaryTextKey;
+	}
+
+	if ( idStr::Cmpn( diaryString, STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 ) {
+		str = common->GetLanguageDict()->GetString( diaryString.c_str() );
+		player->inventory.diary.Append( str );
+	}
+
+	idStr questlogString = "";
+	if( !questlogTextKey.IsEmpty() ) {
+		questlogString = "#str_";
+		questlogString += questlogTextKey;
+	}
+
+	if ( idStr::Cmpn( questlogString, STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 ) {
+		str = common->GetLanguageDict()->GetString( questlogString.c_str() );
+		player->inventory.quest.Append( str );
+		player->hud->HandleNamedEvent( "InfoNewQuest" );
+		player->inventory.questState.Append( "unsolved" );
+	}
+
+	idStr strDone = "";
+	if( !questDone.IsEmpty() ) {
+		strDone = "#str_";
+		strDone += questDone;
+	}
+
+	if ( idStr::Cmpn( strDone, STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 ) {
+		str = common->GetLanguageDict()->GetString( strDone.c_str() );
+		questDone = str;
+
+		if( !questDone.IsEmpty() ) {
+			for( int i = 0; i < player->inventory.quest.Num(); i++ ) {
+				if( questDone == player->inventory.quest[i] ) {
+					player->inventory.questState[i] = "solved";
+					player->hud->HandleNamedEvent( "InfoQuestDone" );
+				}
+			}
+		}
+	}
+
+	if( g_showSubtitle.GetBool() ) {
+		idStr strSubtitle = "";
+		if( !subtitle.IsEmpty() ) {
+			strSubtitle = "#str_";
+			strSubtitle += subtitle;
+		}
+
+		if( idStr::Cmpn( strSubtitle, STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 ) {
+			str = common->GetLanguageDict()->GetString( strSubtitle.c_str() );
+			player->hud->SetStateString( "player_subtitle", str.c_str() );
+			player->hud->HandleNamedEvent( "ShowSubtitle" );
+		}
+	}
+
+//###//
+
 }
 
 /*

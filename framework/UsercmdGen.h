@@ -81,6 +81,13 @@ const int IMPULSE_26			= 26;			// <unused>
 const int IMPULSE_27			= 27;			// <unused>
 const int IMPULSE_28			= 28;			// vote yes
 const int IMPULSE_29			= 29;			// vote no
+//###// by MacX
+const int IMPULSE_35			= 35;			// slowmotion	- by Cameron
+const int IMPULSE_36			= 36;			// toggle xp	- by Cameron
+const int IMPULSE_37			= 37;			// toggle diary
+const int IMPULSE_38			= 38;			// toggle questlog
+const int IMPULSE_39			= 39;			// toggle thirdperson
+//###//
 const int IMPULSE_40			= 40;			// use vehicle
 
 // usercmd_t->flags

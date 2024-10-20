@@ -8,7 +8,9 @@ download and have fun playing!
 
 You can download the gamedata at https://www.moddb.com/mods/desolated-the-crying-fate
 
-**NOTE:*** *Especially if you're not using Windows, make sure to rename the gamefolder
-from the downloader to `desolated` (all lower-case)!*
+**NOTE:** *Especially if you're not using Windows, make sure to rename the gamefolder
+from the download to `desolated` (all lower-case)!*
 
 Thanks a lot to the *Desolated team* for releasing the source code!
+
+**This is still a work-in-progress.** It seems like I didn't get the latest code so some features (esp. the skillbook) are missing. Apart from that it seems generally playable though.

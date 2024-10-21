@@ -6181,6 +6181,9 @@ void idPlayer::PerformImpulse( int impulse ) {
 			}
 			break;
 		}
+
+		// FIXME: what about IMPULSE_36 (skillbook / xp)?
+
 		//Cameron Law End
 		//###// by MacX
 		case IMPULSE_37: {

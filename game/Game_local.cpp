@@ -254,6 +254,12 @@ void idGameLocal::Clear( void ) {
 	savedEventQueue.Init();
 
 	memset( lagometer, 0, sizeof( lagometer ) );
+	
+	
+	//ELDOOM PORTAL SKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+	
 }
 
 /*
@@ -547,6 +553,12 @@ void idGameLocal::SaveGame( idFile *f ) {
 	savegame.WriteBool( isNewFrame );
 	savegame.WriteFloat( clientSmoothing );
 
+
+	//ELDOOM PORTAL SKY
+	portalSkyEnt.Save( &savegame );
+	savegame.WriteBool( portalSkyActive );
+	
+	
 	savegame.WriteBool( mapCycleLoaded );
 	savegame.WriteInt( spawnCount );
 
@@ -916,6 +928,12 @@ void idGameLocal::LoadMap( const char *mapName, int randseed ) {
 	framenum		= 0;
 	sessionCommand = "";
 	nextGibTime		= 0;
+
+
+	//ELDOOM PORTAL SKY
+	portalSkyEnt			= NULL;
+	portalSkyActive			= false;
+	
 
 	vacuumAreaNum = -1;		// if an info_vacuum is spawned, it will set this
 
@@ -1393,6 +1411,12 @@ bool idGameLocal::InitFromSaveGame( const char *mapName, idRenderWorld *renderWo
 	savegame.ReadInt( realClientTime );
 	savegame.ReadBool( isNewFrame );
 	savegame.ReadFloat( clientSmoothing );
+	
+	
+	//ELDOOM PORTAL SKY
+	portalSkyEnt.Restore( &savegame );
+	savegame.ReadBool( portalSkyActive );
+	
 
 	savegame.ReadBool( mapCycleLoaded );
 	savegame.ReadInt( spawnCount );
@@ -2040,6 +2064,27 @@ void idGameLocal::SetupPlayerPVS( void ) {
 			pvs.FreeCurrentPVS( otherPVS );
 			playerConnectedAreas = newPVS;
 		}
+		
+		
+		//ELDOOM PORTAL SKY
+		// if portalSky is preset, then merge into pvs so we get rotating brushes, etc
+		if ( portalSkyEnt.GetEntity() ) {
+			idEntity *skyEnt = portalSkyEnt.GetEntity();
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerPVS, otherPVS );
+			pvs.FreeCurrentPVS( playerPVS );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerPVS = newPVS;
+
+			otherPVS = pvs.SetupCurrentPVS( skyEnt->GetPVSAreas(), skyEnt->GetNumPVSAreas() );
+			newPVS = pvs.MergeCurrentPVS( playerConnectedAreas, otherPVS );
+			pvs.FreeCurrentPVS( playerConnectedAreas );
+			pvs.FreeCurrentPVS( otherPVS );
+			playerConnectedAreas = newPVS;
+		}
+		
+		
 	}
 }
 
@@ -4315,6 +4360,27 @@ idGameLocal::ThrottleUserInfo
 void idGameLocal::ThrottleUserInfo( void ) {
 	mpGame.ThrottleUserInfo();
 }
+
+
+//ELDOOM PORTAL SKY
+/*
+=================
+idPlayer::SetPortalSkyEnt
+=================
+*/
+void idGameLocal::SetPortalSkyEnt( idEntity *ent ) {
+	portalSkyEnt = ent;
+}
+
+/*
+=================
+idPlayer::IsPortalSkyAcive
+=================
+*/
+bool idGameLocal::IsPortalSkyAcive() {
+	return portalSkyActive;
+}
+
 
 /*
 ===========

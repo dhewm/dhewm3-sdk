@@ -119,6 +119,11 @@ extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
 
+
+//ELDOOM PORTAL SKY
+extern idCVar	g_enablePortalSky;
+
+
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;
 
@@ -253,5 +258,25 @@ extern idCVar	net_clientLagOMeter;
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
+
+
+//ELDOOM CVAR'S
+extern idCVar ui_autoRun;
+extern idCVar ui_noStamina;
+extern idCVar ui_oldNightmare;
+extern idCVar ui_bossMusic;
+extern idCVar ui_reduceKnockBack;
+extern idCVar ui_slowAirTanks;
+
+extern idCVar g_eldoomPistol;
+extern idCVar g_eldoomShotgun;
+extern idCVar g_eldoomMachinegun;
+extern idCVar g_eldoomChaingun;
+extern idCVar g_eldoomGrenades;
+
+extern idCVar g_eldoomWeapons;
+extern idCVar g_chaosMap;
+extern idCVar g_knockBackVar;
+
 
 #endif /* !__SYS_CVAR_H__ */

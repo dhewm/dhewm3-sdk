@@ -97,6 +97,11 @@ public:
 	void				ReadPVS( const pvsHandle_t handle, const idBitMsg &msg );
 #endif
 
+
+	//ELDOOM PORTAL SKY
+	bool				CheckAreasForPortalSky( const pvsHandle_t handle, const idVec3 &origin );
+	
+	
 private:
 	int					numAreas;
 	int					numPortals;

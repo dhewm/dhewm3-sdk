@@ -900,6 +900,22 @@ idTrigger_Count::Event_Trigger
 */
 void idTrigger_Count::Event_Trigger( idEntity *activator ) {
 	// goal of -1 means trigger has been exhausted
+	
+	
+	//ELDOOM
+	int update_only = 0;
+	if ( goal == 0 && spawnArgs.GetFloat("recount") ) {
+		goal = spawnArgs.GetFloat("recount");
+		update_only = 1;
+	}
+	else {
+		update_only = 0;
+	} //END ELDOOM
+	
+	//ELDOOM
+	if ( !update_only ) {
+
+	//STOCK
 	if (goal >= 0) {
 		count++;
 		if ( count >= goal ) {
@@ -910,7 +926,11 @@ void idTrigger_Count::Event_Trigger( idEntity *activator ) {
 			}
 			PostEventSec( &EV_TriggerAction, delay, activator );
 		}
-	}
+	} //END STOCK
+
+	} //END ELDOOM
+	
+	
 }
 
 /*

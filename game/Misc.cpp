@@ -3156,3 +3156,65 @@ void idPhantomObjects::Think( void ) {
 		BecomeInactive( TH_THINK );
 	}
 }
+
+
+//ELDOOM PORTAL SKY
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idPortalSky )
+	EVENT( EV_PostSpawn,			idPortalSky::Event_PostSpawn )
+	EVENT( EV_Activate,				idPortalSky::Event_Activate )
+END_CLASS
+
+/*
+===============
+idPortalSky::idPortalSky
+===============
+*/
+idPortalSky::idPortalSky( void ) {
+
+}
+
+/*
+===============
+idPortalSky::~idPortalSky
+===============
+*/
+idPortalSky::~idPortalSky( void ) {
+
+}
+
+/*
+===============
+idPortalSky::Spawn
+===============
+*/
+void idPortalSky::Spawn( void ) {
+	if ( !spawnArgs.GetBool( "triggered" ) ) {
+		PostEventMS( &EV_PostSpawn, 1 );
+	}
+}
+
+/*
+================
+idPortalSky::Event_PostSpawn
+================
+*/
+void idPortalSky::Event_PostSpawn() {
+	gameLocal.SetPortalSkyEnt( this );
+}
+
+/*
+================
+idPortalSky::Event_Activate
+================
+*/
+void idPortalSky::Event_Activate( idEntity *activator ) {
+	gameLocal.SetPortalSkyEnt( this );
+}

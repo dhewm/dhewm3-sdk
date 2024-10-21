@@ -106,7 +106,11 @@ idCVar g_monsters(					"g_monsters",				"1",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_decals(					"g_decals",					"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "show decals such as bullet holes" );
 idCVar g_knockback(					"g_knockback",				"1000",			CVAR_GAME | CVAR_INTEGER, "" );
 idCVar g_skill(						"g_skill",					"1",			CVAR_GAME | CVAR_INTEGER, "" );
-idCVar g_nightmare(					"g_nightmare",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "if nightmare mode is allowed" );
+//idCVar g_nightmare(					"g_nightmare",				"0",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "if nightmare mode is allowed" );
+
+//ELDOOM CVAR - MODIFIED ID
+idCVar g_nightmare(					"g_nightmare",				"1",			CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "if nightmare mode is allowed" );
+
 idCVar g_gravity(					"g_gravity",		DEFAULT_GRAVITY_STRING, CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_skipFX(					"g_skipFX",					"0",			CVAR_GAME | CVAR_BOOL, "" );
 idCVar g_skipParticles(				"g_skipParticles",			"0",			CVAR_GAME | CVAR_BOOL, "" );
@@ -148,6 +152,11 @@ idCVar g_showEnemies(				"g_showEnemies",			"0",			CVAR_GAME | CVAR_BOOL, "draws
 
 idCVar g_frametime(					"g_frametime",				"0",			CVAR_GAME | CVAR_BOOL, "displays timing information for each game frame" );
 idCVar g_timeentities(				"g_timeEntities",			"0",			CVAR_GAME | CVAR_FLOAT, "when non-zero, shows entities whose think functions exceeded the # of milliseconds specified" );
+
+
+//ELDOOM PORTAL SKY
+idCVar g_enablePortalSky(			"g_enablePortalSky",		"1",			CVAR_GAME | CVAR_BOOL, "enables the portal sky" );
+
 
 idCVar ai_debugScript(				"ai_debugScript",			"-1",			CVAR_GAME | CVAR_INTEGER, "displays script calls for the specified monster entity number" );
 idCVar ai_debugMove(				"ai_debugMove",				"0",			CVAR_GAME | CVAR_BOOL, "draws movement information for monsters" );
@@ -335,3 +344,22 @@ idCVar mod_validSkins(				"mod_validSkins",			"skins/characters/player/marine_mp
 idCVar net_serverDownload(			"net_serverDownload",		"0",			CVAR_GAME | CVAR_INTEGER | CVAR_ARCHIVE, "enable server download redirects. 0: off 1: redirect to si_serverURL 2: use builtin download. see net_serverDl cvars for configuration" );
 idCVar net_serverDlBaseURL(			"net_serverDlBaseURL",		"",				CVAR_GAME | CVAR_ARCHIVE, "base URL for the download redirection" );
 idCVar net_serverDlTable(			"net_serverDlTable",		"",				CVAR_GAME | CVAR_ARCHIVE, "pak names for which download is provided, separated by ;" );
+
+
+//ELDOOM CVAR'S
+idCVar ui_autoRun(               "ui_autoRun",            "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "reverse the functionality of the run button" );
+idCVar ui_noStamina(             "ui_noStamina",          "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "disable stamina" );
+idCVar ui_oldNightmare(          "ui_oldNightmare",       "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "use classic nightmare theme" );
+idCVar ui_bossMusic(             "ui_bossMusic",          "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "play music while fighting a boss" );
+idCVar ui_reduceKnockBack(       "ui_reduceKnockBack",    "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "reduces player knockback when damaged" );
+idCVar ui_slowAirTanks(          "ui_slowAirTanks",       "1",         CVAR_GAME | CVAR_USERINFO | CVAR_ARCHIVE | CVAR_BOOL, "increase the amount of time it takes to run out of air" );
+
+idCVar g_eldoomPistol(          "g_eldoomPistol",       "1",         CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "increase the rate of fire for the pistol" );
+idCVar g_eldoomShotgun(         "g_eldoomShotgun",      "1",         CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "decrease the spread for the shotgun" );
+idCVar g_eldoomMachinegun(      "g_eldoomMachinegun",   "1",         CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "increase the rate of fire for the machinegun" );
+idCVar g_eldoomChaingun(         "g_eldoomChaingun",    "1",         CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "increase the rate of fire for the chaingun" );
+idCVar g_eldoomGrenades(        "g_eldoomGrenades",     "1",         CVAR_GAME | CVAR_ARCHIVE | CVAR_BOOL, "decrease the bounciness of grenades" );
+
+idCVar g_eldoomWeapons(        "g_eldoomWeapons",     "1",         CVAR_GAME | CVAR_INTEGER, "use modified eldoom weapon" );
+idCVar g_chaosMap(			   "g_chaosMap",          "0",         CVAR_GAME | CVAR_FLOAT, "use eldoom chaos map effects" );
+idCVar g_knockBackVar(		   "g_knockBackVar",	  "0.7",	   CVAR_GAME | CVAR_FLOAT | CVAR_ARCHIVE, "multiply dv, kick, blob effects time by this number" );

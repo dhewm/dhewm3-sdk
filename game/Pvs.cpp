@@ -1421,3 +1421,37 @@ void idPVS::ReadPVS( const pvsHandle_t handle, const idBitMsg &msg ) {
 }
 
 #endif
+
+
+//ELDOOM PORTAL SKY
+/*
+================
+idPVS::CheckAreasForPortalSky
+================
+*/
+bool idPVS::CheckAreasForPortalSky( const pvsHandle_t handle, const idVec3 &origin ) {
+	int j, sourceArea;
+
+	if ( handle.i < 0 || handle.i >= MAX_CURRENT_PVS || handle.h != currentPVS[handle.i].handle.h ) {
+		return false;
+	}
+
+	sourceArea = gameRenderWorld->PointInArea( origin );
+
+	if ( sourceArea == -1 ) {
+		return false;
+	}
+
+	for ( j = 0; j < numAreas; j++ ) {
+
+		if ( !( currentPVS[handle.i].pvs[j>>3] & (1 << (j&7)) ) ) {
+			continue;
+		}
+
+		if ( gameRenderWorld->CheckAreaForPortalSky( j ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}

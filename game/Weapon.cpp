@@ -796,14 +796,85 @@ void idWeapon::GetWeaponDef( const char *objectname, int ammoinclip ) {
 
 	ammoType			= GetAmmoNumForName( weaponDef->dict.GetString( "ammoType" ) );
 	ammoRequired		= weaponDef->dict.GetInt( "ammoRequired" );
-	clipSize			= weaponDef->dict.GetInt( "clipSize" );
+	
+	
+ 	//ELDOOM - CHECK IF ELDOOM WEAPON IS TURNED ON
+	int eldoomPistol = strcmp( objectname, "weapon_pistol" );
+	int eldoomShotgun = strcmp( objectname, "weapon_shotgun" );
+	int eldoomMachinegun = strcmp( objectname, "weapon_machinegun" );
+	int eldoomChaingun = strcmp( objectname, "weapon_chaingun" );
+	int eldoomGrenades = strcmp( objectname, "weapon_handgrenade" );
+	
+	if ( ( eldoomPistol == 0 && g_eldoomPistol.GetInteger() ) ||
+		 ( eldoomShotgun == 0 && g_eldoomShotgun.GetInteger() ) ||
+		 ( eldoomMachinegun == 0 && g_eldoomMachinegun.GetInteger() ) ||	
+		 ( eldoomChaingun == 0 && g_eldoomChaingun.GetInteger() ) ||
+		 ( eldoomGrenades == 0 && g_eldoomGrenades.GetInteger() ) ) { 
+		
+		//common->Printf("ELDOOM WEAPON = ON \n");
+		g_eldoomWeapons.SetInteger( 1 );
+	}
+	else {
+		//common->Printf("ELDOOM WEAPON = OFF \n");
+		g_eldoomWeapons.SetInteger( 0 );
+	}
+		//DEBUG
+		//common->Printf("objectname = %s \n", objectname );
+		//common->Printf("eldoomPistol = %i \n", eldoomPistol);
+		//common->Printf("eldoomShotgun = %i \n", eldoomShotgun);
+		//common->Printf("eldoomMachinegun = %i \n", eldoomMachinegun);
+		//common->Printf("eldoomChaingun = %i \n", eldoomChaingun);
+		//common->Printf("eldoomGrenades = %i \n", eldoomGrenades);
+	
+	
+
+	//ELDOOM
+	//clipSize			= weaponDef->dict.GetInt( "clipSize" );
+	if ( g_eldoomWeapons.GetInteger() ) {
+		clipSize = weaponDef->dict.GetInt( "eldoomClipSize" );
+		//DEBUG
+		//common->Printf("using eldoom clipSize = %i \n", clipSize);
+
+		if ( !clipSize ) {
+			clipSize = weaponDef->dict.GetInt( "clipSize" );
+			//DEBUG
+			//common->Printf("couldn't find eldoom clipSize = %i \n", clipSize);
+		}
+	}
+	else {
+		clipSize = weaponDef->dict.GetInt( "clipSize" );
+		//DEBUG
+		//common->Printf("not using eldoom clipSize = %i \n", clipSize);
+	}
+	
+	
 	lowAmmo				= weaponDef->dict.GetInt( "lowAmmo" );
 
 	icon				= weaponDef->dict.GetString( "icon" );
 	silent_fire			= weaponDef->dict.GetBool( "silent_fire" );
 	powerAmmo			= weaponDef->dict.GetBool( "powerAmmo" );
 
-	muzzle_kick_time	= SEC2MS( weaponDef->dict.GetFloat( "muzzle_kick_time" ) );
+
+	//ELDOOM
+	//muzzle_kick_time	= SEC2MS( weaponDef->dict.GetFloat( "muzzle_kick_time" ) );
+	if ( g_eldoomWeapons.GetInteger() ) {
+		muzzle_kick_time = SEC2MS( weaponDef->dict.GetFloat( "eldoomMuzzleKickTime" ) );
+		//DEBUG
+		//common->Printf("using eldoom muzzle_kick_time = %i \n", muzzle_kick_time);
+
+		if ( !muzzle_kick_time ) {
+			muzzle_kick_time = SEC2MS( weaponDef->dict.GetFloat( "muzzle_kick_time" ) );
+			//DEBUG
+			//common->Printf("couldn't find eldoom muzzle_kick_time = %i \n", muzzle_kick_time);
+		}
+	}
+	else {
+		muzzle_kick_time = SEC2MS( weaponDef->dict.GetFloat( "muzzle_kick_time" ) );
+		//DEBUG
+		//common->Printf("not using eldoom muzzle_kick_time = %i \n", muzzle_kick_time);
+	}
+
+
 	muzzle_kick_maxtime	= SEC2MS( weaponDef->dict.GetFloat( "muzzle_kick_maxtime" ) );
 	muzzle_kick_angles	= weaponDef->dict.GetAngles( "muzzle_kick_angles" );
 	muzzle_kick_offset	= weaponDef->dict.GetVector( "muzzle_kick_offset" );

@@ -323,7 +323,29 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	linear_friction		= spawnArgs.GetFloat( "linear_friction" );
 	angular_friction	= spawnArgs.GetFloat( "angular_friction" );
 	contact_friction	= spawnArgs.GetFloat( "contact_friction" );
-	bounce				= spawnArgs.GetFloat( "bounce" );
+	
+	
+	
+	//ELDOOM
+	//bounce				= spawnArgs.GetFloat( "bounce" );
+	if ( g_eldoomWeapons.GetInteger() ) {
+		bounce = spawnArgs.GetFloat( "eldoomBounce" );
+		//DEBUG
+		//common->Printf("using eldoom bounce = %f \n", bounce);
+		
+		if ( !bounce ) {
+			bounce = spawnArgs.GetFloat( "bounce" );
+			//DEBUG
+			//common->Printf("couldn't find eldoom bounce = %f \n", bounce);
+		}
+	}
+	else {
+		bounce = spawnArgs.GetFloat( "bounce" );
+		//DEBUG
+		//common->Printf("not using eldoom bounce = %f \n", bounce);
+	}
+	
+	
 	mass				= spawnArgs.GetFloat( "mass" );
 	gravity				= spawnArgs.GetFloat( "gravity" );
 	fuse				= spawnArgs.GetFloat( "fuse" );

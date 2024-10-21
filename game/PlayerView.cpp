@@ -34,6 +34,16 @@ If you have questions concerning this license or the applicable additional terms
 #include "GameBase.h"
 #include "Player.h"
 
+
+//ELDOOM PORTAL SKY
+static int MakePowerOfTwo( int num ) {
+	int		pot;
+	for (pot = 1 ; pot < num ; pot<<=1) {
+	}
+	return pot;
+}
+
+
 #include "PlayerView.h"
 
 const int IMPULSE_DELAY = 150;
@@ -232,8 +242,21 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 		return;
 	}
 
+
+	//ELDOOM
+	float knockBackVar = g_knockBackVar.GetFloat();
+	
+
 	float	dvTime = damageDef->GetFloat( "dv_time" );
 	if ( dvTime ) {
+
+
+		//ELDOOM CVAR
+		if ( ui_reduceKnockBack.GetBool() ) {
+			dvTime *= knockBackVar;
+		} 
+		
+		
 		if ( dvFinishTime < gameLocal.time ) {
 			dvFinishTime = gameLocal.time;
 		}
@@ -249,6 +272,14 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	//
 	float	kickTime = damageDef->GetFloat( "kick_time" );
 	if ( kickTime ) {
+
+
+		//ELDOOM CVAR
+		if ( ui_reduceKnockBack.GetBool() ) {
+			kickTime *= knockBackVar;
+		} 
+		
+		
 		kickFinishTime = gameLocal.time + g_kickTime.GetFloat() * kickTime;
 
 		// forward / back kick will pitch view
@@ -265,6 +296,14 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 
 		float kickAmplitude = damageDef->GetFloat( "kick_amplitude" );
 		if ( kickAmplitude ) {
+
+
+		//ELDOOM CVAR
+		if ( ui_reduceKnockBack.GetBool() ) {
+			kickAmplitude *= knockBackVar;
+		}
+		
+		
 			kickAngles *= kickAmplitude;
 		}
 	}
@@ -274,6 +313,14 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	//
 	float	blobTime = damageDef->GetFloat( "blob_time" );
 	if ( blobTime ) {
+
+
+		//ELDOOM CVAR
+		if ( ui_reduceKnockBack.GetBool() ) {
+			blobTime *= knockBackVar;
+		} 
+		
+		
 		screenBlob_t	*blob = GetScreenBlob();
 		blob->startFadeTime = gameLocal.time;
 		blob->finishTime = gameLocal.time + blobTime * g_blobTime.GetFloat();
@@ -358,7 +405,27 @@ Called when a weapon fires, generates head twitches, etc
 void idPlayerView::WeaponFireFeedback( const idDict *weaponDef ) {
 	int		recoilTime;
 
-	recoilTime = weaponDef->GetInt( "recoilTime" );
+
+	//ELDOOM
+	//recoilTime = weaponDef->GetInt( "recoilTime" );
+	if ( g_eldoomWeapons.GetInteger() ) {
+		recoilTime = weaponDef->GetInt( "eldoomRecoilTime" );
+		//DEBUG
+		//common->Printf("using eldoom recoilTime = %i \n", recoilTime);
+			
+		if ( !recoilTime ) {
+			recoilTime = weaponDef->GetInt( "recoilTime" );
+			//DEBUG
+			//common->Printf("couldn't find recoilTime = %i \n", recoilTime);
+		}
+	}
+	else {
+		recoilTime = weaponDef->GetInt( "recoilTime" );
+		//DEBUG
+		//common->Printf("not using eldoom recoilTime = %i \n", recoilTime);
+	}	
+	
+	
 	// don't shorten a damage kick in progress
 	if ( recoilTime && kickFinishTime < gameLocal.time ) {
 		idAngles angles;
@@ -452,6 +519,39 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 	renderView_t	hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 
+
+	//ELDOOM PORTAL SKY
+	if ( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() ) {
+		renderView_t	portalView = hackedView;
+		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+		// setup global fixup projection vars
+		if ( 1 ) {
+			int vidWidth, vidHeight;
+			idVec2 shiftScale;
+
+			renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+			float pot;
+			int	 w = vidWidth;
+			pot = MakePowerOfTwo( w );
+			shiftScale.x = (float)w / pot;
+
+			int	 h = vidHeight;
+			pot = MakePowerOfTwo( h );
+			shiftScale.y = (float)h / pot;
+
+			hackedView.shaderParms[4] = shiftScale.x;
+			hackedView.shaderParms[5] = shiftScale.y;
+		}
+
+		gameRenderWorld->RenderScene( &portalView );
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+
+		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
+	}
+	
+	
 	gameRenderWorld->RenderScene( &hackedView );
 
 	if ( player->spectating ) {

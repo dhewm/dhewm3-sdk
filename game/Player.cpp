@@ -401,11 +401,19 @@ void idInventory::RestoreInventory( idPlayer *owner, const idDict &dict ) {
 	// weapons are stored as a number for persistant data, but as strings in the entityDef
 	weapons	= dict.GetInt( "weapon_bits", "0" );
 
-	if ( g_skill.GetInteger() >= 3 ) {
+	//if ( g_skill.GetInteger() >= 3 ) {
+	//	Give( owner, dict, "weapon", dict.GetString( "weapon_nightmare" ), NULL, false );
+	//} else {
+	//	Give( owner, dict, "weapon", dict.GetString( "weapon" ), NULL, false );
+	//}
+
+	//ELDOOM CVAR
+	if ( g_skill.GetInteger() >= 3 && !ui_oldNightmare.GetInteger() ) {
 		Give( owner, dict, "weapon", dict.GetString( "weapon_nightmare" ), NULL, false );
 	} else {
 		Give( owner, dict, "weapon", dict.GetString( "weapon" ), NULL, false );
 	}
+
 
 	num = dict.GetInt( "levelTriggers" );
 	for ( i = 0; i < num; i++ ) {
@@ -1291,9 +1299,23 @@ void idPlayer::Init( void ) {
 		pm_stamina.SetFloat( 0.0f );
 	}
 
+
+	//ELDOOM CVAR
+	if ( GetUserInfo()->GetBool( "ui_noStamina" ) && gameLocal.world && !gameLocal.world->spawnArgs.GetBool( "no_stamina" ) ) {
+		pm_stamina.SetFloat( 0.0f );
+	} 
+	
+	
 	// stamina always initialized to maximum
 	stamina = pm_stamina.GetFloat();
 
+
+	//ELDOOM CVAR
+	if ( GetUserInfo()->GetBool( "ui_slowAirTanks" ) ) {
+		pm_airTics.SetFloat( 3600.0f ); //DEFAULT 1800
+	} 
+	
+	
 	// air always initialized to maximum too
 	airTics = pm_airTics.GetFloat();
 	airless = false;
@@ -1586,10 +1608,18 @@ void idPlayer::Spawn( void ) {
 			g_damageScale.SetFloat( 1.0f );
 			g_armorProtection.SetFloat( ( g_skill.GetInteger() < 2 ) ? 0.4f : 0.2f );
 
-			if ( g_skill.GetInteger() == 3 ) {
+			//if ( g_skill.GetInteger() == 3 ) {
+			//	healthTake = true;
+			//	nextHealthTake = gameLocal.time + g_healthTakeTime.GetInteger() * 1000;
+			//}
+
+			//ELDOOM CVAR
+			if ( g_skill.GetInteger() == 3 && !ui_oldNightmare.GetInteger() ) {
 				healthTake = true;
 				nextHealthTake = gameLocal.time + g_healthTakeTime.GetInteger() * 1000;
 			}
+
+
 		}
 	}
 }
@@ -3176,7 +3206,12 @@ void idPlayer::UpdatePowerUps( void ) {
 		healthPulse = true;
 	}
 
-	if ( !gameLocal.inCinematic && influenceActive == 0 && g_skill.GetInteger() == 3 && gameLocal.time > nextHealthTake && !AI_DEAD && health > g_healthTakeLimit.GetInteger() ) {
+	//if ( !gameLocal.inCinematic && influenceActive == 0 && g_skill.GetInteger() == 3 && gameLocal.time > nextHealthTake && !AI_DEAD && health > g_healthTakeLimit.GetInteger() ) {
+
+	//ELDOOM CVAR
+	if ( !gameLocal.inCinematic && influenceActive == 0 && g_skill.GetInteger() == 3 && gameLocal.time > nextHealthTake && !AI_DEAD && health > g_healthTakeLimit.GetInteger() && !ui_oldNightmare.GetInteger() ) {	
+
+
 		assert( !gameLocal.isClient );	// healthPool never be set on client
 		health -= g_healthTakeAmt.GetInteger();
 		if ( health < g_healthTakeLimit.GetInteger() ) {
@@ -5694,6 +5729,13 @@ void idPlayer::AdjustSpeed( void ) {
 	float speed;
 	float rate;
 
+
+	//ELDOOM CVAR
+	if ( GetUserInfo()->GetBool( "ui_autoRun" ) ) {
+      usercmd.buttons ^= BUTTON_RUN;
+	}
+	
+	
 	if ( spectating ) {
 		speed = pm_spectatespeed.GetFloat();
 		bobFrac = 0.0f;
@@ -6406,6 +6448,13 @@ void idPlayer::Think( void ) {
 		}
 		gameLocal.Printf( "%d: enemies\n", num );
 	}
+
+
+	//ELDOOM PORTAL SKY
+	// determine if portal sky is in pvs
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( gameLocal.GetPlayerPVS(), GetPhysics()->GetOrigin() );
+	
+	
 }
 
 /*
@@ -7935,6 +7984,15 @@ void idPlayer::ClientPredictionThink( void ) {
 	if ( gameLocal.isNewFrame && entityNumber == gameLocal.localClientNum ) {
 		playerView.CalculateShake();
 	}
+
+
+	//ELDOOM PORTAL SKY
+	// determine if portal sky is in pvs
+	pvsHandle_t	clientPVS = gameLocal.pvs.SetupCurrentPVS( GetPVSAreas(), GetNumPVSAreas() );
+	gameLocal.portalSkyActive = gameLocal.pvs.CheckAreasForPortalSky( clientPVS, GetPhysics()->GetOrigin() );
+	gameLocal.pvs.FreeCurrentPVS( clientPVS );
+	
+	
 }
 
 /*

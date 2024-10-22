@@ -45,7 +45,8 @@ You need [CMake](https://cmake.org/) either Visual Studio (2010 and newer have b
 4. Start the CMake GUI
 5. Select your `dhewm3-sdk/` folder for *"Where is the source code"* and your  
    **build directory** from step 3 for *"Where to build the binaries"*.
-6. Click `[Configure]`, select what you want to build with, e.g. "Visual Studio 15 2017", click `[Finish]`, wait for CMake to do its thing
+6. Click `[Configure]`, select what you want to build with, e.g. "Visual Studio 15 2017", and the platform to target,
+   probably "**Win32**" (for compatibility with the official dhewm3 Windows binaries), click `[Finish]`, wait for CMake to do its thing
    - If you're using **MinGW** you'll have to select your build type now, e.g. `Debug` (not optimized but debuggable) or `Release` (optimized and thus faster, but can't be debugged that well).
    - (For Visual Studio you don't have to select a build type now, you  can do it in in Visual Studio)
 7. Click `[Generate]`

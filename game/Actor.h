@@ -165,7 +165,7 @@ public:
 
 							// damage
 	void					SetupDamageGroups( void );
-	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 	int						GetDamageForLocation( int damage, int location );
 	const char *			GetDamageGroup( int location );
 	void					ClearPain( void );
@@ -318,6 +318,15 @@ private:
 	void					Event_SetState( const char *name );
 	void					Event_GetState( void );
 	void					Event_GetHead( void );
+
+// HEXEN : Zeroth
+protected:
+	void					Event_VecForward( float spread ); // return a forward vector for the direction we're facing, with some random spread (like projectiles)
+
+// HEXEN : Zeroth
+public:
+	bool					IsEnemy( idEntity *test );
+	float					GetAnimLength( int channel, const char *animname );
 };
 
 #endif /* !__GAME_ACTOR_H__ */

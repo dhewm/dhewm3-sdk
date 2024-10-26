@@ -55,6 +55,8 @@ const idEventDef EV_Explode( "<explode>", NULL );
 const idEventDef EV_Fizzle( "<fizzle>", NULL );
 const idEventDef EV_RadiusDamage( "<radiusdmg>", "e" );
 const idEventDef EV_GetProjectileState( "getProjectileState", NULL, 'd' );
+// HEXEN : Zeroth
+const idEventDef EV_Launch( "Launch", "vvvfff" );
 
 CLASS_DECLARATION( idEntity, idProjectile )
 	EVENT( EV_Explode,				idProjectile::Event_Explode )
@@ -62,6 +64,8 @@ CLASS_DECLARATION( idEntity, idProjectile )
 	EVENT( EV_Touch,				idProjectile::Event_Touch )
 	EVENT( EV_RadiusDamage,			idProjectile::Event_RadiusDamage )
 	EVENT( EV_GetProjectileState,	idProjectile::Event_GetProjectileState )
+	// HEXEN : Zeroth
+	EVENT( EV_Launch,				idProjectile::Event_Launch )
 END_CLASS
 
 /*
@@ -301,6 +305,12 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	idMat3			axis;
 	int				contents;
 	int				clipMask;
+	// HEXEN : Zeroth
+	bool			randomDirection;
+	idVec3			newDir;
+	bool			randomVelocity;
+	float			randomAngular;
+	idVec2			fuse_random;
 
 	// allow characters to throw projectiles during cinematics, but not the player
 	if ( owner.GetEntity() && !owner.GetEntity()->IsType( idPlayer::Type ) ) {
@@ -314,11 +324,46 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 
 	spawnArgs.GetVector( "velocity", "0 0 0", velocity );
 
+	// HEXEN : Zeroth
+	randomDirection				= spawnArgs.GetBool( "random_direction" );
+	randomVelocity				= spawnArgs.GetBool( "random_velocity" );
+
+	// HEXEN : Zeroth
+	if ( randomVelocity ) {
+		velocity.x *= gameLocal.random.RandomFloat() + 0.5f;
+		velocity.y *= gameLocal.random.RandomFloat() + 0.5f;
+		velocity.z *= gameLocal.random.RandomFloat() + 0.5f;
+	}
+	// HEXEN : Zeroth
+	if ( randomDirection ) {
+		newDir.x = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.y = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.z = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.Normalize();
+
+		velocity = velocity.Length() * newDir;
+	}
+
 	speed = velocity.Length() * launchPower;
 
 	damagePower = dmgPower;
 
 	spawnArgs.GetAngles( "angular_velocity", "0 0 0", angular_velocity );
+
+	// HEXEN : Zeroth
+	randomAngular				= spawnArgs.GetFloat( "random_angular_velocity" );
+
+	// HEXEN : Zeroth
+	if ( randomAngular != 0.0f ) {
+		angular_velocity.yaw += gameLocal.random.RandomInt( randomAngular );
+		angular_velocity.pitch += gameLocal.random.RandomInt( randomAngular );
+		angular_velocity.roll += gameLocal.random.RandomInt( randomAngular );
+	}
+//
+//	// HEXEN : Zeroth
+//	SetAngles( idAngles( gameLocal.random.RandomInt( 360 * 2 ) - 360,
+//						gameLocal.random.RandomInt( 360 * 2 ) - 360,
+//						gameLocal.random.RandomInt( 360 * 2 ) - 360 ) );
 
 	linear_friction		= spawnArgs.GetFloat( "linear_friction" );
 	angular_friction	= spawnArgs.GetFloat( "angular_friction" );
@@ -327,6 +372,12 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	mass				= spawnArgs.GetFloat( "mass" );
 	gravity				= spawnArgs.GetFloat( "gravity" );
 	fuse				= spawnArgs.GetFloat( "fuse" );
+
+	// HEXEN : Zeroth
+	fuse_random			= spawnArgs.GetVec2( "fuse_random" );
+	if ( fuse_random.y > 0.0f ) {
+		fuse = gameLocal.random.CRandomFloat() * fuse_random.y + fuse_random.x;
+	}
 
 	projectileFlags.detonate_on_world	= spawnArgs.GetBool( "detonate_on_world" );
 	projectileFlags.detonate_on_actor	= spawnArgs.GetBool( "detonate_on_actor" );
@@ -382,8 +433,15 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	physicsObj.SetGravity( gravVec * gravity );
 	physicsObj.SetContents( contents );
 	physicsObj.SetClipMask( clipMask );
-	physicsObj.SetLinearVelocity( axis[ 2 ] * speed + pushVelocity );
-	physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() * axis );
+
+	if ( spawnArgs.GetBool( "override_launch" ) ) {
+		physicsObj.SetLinearVelocity( velocity );
+		physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() );
+	} else {
+		physicsObj.SetLinearVelocity( axis[ 2 ] * speed + pushVelocity );
+		physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() * axis );
+	}
+
 	physicsObj.SetOrigin( start );
 	physicsObj.SetAxis( axis );
 
@@ -591,7 +649,7 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 		}
 
 		if ( damageDefName[0] != '\0' ) {
-			ent->Damage( this, owner.GetEntity(), dir, damageDefName, damageScale, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) );
+			ent->Damage( this, owner.GetEntity(), dir, damageDefName, damageScale, CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ), idVec3( collision.c.point ) );
 			ignore = ent;
 		}
 	}
@@ -1544,7 +1602,7 @@ void idSoulCubeMissile::KillTarget( const idVec3 &dir ) {
 		if ( ( act->health > 0 ) && ownerEnt && ownerEnt->IsType( idPlayer::Type ) && ( ownerEnt->health > 0 ) && !act->spawnArgs.GetBool( "boss" ) ) {
 			static_cast<idPlayer *>( ownerEnt )->GiveHealthPool( act->health );
 		}
-		act->Damage( this, owner.GetEntity(), dir,  spawnArgs.GetString( "def_damage" ), 1.0f, INVALID_JOINT );
+		act->Damage( this, owner.GetEntity(), dir,  spawnArgs.GetString( "def_damage" ), 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 		act->GetAFPhysics()->SetTimeScale( 0.25 );
 		StartSound( "snd_explode", SND_CHANNEL_BODY, 0, false, NULL );
 	}
@@ -1826,7 +1884,7 @@ void idBFGProjectile::Think( void ) {
 				if ( damageFreq && *(const char *)damageFreq && beamTargets[i].target.GetEntity() && beamTargets[i].target.GetEntity()->CanDamage( GetPhysics()->GetOrigin(), org ) ) {
 					org = beamTargets[i].target.GetEntity()->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 					org.Normalize();
-					beamTargets[i].target.GetEntity()->Damage( this, owner.GetEntity(), org, damageFreq, ( damagePower ) ? damagePower : 1.0f, INVALID_JOINT );
+					beamTargets[i].target.GetEntity()->Damage( this, owner.GetEntity(), org, damageFreq, ( damagePower ) ? damagePower : 1.0f, INVALID_JOINT, idVec3( 0, 0, 0 ) );
 				} else {
 					beamTargets[i].renderEntity.shaderParms[ SHADERPARM_RED ] =
 					beamTargets[i].renderEntity.shaderParms[ SHADERPARM_GREEN ] =
@@ -2025,7 +2083,7 @@ void idBFGProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 		if ( damage[0] && ( beamTargets[i].target.GetEntity()->entityNumber > gameLocal.numClients - 1 ) ) {
 			dir = beamTargets[i].target.GetEntity()->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 			dir.Normalize();
-			beamTargets[i].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale, ( collision.c.id < 0 ) ? CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) : INVALID_JOINT );
+			beamTargets[i].target.GetEntity()->Damage( this, ownerEnt, dir, damage, damageScale, ( collision.c.id < 0 ) ? CLIPMODEL_ID_TO_JOINT_HANDLE( collision.c.id ) : INVALID_JOINT, idVec3( collision.c.point ) );
 		}
 	}
 
@@ -2072,6 +2130,8 @@ void idDebris::Spawn( void ) {
 	owner = NULL;
 	smokeFly = NULL;
 	smokeFlyTime = 0;
+	// HEXEN : Zeroth
+	randomPosInBounds = false;
 }
 
 /*
@@ -2161,6 +2221,15 @@ void idDebris::Launch( void ) {
 	bool		randomVelocity;
 	idMat3		axis;
 
+	// HEXEN : Zeroth
+	bool		randomDirection;
+	bool		randomPosition;
+	float		direction_from_spawner;
+	idVec3		newDir;
+	idVec3		originBeforeAdjust;
+	float		randomAngular;
+	idVec2		fuse_random;
+
 	renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.time );
 
 	spawnArgs.GetVector( "velocity", "0 0 0", velocity );
@@ -2175,6 +2244,18 @@ void idDebris::Launch( void ) {
 	fuse				= spawnArgs.GetFloat( "fuse" );
 	randomVelocity		= spawnArgs.GetBool ( "random_velocity" );
 
+	// HEXEN : Zeroth
+	randomPosition		= spawnArgs.GetBool( "random_pos_in_spawner" );
+	randomDirection		= spawnArgs.GetBool( "random_direction" );
+	direction_from_spawner	= spawnArgs.GetFloat( "direction_from_spawner" );
+	randomAngular		= spawnArgs.GetFloat( "random_angular_velocity" );
+	fuse_random			= spawnArgs.GetVec2( "fuse_random" );
+
+	// HEXEN : Zeroth
+	if ( fuse_random.y > 0.0f ) {
+		fuse = gameLocal.random.CRandomFloat() * fuse_random.y + fuse_random.x;
+	}
+
 	if ( mass <= 0 ) {
 		gameLocal.Error( "Invalid mass on '%s'\n", GetEntityDefName() );
 	}
@@ -2184,6 +2265,60 @@ void idDebris::Launch( void ) {
 		velocity.y *= gameLocal.random.RandomFloat() + 0.5f;
 		velocity.z *= gameLocal.random.RandomFloat() + 0.5f;
 	}
+
+	// HEXEN : Zeroth
+	if ( randomDirection ) {
+		newDir.x = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.y = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.z = gameLocal.random.RandomInt( 360 ) - 180;
+		newDir.Normalize();
+
+		velocity = velocity.Length() * newDir;
+	}
+
+	if ( randomPosition && randomPosInBounds ) {
+
+		// set origin to random position inside moveable's bounds
+		newDir.x = gameLocal.random.RandomFloat() * ( randomPosEnt->GetPhysics()->GetBounds()[1].x - randomPosEnt->GetPhysics()->GetBounds()[0].x );
+		newDir.x += randomPosEnt->GetPhysics()->GetBounds()[0].x;
+		newDir.y = gameLocal.random.RandomFloat() * ( randomPosEnt->GetPhysics()->GetBounds()[1].y - randomPosEnt->GetPhysics()->GetBounds()[0].y );
+		newDir.y += randomPosEnt->GetPhysics()->GetBounds()[0].y;
+		newDir.z = gameLocal.random.RandomFloat() * ( randomPosEnt->GetPhysics()->GetBounds()[1].z - randomPosEnt->GetPhysics()->GetBounds()[0].z );
+		newDir.z += randomPosEnt->GetPhysics()->GetBounds()[0].z;
+		newDir *= randomPosEnt->GetPhysics()->GetClipModel()->GetAxis();
+		newDir += randomPosEnt->GetPhysics()->GetOrigin();
+		GetPhysics()->SetOrigin( newDir );
+
+		// overrides "randomDirection"
+		if ( direction_from_spawner != 0 ) {
+			newDir = GetPhysics()->GetOrigin() - originBeforeAdjust;
+			newDir.Normalize();
+			velocity += direction_from_spawner * newDir;
+
+			// get center of bounds on moveable
+			newDir = randomPosEnt->GetPhysics()->GetBounds()[1] + randomPosEnt->GetPhysics()->GetBounds()[0];
+			newDir *= randomPosEnt->GetPhysics()->GetClipModel()->GetAxis();
+
+			// get vector from moveable's center to debris' origin
+			newDir = randomPosEnt->GetPhysics()->GetOrigin() - newDir;
+			newDir.Normalize();
+
+			// set velocity in that direction
+			velocity = velocity.Length() * newDir;
+		}
+	}
+
+	// HEXEN : Zeroth
+	if ( randomAngular != 0.0f ) {
+		angular_velocity.yaw += gameLocal.random.RandomInt( randomAngular );
+		angular_velocity.pitch += gameLocal.random.RandomInt( randomAngular );
+		angular_velocity.roll += gameLocal.random.RandomInt( randomAngular );
+	}
+
+	// HEXEN : Zeroth - why shoulnt the angles ever be not random ?
+	SetAngles( idAngles( gameLocal.random.RandomInt( 360 * 2 ) - 360,
+						gameLocal.random.RandomInt( 360 * 2 ) - 360,
+						gameLocal.random.RandomInt( 360 * 2 ) - 360 ) );
 
 	if ( health ) {
 		fl.takedamage = true;
@@ -2221,8 +2356,28 @@ void idDebris::Launch( void ) {
 	}
 	physicsObj.SetBouncyness( bounce );
 	physicsObj.SetGravity( gravVec * gravity );
-	physicsObj.SetContents( 0 );
-	physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
+
+	if ( spawnArgs.GetBool ( "hascontents" ) ) {
+		if ( spawnArgs.GetFloat( "mass", "10", mass ) ) {
+			physicsObj.SetMass( mass );
+		}
+
+		if ( spawnArgs.GetBool( "noimpact" ) || spawnArgs.GetBool( "notPushable" )/** || IsType( idWood::Type )**/ ) { // HEXEN : Zeroth, added idWood
+			physicsObj.DisableImpact();
+		}
+
+		if ( spawnArgs.GetBool( "nonsolid" ) ) {
+			physicsObj.SetContents( CONTENTS_CORPSE | CONTENTS_RENDERMODEL );
+			physicsObj.SetClipMask( MASK_SOLID | CONTENTS_CORPSE | CONTENTS_MOVEABLECLIP );
+		} else {
+			physicsObj.SetContents( CONTENTS_SOLID );
+			physicsObj.SetClipMask( MASK_SOLID | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_MOVEABLECLIP );
+		}
+	} else {
+		physicsObj.SetContents( 0 );
+		physicsObj.SetClipMask( MASK_SOLID | CONTENTS_MOVEABLECLIP );
+	}
+
 	physicsObj.SetLinearVelocity( axis[ 0 ] * velocity[ 0 ] + axis[ 1 ] * velocity[ 1 ] + axis[ 2 ] * velocity[ 2 ] );
 	physicsObj.SetAngularVelocity( angular_velocity.ToAngularVelocity() * axis );
 	physicsObj.SetOrigin( GetPhysics()->GetOrigin() );
@@ -2398,4 +2553,14 @@ idDebris::Event_Fizzle
 */
 void idDebris::Event_Fizzle( void ) {
 	Fizzle();
+}
+
+/*
+================
+Zeroth
+idProjectile::Event_Launch
+================
+*/
+void idProjectile::Event_Launch( const idVec3 &start, const idVec3 &dir, const idVec3 &pushVelocity, const float timeSinceFire, const float launchPower, const float dmgPower ) {
+	Launch( start, dir, pushVelocity, timeSinceFire, launchPower, dmgPower );
 }

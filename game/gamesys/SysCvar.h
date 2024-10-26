@@ -118,6 +118,7 @@ extern idCVar	g_vehicleSuspensionDown;
 extern idCVar	g_vehicleSuspensionKCompress;
 extern idCVar	g_vehicleSuspensionDamping;
 extern idCVar	g_vehicleTireFriction;
+extern idCVar	g_enablePortalSky; //Zeroth404
 
 extern idCVar	ik_enable;
 extern idCVar	ik_debug;
@@ -250,8 +251,24 @@ extern idCVar	si_spectators;
 extern idCVar	net_clientSelfSmoothing;
 extern idCVar	net_clientLagOMeter;
 
+// HEXEN : Zeroth
+extern idCVar	g_noHudAutoHide;
+extern idCVar	g_noArtifactDescriptions;
+extern idCVar	pm_flybob;
+extern idCVar	g_noPickupNotification;
+extern idCVar	r_vmode;
+extern idCVar	r_dofDelay;
+extern idCVar	r_dofRange;
+extern idCVar	r_dof;
+extern idCVar	r_fog;
+
 extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
+
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+extern idCVar   s_music_vol;
+// ******
 
 #endif /* !__SYS_CVAR_H__ */

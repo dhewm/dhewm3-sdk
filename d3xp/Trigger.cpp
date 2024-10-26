@@ -1019,9 +1019,9 @@ void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
 			dir = other->GetPhysics()->GetOrigin() - GetPhysics()->GetOrigin();
 			dir.Normalize();
 		}
-		other->Damage( NULL, NULL, dir, damage, 1.0f, INVALID_JOINT );
+		other->Damage( NULL, NULL, dir, damage, 1.0f, INVALID_JOINT, trace->c.point );
 #else
-		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
+		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT, trace->c.point );
 #endif
 
 		ActivateTargets( other );

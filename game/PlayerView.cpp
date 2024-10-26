@@ -36,6 +36,18 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "PlayerView.h"
 
+/*
+==============
+Zeroth
+MakePowerOfTwo
+==============
+*/
+static int MakePowerOfTwo( int num ) {
+	int		pot;
+	for ( pot = 1 ; pot < num ; pot<<=1 ) { }
+	return pot;
+}
+
 const int IMPULSE_DELAY = 150;
 /*
 ==============
@@ -448,15 +460,59 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		return;
 	}
 
+	// endgame dialog
+	if ( player->customGuiOpen && player->customGui != NULL ) {
+		player->customGui->Redraw( gameLocal.time );
+		return;
+	}
+
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t	hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
 
-	gameRenderWorld->RenderScene( &hackedView );
+	// HEXEN : Zeroth
+	if ( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() ) {
+		renderView_t	portalView = hackedView;
+		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+
+		// setup global fixup projection vars
+		if ( 1 ) {
+			int vidWidth, vidHeight;
+			idVec2 shiftScale;
+
+			renderSystem->GetGLSettings( vidWidth, vidHeight );
+
+			float pot;
+			int	 w = vidWidth;
+			pot = MakePowerOfTwo( w );
+			shiftScale.x = (float)w / pot;
+
+			int	 h = vidHeight;
+			pot = MakePowerOfTwo( h );
+			shiftScale.y = (float)h / pot;
+
+			hackedView.shaderParms[4] = shiftScale.x;
+			hackedView.shaderParms[5] = shiftScale.y;
+		}
+
+		gameRenderWorld->RenderScene( &portalView );
+		renderSystem->CaptureRenderToImage( "_currentRender" );
+
+		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
+	} //else {
+		gameRenderWorld->RenderScene( &hackedView );
+	// }
+
+	// process the frame
+	// HEXEN : Zeroth - d3xp, not needed for skybox?	fxManager->Process( &hackedView );
 
 	if ( player->spectating ) {
 		return;
 	}
+
+	// if ( !hud ) {
+		// return;
+	// }
 
 	// draw screen blobs
 	if ( !pm_thirdPerson.GetBool() && !g_skipViewEffects.GetBool() ) {

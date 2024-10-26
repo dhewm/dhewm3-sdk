@@ -28,9 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 
+#include "Game_local.h"
 #include "gamesys/SysCvar.h"
 #include "Player.h"
 #include "Camera.h"
+#include "SmokeParticles.h"
 
 #include "script/Script_Thread.h"
 
@@ -64,6 +66,8 @@ const idEventDef EV_Thread_SpawnFloat( "SpawnFloat", "sf", 'f' );
 const idEventDef EV_Thread_SpawnVector( "SpawnVector", "sv", 'v' );
 const idEventDef EV_Thread_ClearPersistantArgs( "clearPersistantArgs" );
 const idEventDef EV_Thread_SetPersistantArg( "setPersistantArg", "ss" );
+const idEventDef EV_Thread_SetPersistantMapArg( "setPersistantMapArg", "ss" );
+const idEventDef EV_Thread_GetPersistantMapFloat( "getPersistantMapFloat", "ss", 'f' );
 const idEventDef EV_Thread_GetPersistantString( "getPersistantString", "s", 's' );
 const idEventDef EV_Thread_GetPersistantFloat( "getPersistantFloat", "s", 'f' );
 const idEventDef EV_Thread_GetPersistantVector( "getPersistantVector", "s", 'v' );
@@ -113,6 +117,17 @@ const idEventDef EV_Thread_DebugCircle( "debugCircle", "vvvfdf" );
 const idEventDef EV_Thread_DebugBounds( "debugBounds", "vvvf" );
 const idEventDef EV_Thread_DrawText( "drawText", "svfvdf" );
 const idEventDef EV_Thread_InfluenceActive( "influenceActive", NULL, 'd' );
+// HEXEN : Zeroth
+//const idEventDef EV_Thread_SoundMute( "SoundMute", "f" );
+const idEventDef EV_Thread_ASin( "ASin", "f", 'f' );
+const idEventDef EV_Thread_ACos( "ACos", "f", 'f' );
+const idEventDef EV_Thread_ATan( "ATan", "f", 'f' );
+const idEventDef EV_Thread_GetRandomBanishLocation( "GetRandomBanishLocation", NULL, 'v' );
+const idEventDef EV_Thread_GetEntityNum( "GetEntityNum", "e", 'f' );
+const idEventDef EV_Thread_GetEntityNumFromName( "GetEntityNumFromName", "s", 'f' );
+const idEventDef EV_Thread_TraceSurfaceNormal( "TraceSurfaceNormal", "vvfe", 'v' );
+const idEventDef EV_Thread_GetWorldGravity( "GetWorldGravity", NULL, 'v' );
+const idEventDef EV_Thread_SpawnParticle( "spawnParticle", "sv" );
 
 CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_Execute,				idThread::Event_Execute )
@@ -142,6 +157,8 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_SpawnVector,			idThread::Event_SpawnVector )
 	EVENT( EV_Thread_ClearPersistantArgs,	idThread::Event_ClearPersistantArgs )
 	EVENT( EV_Thread_SetPersistantArg,		idThread::Event_SetPersistantArg )
+	EVENT( EV_Thread_SetPersistantMapArg,	idThread::Event_SetPersistantMapArg )
+	EVENT( EV_Thread_GetPersistantMapFloat,	idThread::Event_GetPersistantMapFloat )
 	EVENT( EV_Thread_GetPersistantString,	idThread::Event_GetPersistantString )
 	EVENT( EV_Thread_GetPersistantFloat,	idThread::Event_GetPersistantFloat )
 	EVENT( EV_Thread_GetPersistantVector,	idThread::Event_GetPersistantVector )
@@ -193,6 +210,17 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_DebugBounds,			idThread::Event_DebugBounds )
 	EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 	EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
+	// HEXEN : Zeroth
+	// EVENT( EV_Thread_SoundMute,			idThread::Event_SoundMute )
+	EVENT( EV_Thread_ASin,					idThread::Event_ASin )
+	EVENT( EV_Thread_ACos,					idThread::Event_ACos )
+	EVENT( EV_Thread_ATan,					idThread::Event_ATan )
+	EVENT( EV_Thread_GetRandomBanishLocation,	idThread::Event_GetRandomBanishLocation )
+	EVENT( EV_Thread_GetEntityNum,			idThread::Event_GetEntityNum )
+	EVENT( EV_Thread_GetEntityNumFromName,	idThread::Event_GetEntityNumFromName )
+	EVENT( EV_Thread_TraceSurfaceNormal,	idThread::Event_TraceSurfaceNormal )
+	EVENT( EV_Thread_GetWorldGravity,		idThread::Event_GetWorldGravity )
+	EVENT( EV_Thread_SpawnParticle,			idThread::Event_SpawnParticle )
 END_CLASS
 
 idThread			*idThread::currentThread = NULL;
@@ -557,6 +585,22 @@ bool idThread::Start( void ) {
 
 	return result;
 }
+
+#if 0
+/*
+================
+HEXEN
+idThread::Event_SoundMute
+================
+*/
+void idThread::Event_SoundMute( float yesorno ) {
+ 	if ( yesorno ) {
+ 		soundSystem->SetMute( true );
+ 	} else {
+ 		soundSystem->SetMute( false );
+	}
+}
+#endif
 
 /*
 ================
@@ -1127,6 +1171,23 @@ void idThread::Event_Spawn( const char *classname ) {
 
 /*
 ================
+Zeroth
+idThread::Event_SpawnParticle
+================
+*/
+void idThread::Event_SpawnParticle( const char *particleName, const idVec3 &origin ) {
+	const idDecl *dec;
+	dec = declManager->FindType( DECL_PARTICLE, particleName );
+	if ( !dec ) {
+		return;
+	}
+
+	//gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time + 1, gameLocal.random.CRandomFloat(), origin, idMat3() );
+	gameLocal.smokeParticles->EmitSmoke( static_cast<const idDeclParticle *>( dec ), gameLocal.time, gameLocal.random.RandomFloat(), origin, idMat3( 1, 0, 0, 0, 0, 0, 0, 0, 0 ) );
+}
+
+/*
+================
 idThread::Event_CopySpawnArgs
 ================
 */
@@ -1196,6 +1257,39 @@ idThread::Event_SetPersistantArg
 */
 void idThread::Event_SetPersistantArg( const char *key, const char *value ) {
 	gameLocal.persistentLevelInfo.Set( key, value );
+}
+
+/*
+================
+HEXEN
+idThread::Event_SetPersistantMapArg
+================
+*/
+void idThread::Event_SetPersistantMapArg( const char *key, const char *value ) {
+	idStr name_str;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += key;
+
+	gameLocal.persistentLevelInfo.Set( name_str, value );
+}
+
+/*
+================
+HEXEN
+idThread::Event_GetPersistantMapFloat
+================
+*/
+void idThread::Event_GetPersistantMapFloat( const char *key, const char *defaultvalue ) {
+	float result;
+	idStr name_str;
+
+	name_str = gameLocal.GetMapName();
+	name_str += "_";
+	name_str += key;
+	gameLocal.persistentLevelInfo.GetFloat( name_str, defaultvalue, result );
+	ReturnFloat( result );
 }
 
 /*
@@ -1840,4 +1934,120 @@ void idThread::Event_InfluenceActive( void ) {
 	} else {
 		idThread::ReturnInt( false );
 	}
+}
+
+/*
+================
+Zeroth
+idThread::Event_ASin
+================
+*/
+void idThread::Event_ASin( const float angle ) {
+	ReturnFloat( idMath::ASin( angle ) );
+}
+
+/*
+================
+Zeroth
+idThread::Event_ACos
+================
+*/
+void idThread::Event_ACos( const float angle ) {
+	ReturnFloat( idMath::ACos( angle ) );
+}
+
+/*
+================
+Zeroth
+idThread::Event_ATan
+================
+*/
+void idThread::Event_ATan( const float angle ) {
+	gameLocal.Printf( "RETURNING: %f from %f\n", atan( angle ), angle );
+	ReturnFloat( atan( angle ) );
+}
+
+/*
+================
+Zeroth
+idThread::Event_GetRandomBanishLocation
+================
+*/
+void idThread::Event_GetRandomBanishLocation( void ) {
+	int i;
+
+	if ( gameLocal.BanishLocationList.Num() < 1 ) {
+		gameLocal.Error( "There are no Banish Locations\n." );
+		idThread::ReturnVector( idVec3() );
+		return;
+	}
+
+	i = gameLocal.random.RandomInt( gameLocal.BanishLocationList.Num() );
+
+	idThread::ReturnVector( *gameLocal.BanishLocationList[i] );
+}
+
+/*
+================
+Zeroth
+idThread::Event_GetEntityNum
+================
+*/
+void idThread::Event_GetEntityNum( const idEntity *ent1 ) {
+	if ( ent1 ) {
+		idThread::ReturnFloat( ent1->entityNumber );
+	} else {
+		idThread::ReturnFloat( -1 );
+	}
+}
+
+/*
+================
+Zeroth
+idThread::Event_GetEntityNumFromName
+================
+*/
+void idThread::Event_GetEntityNumFromName( const idStr entName ) {
+	for ( int i = 0; i < MAX_GENTITIES; i++ ) {
+		idEntity *ent = gameLocal.entities[i];
+		if ( ent && !idStr::Cmp( ent->name, entName ) ) {
+			idThread::ReturnFloat( i );
+			return;
+		}
+	}
+	idThread::ReturnFloat( -1 );
+	return;
+}
+
+/*
+================
+Zeroth
+idThread::Event_TraceSurfaceNormal
+================
+*/
+void idThread::Event_TraceSurfaceNormal( const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass ) {
+	trace_t		trace;
+	idEntity	*ent;
+
+	gameLocal.clip.TracePoint( trace, A, B, MASK_PLAYERSOLID, pass );
+
+	// if near a surface
+	if ( trace.fraction < 1.0f ) {
+			idVec3 bub = trace.c.normal;
+			ent = gameLocal.GetTraceEntity( trace );
+
+			idThread::ReturnVector( trace.c.normal );
+	} else {
+		idThread::ReturnVector( idVec3( 0, 0, 0 ) );
+	}
+}
+
+/*
+================
+Zeroth
+idThread::Event_GetWorldGravity
+================
+*/
+void idThread::Event_GetWorldGravity( void ) {
+	idThread::ReturnVector( gameLocal.GetGravity() );
 }

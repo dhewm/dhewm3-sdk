@@ -46,6 +46,7 @@ const int BUTTON_RUN			= BIT(1);
 const int BUTTON_ZOOM			= BIT(2);
 const int BUTTON_SCORES			= BIT(3);
 const int BUTTON_MLOOK			= BIT(4);
+const int BUTTON_ATTACK2		= BIT(5); // Zeroth404
 const int BUTTON_5				= BIT(5);
 const int BUTTON_6				= BIT(6);
 const int BUTTON_7				= BIT(7);
@@ -82,6 +83,12 @@ const int IMPULSE_27			= 27;			// <unused>
 const int IMPULSE_28			= 28;			// vote yes
 const int IMPULSE_29			= 29;			// vote no
 const int IMPULSE_40			= 40;			// use vehicle
+// Zeroth
+const int IMPULSE_41			= 41;			// hec Inventory Scroll Right
+const int IMPULSE_42			= 42;			// hec Inventory Scroll Left
+const int IMPULSE_43			= 43;			// hec use selected item
+const int IMPULSE_44			= 44;			// hec drop selected item
+const int IMPULSE_45			= 45;			// toggle automap
 
 // usercmd_t->flags
 const int UCF_IMPULSE_SEQUENCE	= 0x0001;		// toggled every time an impulse command is sent

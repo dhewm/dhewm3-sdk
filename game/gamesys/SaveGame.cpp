@@ -837,6 +837,8 @@ void idRestoreGame::RestoreObjects( void ) {
 
 	// restore all the objects
 	for( i = 1; i < objects.Num(); i++ ) {
+		// MessageBox( NULL, objects[ i ]->GetClassname(), objects[ i ]->GetClassname(), 1 );
+		// MessageBox( NULL, static_cast<idEntity *>(objects[ i ])->GetName(), "ah", MB_OK );
 		CallRestore_r( objects[ i ]->GetType(), objects[ i ] );
 	}
 

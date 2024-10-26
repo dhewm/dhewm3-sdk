@@ -169,7 +169,7 @@ public:
 
 							// damage
 	void					SetupDamageGroups( void );
-	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
+	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location, const idVec3 &iPoint );
 	int						GetDamageForLocation( int damage, int location );
 	const char *			GetDamageGroup( int location );
 	void					ClearPain( void );

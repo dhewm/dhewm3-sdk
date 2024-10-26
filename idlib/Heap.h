@@ -817,9 +817,9 @@ idDynamicBlock<type> *idDynamicBlockAlloc<type, baseBlockSize, minBlockSize>::Re
 
 template<class type, int baseBlockSize, int minBlockSize>
 void idDynamicBlockAlloc<type, baseBlockSize, minBlockSize>::FreeInternal( idDynamicBlock<type> *block ) {
-
+#if defined(_DEBUG) && 0
 	assert( block->node == NULL );
-
+#endif
 #ifdef DYNAMIC_BLOCK_ALLOC_CHECK
 	assert( block->id[0] == 0x11111111 && block->id[1] == 0x22222222 && block->id[2] == 0x33333333 && block->allocator == (void*)this );
 #endif

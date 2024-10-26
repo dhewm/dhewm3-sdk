@@ -673,6 +673,7 @@ void idInterpreter::LeaveFunction( idVarDef *returnDef ) {
 		// all done
 		doneProcessing = true;
 		threadDying = true;
+		//stackEmpty = true; // HEXEN : Zeroth
 		currentFunction = 0;
 	}
 }

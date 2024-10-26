@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8...3.22 FATAL_ERROR)
 project(dhewm3sdk)
 
 option(BASE		"Build the base (game/) game code" ON)
-set(BASE_NAME	"base" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
+set(BASE_NAME	"eoc" CACHE STRING "Name of the mod built from game/ (will result in \${BASE_NAME}.dll)")
 set(BASE_DEFS	"GAME_DLL" CACHE STRING "Compiler definitions for the mod built from game/")
 
 option(D3XP		"Build the d3xp/ game code" ON)
@@ -374,7 +374,9 @@ set(src_game
 	game/Moveable.cpp
 	game/MultiplayerGame.cpp
 	game/Player.cpp
+	game/PlayerArtifacts.cpp
 	game/PlayerIcon.cpp
+	game/PlayerScriptEvents.cpp
 	game/PlayerView.cpp
 	game/Projectile.cpp
 	game/Pvs.cpp
@@ -392,6 +394,9 @@ set(src_game
 	game/ai/AI.cpp
 	game/ai/AI_events.cpp
 	game/ai/AI_pathing.cpp
+	game/ai/AI_Golem.cpp
+	game/ai/AI_Shadowspawn.cpp
+	game/ai/AI_Veloxite.cpp
 	game/ai/AI_Vagary.cpp
 	game/gamesys/DebugGraph.cpp
 	game/gamesys/Class.cpp
@@ -425,6 +430,12 @@ set(src_game
 	game/physics/Physics_Static.cpp
 	game/physics/Physics_StaticMulti.cpp
 	game/physics/Push.cpp
+	game/objects/Leaf.cpp
+	game/objects/LeafEmitter.cpp
+	game/objects/Tree.cpp
+	game/projectiles/FireStorm.cpp
+	game/projectiles/Soul.cpp
+	game/projectiles/Wraithverge.cpp
 
 	${src_game_mod}
 )

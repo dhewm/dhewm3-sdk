@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 #include "Entity.h"
+#include "Player.h"
 
 #include "physics/Physics_Actor.h"
 
@@ -275,9 +276,44 @@ idPhysics_Actor::SetGravity
 ================
 */
 void idPhysics_Actor::SetGravity( const idVec3 &newGravity ) {
-	if ( newGravity != gravityVector ) {
-		idPhysics_Base::SetGravity( newGravity );
-		SetClipModelAxis();
+	if ( newGravity == gravityVector ) {
+		return;
+	}
+
+	idPlayer *player = NULL;
+	idAngles newVA;
+	idAngles oldang;
+
+	if ( self->IsType( idPlayer::Type ) ) {
+		player = static_cast<idPlayer *>( self );
+		oldang = player->GetAngles();
+	}
+
+	idPhysics_Base::SetGravity( newGravity );
+	SetClipModelAxis();
+
+	if ( player ) {
+		idAngles mang = player->GetAngles();
+		// fix view angles - not perfect, but best I can figure. todo: check out 
+		oldang=mang-oldang;
+		newVA = player->viewAngles;
+
+		if ( mang.roll > 90 || mang.roll < -90 ) {
+			newVA.yaw += oldang.yaw;
+	//		newVA.yaw += oldang.yaw * ( idMath::Fabs( mang.roll ) / 180.0f );
+	//		gameLocal.Printf("up: %f\n", ( idMath::Fabs( mang.roll ) / 180.0f ));
+		} else {
+			newVA.yaw -= oldang.yaw;
+	//		newVA.yaw -= oldang.yaw * ( ( 180.0f - idMath::Fabs( mang.roll ) ) / 180.0f );
+	//		gameLocal.Printf("down %f\n", ( ( 180.0f - idMath::Fabs( mang.roll ) ) / 180.0f ) );
+		}
+
+		/* sorta works, but has a jerk now and again
+		newVA.yaw += oldang.yaw * ( idMath::Fabs( mang.roll ) / 180.0f );
+		newVA.yaw -= oldang.yaw * ( ( 180.0f - idMath::Fabs( mang.roll ) ) / 180.0f );
+		*/
+
+		player->SetViewAngles(newVA);
 	}
 }
 

@@ -91,6 +91,10 @@ protected:
 		bool				randomShaderSpin			: 1;
 		bool				isTracer					: 1;
 		bool				noSplashDamage				: 1;
+
+		//grimm				projectile doesn't explode but does damage and remains until decalStay time.
+		bool				sticky						: 1;	
+		bool				continuous_damage			: 1;
 	} projectileFlags;
 
 	float					thrust;
@@ -109,6 +113,10 @@ protected:
 
 	const idDeclParticle *	smokeFly;
 	int						smokeFlyTime;
+
+	//grimm
+	idStr	damageDefName;
+	//grimm
 
 	typedef enum {
 		// must update these in script/doom_defs.script if changed
@@ -257,7 +265,6 @@ public :
 	void					Fizzle( void );
 	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity );
 
-
 private:
 	idEntityPtr<idEntity>	owner;
 	idPhysics_RigidBody		physicsObj;
@@ -265,9 +272,15 @@ private:
 	int						smokeFlyTime;
 	const idSoundShader *	sndBounce;
 
-
 	void					Event_Explode( void );
 	void					Event_Fizzle( void );
+	
+	// grimm -->
+	idStr					mtr_collide;			// material to spray on walls when object collides with something.
+	int						last_spraytime;			// last time that a spray was made.
+	idStr					fxCollide;				// fx system to start when collides with something
+	int						nextCollideFxTime;		// next time it is ok to spawn collision fx
+	// <-- grimm
 };
 
 #endif /* !__GAME_PROJECTILE_H__ */

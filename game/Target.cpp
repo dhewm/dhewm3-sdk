@@ -216,6 +216,30 @@ void idTarget_EndLevel::Event_Activate( idEntity *activator ) {
 	gameLocal.sessionCommand += nextMap;
 }
 
+/*
+===============================================================================
+
+idTarget_SaveGame
+
+GRIMM: AUTOCHECKPOINT SYSTEM
+===============================================================================
+*/
+
+CLASS_DECLARATION( idTarget, idTarget_SaveGame )
+	EVENT( EV_Activate,		idTarget_SaveGame::Event_Activate )
+END_CLASS
+
+/*
+================
+idTarget_SaveGame::Event_Activate
+================
+*/
+void idTarget_SaveGame::Event_Activate( idEntity *activator ) {
+
+	if ( g_useCheckpointing.GetBool()) {
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "saveGame checkpoint" );
+	} 
+}
 
 /*
 ===============================================================================

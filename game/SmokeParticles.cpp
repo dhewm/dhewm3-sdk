@@ -81,6 +81,8 @@ void idSmokeParticles::Init( void ) {
 	renderEntity.hModel = renderModelManager->AllocModel();
 	renderEntity.hModel->InitEmpty( smokeParticle_SnapshotName );
 
+	renderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
+
 	// we certainly don't want particle shadows
 	renderEntity.noShadow = 1;
 
@@ -203,9 +205,9 @@ bool idSmokeParticles::EmitSmoke( const idDeclParticle *smoke, const int systemS
 		}
 
 		// see how many particles we should emit this tic
-		// FIXME:			smoke.privateStartTime += stage->timeOffset;
-		int		finalParticleTime = stage->cycleMsec * stage->spawnBunching;
-		int		deltaMsec = gameLocal.time - systemStartTime;
+		// FIXME:	smoke.privateStartTime += stage->timeOffset;
+		int finalParticleTime = stage->cycleMsec * stage->spawnBunching;
+		int deltaMsec = gameLocal.time - systemStartTime;
 
 		int		nowCount=0, prevCount=0;
 		if ( finalParticleTime == 0 ) {

@@ -88,6 +88,13 @@ protected:
 	int						nextDamageTime;			// next time the movable can hurt the player
 	int						nextSoundTime;			// next time the moveable can make a sound
 
+	// grimm -->
+	idStr					mtr_collide;			// material to spray on walls when object collides with something.
+	int						last_spraytime;			// last time that a spray was made.
+	const idDeclParticle *	smokeFly;
+	int						smokeFlyTime;
+	// <-- grimm
+
 	const idMaterial *		GetRenderModelMaterial( void ) const;
 	void					BecomeNonSolid( void );
 	void					InitInitialSpline( int startTime );

@@ -50,6 +50,10 @@ public:
 	void			Save( idRestoreGame *savefile );
 	void			Restore( idRestoreGame *savefile );
 
+	// grimm --> called from spawn and restore
+	void			SetAmbientLight( void );
+	// <-- grimm
+
 private:
 	void			Event_Remove( void );
 };

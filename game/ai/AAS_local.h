@@ -118,6 +118,8 @@ public:
 	virtual void				ShowFlyPath( const idVec3 &origin, int goalAreaNum, const idVec3 &goalOrigin ) const;
 	virtual bool				FindNearestGoal( aasGoal_t &goal, int areaNum, const idVec3 origin, const idVec3 &target, int travelFlags, aasObstacle_t *obstacles, int numObstacles, idAASCallback &callback ) const;
 
+	virtual int					GetNumAreas( int aasNum ) const;	// sikk - Random Encounters System
+
 private:
 	idAASFile *					file;
 	idStr						name;

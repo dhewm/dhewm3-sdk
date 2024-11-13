@@ -138,6 +138,8 @@ void idProjectile::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteStaticObject( physicsObj );
 	savefile->WriteStaticObject( thruster );
+
+	savefile->WriteString( damageDefName );
 }
 
 /*
@@ -180,12 +182,15 @@ void idProjectile::Restore( idRestoreGame *savefile ) {
 	savefile->ReadStaticObject( thruster );
 	thruster.SetPhysics( &physicsObj );
 
+	savefile->ReadString( damageDefName );
+
 	if ( smokeFly != NULL ) {
 		idVec3 dir;
 		dir = physicsObj.GetLinearVelocity();
 		dir.NormalizeFast();
 		gameLocal.smokeParticles->EmitSmoke( smokeFly, gameLocal.time, gameLocal.random.RandomFloat(), GetPhysics()->GetOrigin(), GetPhysics()->GetAxis() );
 	}
+
 }
 
 /*
@@ -247,6 +252,8 @@ void idProjectile::Create( idEntity *owner, const idVec3 &start, const idVec3 &d
 	smokeFlyTime = 0;
 
 	damagePower = 1.0f;
+
+	renderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
 
 	UpdateVisuals();
 
@@ -327,10 +334,13 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	mass				= spawnArgs.GetFloat( "mass" );
 	gravity				= spawnArgs.GetFloat( "gravity" );
 	fuse				= spawnArgs.GetFloat( "fuse" );
+	damageDefName		= spawnArgs.GetString( "def_damage" );
 
 	projectileFlags.detonate_on_world	= spawnArgs.GetBool( "detonate_on_world" );
 	projectileFlags.detonate_on_actor	= spawnArgs.GetBool( "detonate_on_actor" );
 	projectileFlags.randomShaderSpin	= spawnArgs.GetBool( "random_shader_spin" );
+	projectileFlags.sticky				= spawnArgs.GetBool( "sticky", "0" );
+	projectileFlags.continuous_damage	= spawnArgs.GetBool( "continuous_damage", "0" );
 
 	if ( mass <= 0 ) {
 		gameLocal.Error( "Invalid mass on '%s'\n", GetEntityDefName() );
@@ -368,7 +378,7 @@ void idProjectile::Launch( const idVec3 &start, const idVec3 &dir, const idVec3 
 	}
 
 	// don't do tracers on client, we don't know origin and direction
-	if ( spawnArgs.GetBool( "tracers" ) && gameLocal.random.RandomFloat() > 0.5f ) {
+	if ( spawnArgs.GetBool( "tracers" ) && ( ( gameLocal.random.RandomFloat() * 0.99999f ) < g_tracerFrequency.GetFloat() ) ) {	// sikk - Tracer Frequency
 		SetModel( spawnArgs.GetString( "model_tracer" ) );
 		projectileFlags.isTracer = true;
 	}
@@ -440,7 +450,7 @@ idProjectile::Think
 ================
 */
 void idProjectile::Think( void ) {
-
+	
 	if ( thinkFlags & TH_THINK ) {
 		if ( thrust && ( gameLocal.time < thrust_end ) ) {
 			// evaluate force
@@ -448,6 +458,12 @@ void idProjectile::Think( void ) {
 			thruster.Evaluate( gameLocal.time );
 		}
 	}
+
+	// grimm --> add continuous damage
+	if ( state != EXPLODED && projectileFlags.continuous_damage ) {
+		gameLocal.RadiusDamage( physicsObj.GetOrigin(), this, owner.GetEntity(), owner.GetEntity(), this, damageDefName, 1 );
+	}
+	// <-- grimm
 
 	// run physics
 	RunPhysics();
@@ -493,7 +509,9 @@ idProjectile::Collide
 bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 	idEntity	*ent;
 	idEntity	*ignore;
-	const char	*damageDefName;
+	
+	// grimm --> moved to entity scope.
+	// const char	*damageDefName;
 	idVec3		dir;
 	float		push;
 	float		damageScale;
@@ -568,8 +586,6 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 	// unlink the clip model because we no longer need it
 	GetPhysics()->UnlinkClip();
 
-	damageDefName = spawnArgs.GetString( "def_damage" );
-
 	ignore = NULL;
 
 	// if the hit entity takes damage
@@ -587,6 +603,14 @@ bool idProjectile::Collide( const trace_t &collision, const idVec3 &velocity ) {
 				idPlayer *player = static_cast<idPlayer *>( owner.GetEntity() );
 				player->AddProjectileHits( 1 );
 				damageScale *= player->PowerUpModifier( PROJECTILE_DAMAGE );
+
+// sikk---> Blood Spray Screen Effect
+				if ( g_showBloodSpray.GetBool() ) {
+					idVec3 vLength = player->GetEyePosition() - ent->GetPhysics()->GetOrigin();
+					if ( vLength.Length() <= g_bloodSprayDistance.GetFloat() && ( gameLocal.random.RandomFloat() * 0.99999f ) < g_bloodSprayFrequency.GetFloat() )
+						player->playerView.AddBloodSpray( g_bloodSprayTime.GetFloat() );
+				}
+// <---sikk
 			}
 		}
 
@@ -833,6 +857,20 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 		} else {
 			fxname = spawnArgs.GetString( "model_smoke" );
 		}
+
+/*		switch ( surfaceType ) {
+			case SURFTYPE_NONE:			fxname = spawnArgs.GetString( "model_smokespark" ); break;
+			case SURFTYPE_METAL:		fxname = spawnArgs.GetString( "model_impact_metal" ); break;
+			case SURFTYPE_STONE:		fxname = spawnArgs.GetString( "model_impact_stone" ); break;
+			case SURFTYPE_FLESH:		fxname = spawnArgs.GetString( "model_impact_flesh" ); break;
+			case SURFTYPE_WOOD:			fxname = spawnArgs.GetString( "model_impact_wood" ); break;
+			case SURFTYPE_CARDBOARD:	fxname = spawnArgs.GetString( "model_impact_cardboard" ); break;
+			case SURFTYPE_LIQUID:		fxname = spawnArgs.GetString( "model_impact_liquid" ); break;
+			case SURFTYPE_GLASS:		fxname = spawnArgs.GetString( "model_impact_glass" ); break;
+			case SURFTYPE_PLASTIC:		fxname = spawnArgs.GetString( "model_impact_plastic" ); break;
+			case SURFTYPE_RICOCHET:		fxname = spawnArgs.GetString( "model_ricochet" ); break;
+			default:					fxname = spawnArgs.GetString( "model_smoke" ); break;
+		}*/
 	}
 
 	if ( fxname && *fxname ) {
@@ -843,8 +881,22 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 		renderEntity.shaderParms[SHADERPARM_ALPHA] = 1.0f;
 		renderEntity.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC( gameLocal.time );
 		renderEntity.shaderParms[SHADERPARM_DIVERSITY] = gameLocal.random.CRandomFloat();
+
+		renderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
+
 		Show();
-		removeTime = ( removeTime > 3000 ) ? removeTime : 3000;
+		// grimm --> remove models/fx depending on the g_breakables_lifetime thingy.
+		//
+		if ( projectileFlags.sticky ) {
+			//this is a sticky projectile, leave it as long as g_bulletstaytime is set, if it's set lower than 2 then keep it at 2.
+			int dstay = g_bulletstaytime.GetInteger();
+			if ( dstay < 2 ) { dstay = 2; }	//stay a minimum of 2 seconds
+			removeTime = ( removeTime > SEC2MS( dstay ) ) ? removeTime : SEC2MS( dstay );
+		} else {
+			//regular code
+			removeTime = ( removeTime > 3000 ) ? removeTime : 3000;
+		}
+		// <-- grimm
 	}
 
 	// explosion light
@@ -892,10 +944,14 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 			if ( removeTime < delay * 1000 ) {
 				removeTime = ( delay + 0.10 ) * 1000;
 			}
-			PostEventSec( &EV_RadiusDamage, delay, ignore );
+// sikk---> Entities hit directly by a projectile will no longer be ignored by splash damage
+//			PostEventSec( &EV_RadiusDamage, delay, ignore );
+			PostEventSec( &EV_RadiusDamage, delay, NULL );
 		} else {
-			Event_RadiusDamage( ignore );
+//			Event_RadiusDamage( ignore );
+			Event_RadiusDamage( NULL );
 		}
+// <---sikk
 	}
 
 	// spawn debris entities
@@ -2069,6 +2125,9 @@ idDebris::Spawn
 ================
 */
 void idDebris::Spawn( void ) {
+	mtr_collide = spawnArgs.GetString( "mtr_collide" );
+	nextCollideFxTime = 0;
+
 	owner = NULL;
 	smokeFly = NULL;
 	smokeFlyTime = 0;
@@ -2124,6 +2183,11 @@ void idDebris::Save( idSaveGame *savefile ) const {
 	savefile->WriteParticle( smokeFly );
 	savefile->WriteInt( smokeFlyTime );
 	savefile->WriteSoundShader( sndBounce );
+	savefile->WriteString( mtr_collide );
+	savefile->WriteInt( last_spraytime );
+	savefile->WriteString( fxCollide );
+	savefile->WriteInt( nextCollideFxTime );
+
 }
 
 /*
@@ -2140,6 +2204,11 @@ void idDebris::Restore( idRestoreGame *savefile ) {
 	savefile->ReadParticle( smokeFly );
 	savefile->ReadInt( smokeFlyTime );
 	savefile->ReadSoundShader( sndBounce );
+	savefile->ReadString( mtr_collide );
+	savefile->ReadInt( last_spraytime );
+	savefile->ReadString( fxCollide );
+	savefile->ReadInt( nextCollideFxTime );
+
 }
 
 /*
@@ -2308,6 +2377,24 @@ bool idDebris::Collide( const trace_t &collision, const idVec3 &velocity ) {
 		StartSoundShader( sndBounce, SND_CHANNEL_BODY, 0, false, NULL );
 	}
 	sndBounce = NULL;
+
+	// grimm --> Over the top blood & moveable effects.
+
+	if ( fxCollide.Length() && gameLocal.time > nextCollideFxTime ) {
+		idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
+		nextCollideFxTime = gameLocal.time + 1500;
+	}
+
+	if ( mtr_collide.Length() && last_spraytime < gameLocal.GetTime() && !IsAtRest() ) {
+		float ranScale;
+		ranScale = 128.0f * (0.35 + gameLocal.random.CRandomFloat());
+
+		last_spraytime = gameLocal.GetTime() + 1500;
+		//gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, ranScale, mtr_collide.c_str() );
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), -collision.c.normal, 128.0f, true, 96.0f, mtr_collide.c_str() );
+	}
+	// <-- grimm
+
 	return false;
 }
 

@@ -920,6 +920,9 @@ bool idAF::Load( idEntity *ent, const char *fileName ) {
 
 	physicsObj.UpdateClipModels();
 
+	// grimm --> annoyingness in the console. I know the last body is not contained, but I'm so dumb I can't fix it and this error is driving me a bit crazy.
+	// todo: fix this bug in the cloth AF's and put this in again.
+	/*
 	// check if each joint is contained by a body
 	for( i = 0; i < animator->NumJoints(); i++ ) {
 		if ( jointBody[i] == -1 ) {
@@ -927,6 +930,7 @@ bool idAF::Load( idEntity *ent, const char *fileName ) {
 				name.c_str(), self->name.c_str(), self->GetPhysics()->GetOrigin().ToString(0), animator->GetJointName( (jointHandle_t)i ) );
 		}
 	}
+	*/
 
 	physicsObj.SetMass( file->totalMass );
 	physicsObj.SetChanged();

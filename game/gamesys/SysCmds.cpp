@@ -334,6 +334,14 @@ void Cmd_Give_f( const idCmdArgs &args ) {
 		}
 	}
 
+	if ( give_all || idStr::Icmp( name, "hpacks" ) == 0 ) {
+		player->healthPackAmount = g_healthPackTotal.GetInteger();
+
+		if ( !give_all ) {
+			return;
+		}
+	}
+
 	if ( give_all || idStr::Icmp( name, "ammo" ) == 0 ) {
 		for ( i = 0 ; i < AMMO_NUMTYPES; i++ ) {
 			player->inventory.ammo[ i ] = player->inventory.MaxAmmoForAmmoClass( player, idWeapon::GetAmmoNameForNum( ( ammo_t )i ) );
@@ -841,7 +849,7 @@ void Cmd_Damage_f( const idCmdArgs &args ) {
 		return;
 	}
 
-	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_moverCrush", atoi( args.Argv( 2 ) ), INVALID_JOINT );
+	ent->Damage( gameLocal.world, gameLocal.world, idVec3( 0, 0, 1 ), "damage_grimm_1", atoi( args.Argv( 2 ) ), INVALID_JOINT );
 }
 
 
@@ -908,6 +916,7 @@ void Cmd_TestLight_f( const idCmdArgs &args ) {
 	}
 
 	dict.Set( "classname", "light" );
+	dict.Set( "_color", "0.7 0.3 0" );
 	for( i = 2; i < args.Argc() - 1; i += 2 ) {
 
 		key = args.Argv( i );
@@ -1556,9 +1565,9 @@ static void Cmd_TestDeath_f( const idCmdArgs &args ) {
 	dir[2] = 0;
 
 	g_testDeath.SetBool( 1 );
-	player->Damage( NULL, NULL, dir, "damage_triggerhurt_1000", 1.0f, INVALID_JOINT );
+	player->Damage( NULL, NULL, dir, "damage_fatal", 1.0f, INVALID_JOINT );
 	if ( args.Argc() >= 2) {
-		player->SpawnGibs( dir, "damage_triggerhurt_1000" );
+		player->SpawnGibs( dir, "damage_fatal" );
 	}
 
 }
@@ -1783,9 +1792,11 @@ static void Cmd_SaveRagdolls_f( const idCmdArgs &args ) {
 			continue;
 		}
 
+		/* grimm --> I need to be able to place bound af's as well.
 		if ( af->IsBound() ) {
 			continue;
 		}
+		<-- grimm */ 
 
 		if ( !af->IsAtRest() ) {
 			gameLocal.Warning( "the articulated figure for entity %s is not at rest", gameLocal.entities[ e ]->name.c_str() );
@@ -1806,9 +1817,12 @@ static void Cmd_SaveRagdolls_f( const idCmdArgs &args ) {
 					break;
 				}
 			}
-			af->name = name;
+			// grimm --> changed af->name = name to:
+			af->SetName( name );
 			mapEnt->epairs.Set( "classname", af->GetEntityDefName() );
-			mapEnt->epairs.Set( "name", af->name );
+			// grimm --> added origin, todo: fix it so the origin is also saved after the entity is moved with g_dragentity.
+			mapEnt->epairs.Set( "origin", af->spawnArgs.GetString("origin") );
+			mapEnt->epairs.Set( "name", name );
 		}
 		// save the articulated figure state
 		mapEnt->epairs.Copy( dict );
@@ -1863,6 +1877,341 @@ static void Cmd_GameError_f( const idCmdArgs &args ) {
 	gameLocal.Error( "game error" );
 }
 
+
+/* grimm--> own resolution setting implementation
+==================
+Cmd_setResolution_f
+==================
+*/
+static void Cmd_setResolution_f( const idCmdArgs &args ) {
+	//grimm > steps: set set r_mode to -1, set custom width and height (always for consistency) then do a vid_restart
+	// 13 = my lucky number
+
+	if (r_screenresolution.GetFloat() == 0) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 640" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 480" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 1) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 800" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 600" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 2) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1024" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 768" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+			
+	if (r_screenresolution.GetFloat() == 3) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1152" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 864" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 4) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1280" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 768" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 5) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1280" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 800" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 6) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1280" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 960" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 7) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1280" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 1024" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 8) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1440" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 900" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 9) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1600" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 1024" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 10) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1600" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 1200" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 11) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1680" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 1050" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 12) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1920" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customHeight 1080" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}
+
+	if (r_screenresolution.GetFloat() == 13) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1920" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_customwidth 1200" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "set r_mode -1" );
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "vid_restart" );
+	}	
+}
+
+/*
+==================
+Cmd_SaveDecals_f
+==================
+*/
+static void Cmd_SaveDecals_f( const idCmdArgs &args ) {
+
+	if ( !g_PaintSplatterMode.GetBool() ) {
+		gameLocal.Warning( "Decal Paint Mode disabled!\n" );
+		return;
+	}
+
+	int e, i;
+	idStaticEntity *ent;
+	idMapEntity *mapEnt;
+	idMapFile *mapFile = gameLocal.GetLevelMap();
+	idDict dict;
+	idStr mapName;
+	const char *name;
+
+	if ( !gameLocal.CheatsOk() ) {
+		return;
+	}
+
+	if ( args.Argc() > 1 ) {
+		mapName = args.Argv( 1 );
+		mapName = "maps/" + mapName;
+	}
+	else {
+		mapName = mapFile->GetName();
+	}
+
+	for( e = 0; e < MAX_GENTITIES; e++ ) {
+		ent = static_cast<idStaticEntity *>(gameLocal.entities[ e ]);
+
+		if ( !ent ) {
+			continue;
+		}
+		
+		
+
+		if ( !idStr::Icmp(ent->spawnArgs.GetString("classname"), "grimm_spray" ) == 0 ) {
+			continue;
+		}
+
+		gameLocal.Printf( "Adding entity %s to %s\n", ent->spawnArgs.GetString("classname"), mapName.c_str() );
+
+		dict.Clear();
+
+		// find map file entity
+		mapEnt = mapFile->FindEntity( ent->name );
+		// create new map file entity if there isn't one for this articulated figure
+		if ( !mapEnt ) {
+			mapEnt = new idMapEntity();
+			mapFile->AddEntity( mapEnt );
+			for ( i = 0; i < 9999; i++ ) {
+				name = va( "%s_%d", ent->GetEntityDefName(), i );
+				if ( !gameLocal.FindEntity( name ) ) {
+					break;
+				}
+			}
+			// grimm --> changed af->name = name to:
+			ent->SetName( name );
+			mapEnt->epairs.Set( "classname", ent->GetEntityDefName() );
+			// grimm --> added origin, todo: fix it so the origin is also saved after the entity is moved with g_dragentity.
+			mapEnt->epairs.Set( "origin", ent->spawnArgs.GetString("origin") );
+			mapEnt->epairs.Set( "angle", ent->spawnArgs.GetString("angle") );
+			mapEnt->epairs.Set( "mtr_decal", ent->spawnArgs.GetString("mtr_decal") );
+			mapEnt->epairs.Set( "name", name );
+		}
+		// save the articulated figure state
+		mapEnt->epairs.Copy( dict );
+	}
+
+	// write out the map file
+	mapFile->Write( mapName, ".map" );
+}
+//<-- grimm
+
+/*<-- grimm > Visual fx and postfx presets
+==================
+Cmd_setVisualFxPreset_f
+==================
+*/
+
+static void Cmd_setVisualFxPreset_f( const idCmdArgs &args ) {
+	//sterile
+	if ( r_VisualFXPreset.GetFloat() == 1 ) {
+		r_useBloom.SetBool(0);
+		r_useHDR.SetBool(0);
+		r_useColorGrading.SetBool(0);
+		r_useVignetting.SetBool(0);
+		r_useEdgeAA.SetBool(0);
+		r_useFilmgrain.SetBool(0);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(0);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(0);
+	}
+	//vintage
+	if ( r_VisualFXPreset.GetFloat() == 2 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(0);
+		r_useColorGrading.SetBool(0);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(0);
+		r_useFilmgrain.SetBool(1);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(0);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(0);
+	}
+	//vintage light
+	if ( r_VisualFXPreset.GetFloat() == 3 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(0);
+		r_useColorGrading.SetBool(0);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(0);
+		r_useFilmgrain.SetBool(1);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(0);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(1);
+	}
+	//vidid
+	if ( r_VisualFXPreset.GetFloat() == 4 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(1);
+		r_useColorGrading.SetBool(1);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(0);
+		r_useFilmgrain.SetBool(0);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(0);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(0);
+	}
+	//vidid light
+	if ( r_VisualFXPreset.GetFloat() == 5 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(1);
+		r_useColorGrading.SetBool(1);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(0);
+		r_useFilmgrain.SetBool(0);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(0);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(1);
+	}
+	//ultra vidid 
+	if ( r_VisualFXPreset.GetFloat() == 6 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(1);
+		r_useColorGrading.SetBool(1);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(1);
+		r_useFilmgrain.SetBool(0);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(1);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(0);
+	}
+	//ultra vidid light
+	if ( r_VisualFXPreset.GetFloat() == 7 ) {
+		r_useBloom.SetBool(1);
+		r_useHDR.SetBool(1);
+		r_useColorGrading.SetBool(1);
+		r_useVignetting.SetBool(1);
+		r_useEdgeAA.SetBool(1);
+		r_useFilmgrain.SetBool(0);
+		r_useCelShading.SetBool(0);
+		r_useSSAO.SetBool(1);
+		r_useSunShafts.SetBool(0);
+		g_useAmbientLight.SetBool(1);
+	}
+}
+
+//<-- grimm
+
+/*<-- grimm > Visual fx and postfx presets
+==================
+Cmd_setVisualCustomPreset_f
+==================
+*/
+
+static void Cmd_setVisualCustomPreset_f( const idCmdArgs &args ) {
+	//rests the preset to custom when a user changes some value.
+	r_VisualFXPreset.SetFloat(-1);
+}
+
+/*<-- grimm > Visual fx and postfx presets
+==================
+Cmd_r_resetBrightness_f
+==================
+*/
+
+static void Cmd_r_resetBrightness_f( const idCmdArgs &args ) {
+	//rests the preset to custom when a user changes some value.
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "r_brightness 1" );
+}
+
+/*<-- grimm > Visual fx and postfx presets
+==================
+Cmd_r_resetGamma_f
+==================
+*/
+
+static void Cmd_r_resetGamma_f( const idCmdArgs &args ) {
+	// resets the preset to custom when a user changes some value.
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "r_gamma 1" );
+}
+
+/*<-- grimm > Resume Game (mainmenu or CMD command)
+==================
+Cmd_ResumeGame_f
+==================
+*/
+
+static void Cmd_ResumeGame_f( const idCmdArgs &args ) {
+	// Resumes the game from the last checkpoint
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "LoadGame checkpoint" );
+}
+
+//<-- grimm
 /*
 ==================
 Cmd_SaveLights_f
@@ -2380,6 +2729,16 @@ void idGameLocal::InitConsoleCommands( void ) {
 	cmdSystem->AddCommand( "clearLights",			Cmd_ClearLights_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"clears all lights" );
 	cmdSystem->AddCommand( "gameError",				Cmd_GameError_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"causes a game error" );
 
+	// grimm -->
+	cmdSystem->AddCommand( "r_setResolution",		Cmd_setResolution_f,		CMD_FL_GAME,				"Actually sets the resolution defined in r_screenresolution, restarts the render engine" );
+	cmdSystem->AddCommand( "r_setVisualFXPreset",	Cmd_setVisualFxPreset_f,	CMD_FL_GAME,				"Actually sets the preset defined in r_VisualFXPreset" );
+	cmdSystem->AddCommand( "r_setVisualCustomPreset",	Cmd_setVisualCustomPreset_f,	CMD_FL_GAME,		"Sets the preset defined in r_VisualFXPreset to -1" );
+	cmdSystem->AddCommand( "r_resetBrightness",		Cmd_r_resetBrightness_f,	CMD_FL_GAME,				"Resets the brightness to default" );
+	cmdSystem->AddCommand( "r_resetGamma",			Cmd_r_resetGamma_f,			CMD_FL_GAME,				"Resets the gamme to default" );
+	cmdSystem->AddCommand( "ResumeGame",			Cmd_ResumeGame_f,			CMD_FL_GAME,				"Resumes the game from the last checkpoint." );
+	cmdSystem->AddCommand( "SaveDecals",			Cmd_SaveDecals_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"Saves all grimm_spray entities to the map." );
+	// <-- grimm
+	
 	cmdSystem->AddCommand( "disasmScript",			Cmd_DisasmScript_f,			CMD_FL_GAME|CMD_FL_CHEAT,	"disassembles script" );
 	cmdSystem->AddCommand( "recordViewNotes",		Cmd_RecordViewNotes_f,		CMD_FL_GAME|CMD_FL_CHEAT,	"record the current view position with notes" );
 	cmdSystem->AddCommand( "showViewNotes",			Cmd_ShowViewNotes_f,		CMD_FL_GAME|CMD_FL_CHEAT,	"show any view notes for the current map, successive calls will cycle to the next note" );

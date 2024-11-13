@@ -114,6 +114,14 @@ const idEventDef EV_Thread_DebugBounds( "debugBounds", "vvvf" );
 const idEventDef EV_Thread_DrawText( "drawText", "svfvdf" );
 const idEventDef EV_Thread_InfluenceActive( "influenceActive", NULL, 'd' );
 
+// grimm -->
+const idEventDef EV_Thread_ExecCMD( "ExecCMD", "s" );
+const idEventDef EV_Thread_Tip( "Tip", "s" );
+const idEventDef EV_Thread_GetPlayer( "GetPlayer", NULL, 'e' );
+const idEventDef EV_Thread_SetSoundSlowmo( "soundSlowmo", "f" );
+const idEventDef EV_Thread_SetSoundSlowmoSpeed( "setSlowmoSpeed", "f" );
+// <-- grimm
+
 CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_Execute,				idThread::Event_Execute )
 	EVENT( EV_Thread_TerminateThread,		idThread::Event_TerminateThread )
@@ -193,6 +201,14 @@ CLASS_DECLARATION( idClass, idThread )
 	EVENT( EV_Thread_DebugBounds,			idThread::Event_DebugBounds )
 	EVENT( EV_Thread_DrawText,				idThread::Event_DrawText )
 	EVENT( EV_Thread_InfluenceActive,		idThread::Event_InfluenceActive )
+
+	// grimm -->
+	EVENT( EV_Thread_ExecCMD,				idThread::Event_ExecCMD )
+	EVENT( EV_Thread_Tip,					idThread::Event_Tip )
+	EVENT( EV_Thread_GetPlayer,				idThread::Event_GetPlayer )
+	EVENT( EV_Thread_SetSoundSlowmo,		idThread::Event_SetSlomoSound )
+	EVENT( EV_Thread_SetSoundSlowmoSpeed,	idThread::Event_SetSlomoSpeed )
+	// <-- grimm
 END_CLASS
 
 idThread			*idThread::currentThread = NULL;
@@ -1841,3 +1857,90 @@ void idThread::Event_InfluenceActive( void ) {
 		idThread::ReturnInt( false );
 	}
 }
+
+// grimm -->
+
+/*
+================
+idThread::ExecCMD
+================
+*/
+void idThread::Event_ExecCMD( const char *text ) {
+
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, text );
+
+}
+
+/* 
+================
+idThread::Tip
+================
+*/
+void idThread::Event_Tip( const char *message ) {
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player ) {
+		player->ShowTip( "", message, true );
+	}
+
+}
+
+/* 
+================
+idThread::GetPlayer
+================
+*/
+void idThread::Event_GetPlayer( void ) {
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player ) {
+		ReturnEntity( player ) ;
+	} else {
+		ReturnEntity( ( idEntity * )NULL );
+	}
+}
+
+
+/*
+=================
+idThread::Event_SetSlomoSound( float son );
+=================
+*/
+void idThread::Event_SetSlomoSound( float son ) {
+	if ( gameSoundWorld && son > 0.0f ) {
+		gameSoundWorld->SetSlowmo( true );
+		//gameSoundWorld->SetSlowmoSpeed( 0.8f );
+	}
+
+	if ( gameSoundWorld && son == 0.0f ) {
+		gameSoundWorld->SetSlowmo( false );
+		//gameSoundWorld->SetSlowmoSpeed( 1.0f );
+	}
+}
+
+/*
+=================
+idThread::Event_SetSlomoSpeed( float speed );;
+=================
+*/
+void idThread::Event_SetSlomoSpeed( float speed ) {
+
+	if ( !gameSoundWorld ) {
+		return;
+	}
+
+	if ( speed > 0.0f && speed < 1.0f ) {
+		gameSoundWorld->SetSlowmoSpeed( speed );
+	} else {
+		// the value must be between 0 and 1 so set it to something default.
+		if ( speed < 0.5f ) {
+			gameSoundWorld->SetSlowmoSpeed( 0.7f );
+		} 
+		if ( speed == 1 ) {
+			gameSoundWorld->SetSlowmoSpeed( 0.99f );
+		}
+		
+	}
+}
+
+// <-- grimm

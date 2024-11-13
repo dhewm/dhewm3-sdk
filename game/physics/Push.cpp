@@ -1174,20 +1174,20 @@ float idPush::ClipTranslationalPush( trace_t &results, idEntity *pusher, const i
 
 		// if blocking entities should be crushed
 		if ( flags & PUSHFL_CRUSH ) {
-			check->Damage( clipModel->GetEntity(), clipModel->GetEntity(), vec3_origin, "damage_crush", 1.0f, CLIPMODEL_ID_TO_JOINT_HANDLE( pushResults.c.id ) );
+			check->Damage( clipModel->GetEntity(), clipModel->GetEntity(), vec3_origin, "damage_fatal", 1.0f, CLIPMODEL_ID_TO_JOINT_HANDLE( pushResults.c.id ) );
 			continue;
 		}
 
 		// if the entity is an active articulated figure and gibs
 		if ( check->IsType( idAFEntity_Base::Type ) && check->spawnArgs.GetBool( "gib" ) ) {
 			if ( static_cast<idAFEntity_Base *>(check)->IsActiveAF() ) {
-				check->ProcessEvent( &EV_Gib, "damage_Gib" );
+				check->ProcessEvent( &EV_Gib, "damage_fatal_suicide" );
 			}
 		}
 
 		// if the entity is a moveable item and gibs
 		if ( check->IsType( idMoveableItem::Type ) && check->spawnArgs.GetBool( "gib" ) ) {
-			check->ProcessEvent( &EV_Gib, "damage_Gib" );
+			check->ProcessEvent( &EV_Gib, "damage_fatal_suicide" );
 		}
 
 		// blocked
@@ -1344,14 +1344,14 @@ float idPush::ClipRotationalPush( trace_t &results, idEntity *pusher, const int 
 
 		// if blocking entities should be crushed
 		if ( flags & PUSHFL_CRUSH ) {
-			check->Damage( clipModel->GetEntity(), clipModel->GetEntity(), vec3_origin, "damage_crush", 1.0f, CLIPMODEL_ID_TO_JOINT_HANDLE( pushResults.c.id ) );
+			check->Damage( clipModel->GetEntity(), clipModel->GetEntity(), vec3_origin, "damage_fatal_suicide", 1.0f, CLIPMODEL_ID_TO_JOINT_HANDLE( pushResults.c.id ) );
 			continue;
 		}
 
 		// if the entity is an active articulated figure and gibs
 		if ( check->IsType( idAFEntity_Base::Type ) && check->spawnArgs.GetBool( "gib" ) ) {
 			if ( static_cast<idAFEntity_Base *>(check)->IsActiveAF() ) {
-				check->ProcessEvent( &EV_Gib, "damage_Gib" );
+				check->ProcessEvent( &EV_Gib, "damage_fatal_suicide" );
 			}
 		}
 

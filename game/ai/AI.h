@@ -277,6 +277,12 @@ public:
 							// Finds the best collision free trajectory for a clip model.
 	static bool				PredictTrajectory( const idVec3 &firePos, const idVec3 &target, float projectileSpeed, const idVec3 &projGravity, const idClipModel *clip, int clipmask, float max_height, const idEntity *ignore, const idEntity *targetEntity, int drawtime, idVec3 &aimDir );
 
+// sikk---> Random Encounters System
+	int						IsDead( void ) { return AI_DEAD; };
+	int						dormantTime;	// holds the time when a random enemy goes dormant
+	bool					isRandom;		// holds whether the entity was a random spawn or not
+// <---sikk
+
 protected:
 	// navigation
 	idAAS *					aas;

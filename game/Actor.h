@@ -56,7 +56,6 @@ extern const idEventDef AI_PlayCycle;
 extern const idEventDef AI_AnimDone;
 extern const idEventDef AI_SetBlendFrames;
 extern const idEventDef AI_GetBlendFrames;
-
 class idDeclParticle;
 
 class idAnimState {
@@ -209,6 +208,8 @@ public:
 	bool					AnimDone( int channel, int blendFrames ) const;
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
 
+	bool					GetFinalBoss( void ) const { return finalBoss; };	// sikk - Cyberdemon Damage Type
+
 protected:
 	friend class			idAnimState;
 
@@ -318,6 +319,7 @@ private:
 	void					Event_SetState( const char *name );
 	void					Event_GetState( void );
 	void					Event_GetHead( void );
+	void					Event_mSpawnGibs( void );
 };
 
 #endif /* !__GAME_ACTOR_H__ */

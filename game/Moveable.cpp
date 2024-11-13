@@ -75,6 +75,11 @@ idMoveable::idMoveable( void ) {
 	unbindOnDeath		= false;
 	allowStep			= false;
 	canDamage			= false;
+
+	// grimm -->
+	smokeFly			= NULL;
+	smokeFlyTime		= 0;
+	// <-- grimm
 }
 
 /*
@@ -97,6 +102,8 @@ void idMoveable::Spawn( void ) {
 	float density, friction, bouncyness, mass;
 	int clipShrink;
 	idStr clipModelName;
+
+	mtr_collide = spawnArgs.GetString( "mtr_collide" );
 
 	// check if a clip model is set
 	spawnArgs.GetString( "clipmodel", "", clipModelName );
@@ -178,6 +185,17 @@ void idMoveable::Spawn( void ) {
 
 	allowStep = spawnArgs.GetBool( "allowStep", "1" );
 
+	// grimm -->
+	smokeFly = NULL;
+	smokeFlyTime = 0;
+	const char *smokeName = spawnArgs.GetString( "smoke_fly" );
+	if ( *smokeName != '\0' ) {
+		smokeFly = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, smokeName ) );
+		smokeFlyTime = gameLocal.time;
+		gameLocal.smokeParticles->EmitSmoke( smokeFly, smokeFlyTime, gameLocal.random.CRandomFloat(), GetPhysics()->GetOrigin(), GetPhysics()->GetAxis() );
+	}
+	// grimm <--
+
 	PostEventMS( &EV_SetOwnerFromSpawnArgs, 0 );
 }
 
@@ -202,6 +220,10 @@ void idMoveable::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( nextSoundTime );
 	savefile->WriteInt( initialSpline != NULL ? initialSpline->GetTime( 0 ) : -1 );
 	savefile->WriteVec3( initialSplineDir );
+	savefile->WriteString( mtr_collide );
+	savefile->WriteInt( last_spraytime );
+	savefile->WriteParticle( smokeFly );
+	savefile->WriteInt( smokeFlyTime );
 
 	savefile->WriteStaticObject( physicsObj );
 }
@@ -228,6 +250,10 @@ void idMoveable::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( nextSoundTime );
 	savefile->ReadInt( initialSplineTime );
 	savefile->ReadVec3( initialSplineDir );
+	savefile->ReadString( mtr_collide );
+	savefile->ReadInt( last_spraytime );
+	savefile->ReadParticle( smokeFly );
+	savefile->ReadInt( smokeFlyTime );
 
 	if ( initialSplineTime != -1 ) {
 		InitInitialSpline( initialSplineTime );
@@ -237,6 +263,15 @@ void idMoveable::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadStaticObject( physicsObj );
 	RestorePhysics( &physicsObj );
+
+	// grimm -->
+	if ( smokeFly != NULL ) {
+		idVec3 dir;
+		dir = physicsObj.GetLinearVelocity();
+		dir.NormalizeFast();
+		gameLocal.smokeParticles->EmitSmoke( smokeFly, gameLocal.time, gameLocal.random.RandomFloat(), GetPhysics()->GetOrigin(), GetPhysics()->GetAxis() );
+	}
+	// grimm <--
 }
 
 /*
@@ -245,6 +280,22 @@ idMoveable::Hide
 ================
 */
 void idMoveable::Hide( void ) {
+	const char *temp;
+	temp = spawnArgs.GetString( "fx_broken" );
+	if ( *temp != '\0' ) {
+		idVec3 org = physicsObj.GetOrigin();
+		//org.z = org.z + 8.0f;
+		idEntityFx::StartFx( temp, &org, NULL, gameLocal.GetLocalPlayer(), false );
+	}
+
+	// grimm --> blood spray
+	last_spraytime = 0;
+	if ( mtr_collide.c_str() != "" && last_spraytime < gameLocal.GetTime() ) {
+		idVec3 org = physicsObj.GetOrigin();
+		gameLocal.ProjectDecal( org, GetPhysics()->GetGravity(), 128.0f, true, 96.0f, mtr_collide.c_str() );
+	}
+	// <-- grimm
+
 	idEntity::Hide();
 	physicsObj.SetContents( 0 );
 }
@@ -293,10 +344,21 @@ bool idMoveable::Collide( const trace_t &collision, const idVec3 &velocity ) {
 		}
 	}
 
+	// grimm --> Over the top blood & moveable effects.
 	if ( fxCollide.Length() && gameLocal.time > nextCollideFxTime ) {
 		idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
-		nextCollideFxTime = gameLocal.time + 3500;
+		nextCollideFxTime = gameLocal.time + 1500;
 	}
+
+	if ( mtr_collide.Length() && last_spraytime < gameLocal.GetTime() && !IsAtRest() ) {
+		float ranScale;
+		ranScale = 128.0f * (0.35 + gameLocal.random.CRandomFloat());
+
+		last_spraytime = gameLocal.GetTime() + 1500;
+		//gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, ranScale, mtr_collide.c_str() );
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), -collision.c.normal, 128.0f, true, 96.0f, mtr_collide.c_str() );
+	}
+	// <-- grimm
 
 	return false;
 }
@@ -421,6 +483,14 @@ void idMoveable::Think( void ) {
 			BecomeInactive( TH_THINK );
 		}
 	}
+
+	// grimm -->
+	if ( smokeFly && smokeFlyTime ) {
+		if ( !gameLocal.smokeParticles->EmitSmoke( smokeFly, smokeFlyTime, gameLocal.random.CRandomFloat(), GetPhysics()->GetOrigin(), GetPhysics()->GetAxis() ) ) {
+			smokeFlyTime = 0;
+		}
+	}
+	// <-- grimm
 	idEntity::Think();
 }
 
@@ -907,6 +977,9 @@ void idExplodingBarrel::AddParticles( const char *name, bool burn ) {
 			particleRenderEntity.shaderParms[ SHADERPARM_ALPHA ] = rgb;
 			particleRenderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = -MS2SEC( gameLocal.realClientTime );
 			particleRenderEntity.shaderParms[ SHADERPARM_DIVERSITY ] = ( burn ) ? 1.0f : gameLocal.random.RandomInt( 90 );
+
+			particleRenderEntity.suppressSurfaceInViewID = -8;	// sikk - Depth Render
+
 			if ( !particleRenderEntity.hModel ) {
 				particleRenderEntity.hModel = renderModelManager->FindModel( name );
 			}
@@ -1011,7 +1084,7 @@ void idExplodingBarrel::Killed( idEntity *inflictor, idEntity *attacker, int dam
 	Hide();
 	physicsObj.SetContents( 0 );
 
-	const char *splash = spawnArgs.GetString( "def_splash_damage", "damage_explosion" );
+	const char *splash = spawnArgs.GetString( "def_splash_damage", "damage_generic_explosion_splash" );
 	if ( splash && *splash ) {
 		gameLocal.RadiusDamage( GetPhysics()->GetOrigin(), this, attacker, this, this, splash );
 	}
@@ -1188,7 +1261,6 @@ idExplodingBarrel::ClientReceiveEvent
 ================
 */
 bool idExplodingBarrel::ClientReceiveEvent( int event, int time, const idBitMsg &msg ) {
-
 	switch( event ) {
 		case EVENT_EXPLODE:
 			if ( gameLocal.realClientTime - msg.ReadInt() < spawnArgs.GetInt( "explode_lapse", "1000" ) ) {

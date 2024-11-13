@@ -319,9 +319,17 @@ public:
 	virtual void		Show( void );
 	void				Fade( const idVec4 &to, float fadeTime );
 	virtual void		Think( void );
+	
+	// grimm idle sound for statics
+	// const idSoundShader *	sndHum;
+	// grimm idle sound for statics
 
 	virtual void		WriteToSnapshot( idBitMsgDelta &msg ) const;
 	virtual void		ReadFromSnapshot( const idBitMsgDelta &msg );
+
+	// grimm
+	void				Spray( void );
+	// grimm
 
 private:
 	void				Event_Activate( idEntity *activator );
@@ -334,7 +342,6 @@ private:
 	int					fadeEnd;
 	bool				runGui;
 };
-
 
 /*
 ===============================================================================
@@ -764,5 +771,26 @@ private:
 	idList<int>			targetTime;
 	idList<idVec3>		lastTargetPos;
 };
+
+// sikk---> Portal Sky Box
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+class idPortalSky : public idEntity {
+public:
+	CLASS_PROTOTYPE( idPortalSky );
+
+	idPortalSky();
+	~idPortalSky();
+
+	void				Spawn( void );
+	void				Event_PostSpawn();
+	void				Event_Activate( idEntity *activator );
+};
+// <---sikk
 
 #endif /* !__GAME_MISC_H__ */

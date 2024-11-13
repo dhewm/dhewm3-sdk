@@ -194,6 +194,9 @@ public:
 	int						onePickupTime;
 	idList<idItemInfo>		pickupItemNames;
 	idList<idObjectiveInfo>	objectiveNames;
+
+	int						healthPackAmount;	// sikk - Health Management System (Health Pack)
+	int						adrenalineAmount;	// sikk - Adrenaline Pack System
 };
 
 typedef struct {
@@ -283,7 +286,6 @@ public:
 	bool					healthPulse;
 	bool					healthTake;
 	int						nextHealthTake;
-
 
 	bool					hiddenWeapon;		// if the weapon is hidden ( in noWeapons maps )
 	idEntityPtr<idProjectile> soulCubeProjectile;
@@ -452,7 +454,7 @@ public:
 	void					AdjustHeartRate( int target, float timeInSecs, float delay, bool force );
 	void					SetCurrentHeartRate( void );
 	int						GetBaseHeartRate( void );
-	void					UpdateAir( void );
+	//void					UpdateAir( void );
 
 	virtual bool			HandleSingleGuiCommand( idEntity *entityGui, idLexer *src );
 	bool					GuiActive( void ) { return focusGUIent != NULL; }
@@ -523,6 +525,126 @@ public:
 
 	bool					SelfSmooth( void );
 	void					SetSelfSmooth( bool b );
+
+	int						nScreenFrostAlpha;	// sikk - Screen Frost
+
+	//int						nShowHudTimer;		// sikk - Dynamic hud system - Used to say when to show the hud as well as fade it in/out (just for health/armor/ammo/weapon changes)
+
+// sikk---> Manual Item Pickup
+	idItem*					focusItem;
+	int						itemPickupTime;
+// <---sikk
+
+// sikk---> Searchable Corpses
+	void					SearchCorpse( idAFEntity_Gibbable* corpse );
+	idAFEntity_Gibbable*	focusCorpse;
+	int						searchTimer;
+// <---sikk
+
+// sikk---> Object Manipulation
+	//idGrabEntity			grabEntity;
+	idEntity*				focusMoveable;
+	int						focusMoveableId;
+	int						focusMoveableTimer;
+// <---sikk
+
+// sikk---> Adrenaline Pack System
+	void					UseAdrenaline( void );
+	int						adrenalineAmount;
+// <---sikk
+
+// sikk---> Health Management System
+	void					UseHealthPack( void );
+	int						healthPackAmount;
+	int						healthPackTimer;
+	int						nextHealthRegen;
+	int						prevHeatlh;			// sikk - holds player health after Health station has been used
+// <---sikk
+
+// sikk---> Crosshair Positioning
+	int						GetCurrentWeapon( void ) { return currentWeapon; };
+	idVec3					v3CrosshairPos;
+// <---sikk
+
+// sikk---> Weapon Management: Awareness
+	bool					GetWeaponAwareness( void );
+	bool					bWATrace;
+	bool					bWAIsSprinting;
+	bool					bWAUseHideDist;
+	float					fSpreadModifier;
+	idEntity*				entChainsawed;
+// <---sikk
+
+// sikk---> Depth Render
+	void					ToggleSuppression( bool bSuppress );
+	bool					bViewModelsModified;
+// <---sikk
+
+// sikk---> Depth of Field PostProcess
+	int						GetTalkCursor( void ) { return talkCursor; };	// used to check if character has focus
+	bool					bIsZoomed;
+	float					focusDistance;
+// <---sikk
+
+// sikk---> Global Ambient Light
+	void					ToggleAmbientLight( bool bOn );
+	bool					bAmbientLightOn;
+	idStr					szAmbientLightColor;
+	idStr					szAmbientLightRadius;
+// <---sikk
+
+// sikk---> Infrared Goggles/Headlight Mod
+	void					UpdateBattery( void );
+	void					ToggleIRGoggles( void );
+	void					ToggleHeadlight( void );
+
+	bool					bIRGogglesOn;
+	bool					bHeadlightOn;
+	int						nIRGogglesTime;
+	int						nHeadlightTime;
+	int						nBattery;
+	float					fIntensity;
+	float					fIRBloomParms[ 7 ];
+// <---sikk
+
+	// grimm -->
+	//dynamic music
+	void					UpdateDynamicMusic( void );
+	idEntity	 			*music_suspense;
+	idEntity	 			*music_combat;
+	float					old_music_volume;
+	float					new_music_volume;
+	bool					use_combat_music;
+	bool					combat_musicon;
+	float					music_waittime;
+
+	//dashing & wallsliding
+	float					dashtime;
+	void					Dash( void );
+	bool					KeptInPlace;
+
+	//screenfrosting for dark warrior complex
+	void					UpdateFrost( void );
+
+	// map timers.
+	int						totalplaytime;
+	int						nexttimeupdate;
+	void					UpdatePlayTime( void );
+
+	// kills meter
+	int						kills_amt;
+	int						kills_amt_total;
+	int						AccoladeKills;
+
+	void					CheckKillAccolade( void );
+	int						lastAccoladeCheck;
+	int						nextAccoladeCheck;
+	void					SpawnThing( char *clname );
+	
+	// obstacle checking (move cloth etc..)
+	void					CheckObstacle( void );
+
+	// grimm <--
 
 private:
 	jointHandle_t			hipJoint;
@@ -608,6 +730,13 @@ private:
 	idStr					pdaVideoWave;
 
 	bool					tipUp;
+	// grimm -->
+	float					lastStatsTime;
+	float					lastCombosTime;
+	void					ShowStats( void );
+	void					ShowCombos( void );
+	//float					s_slomoval;
+	// <-- grimm
 	bool					objectiveUp;
 
 	int						lastDamageDef;
@@ -675,7 +804,7 @@ private:
 	void					ExtractEmailInfo( const idStr &email, const char *scan, idStr &out );
 	void					UpdateObjectiveInfo( void );
 
-	void					UseVehicle( void );
+	void					UseVehicle( bool drive );	// sikk - function modified to support use function
 
 	void					Event_GetButtons( void );
 	void					Event_GetMove( void );
@@ -695,6 +824,15 @@ private:
 	void					Event_LevelTrigger( void );
 	void					Event_Gibbed( void );
 	void					Event_GetIdealWeapon( void );
+	void					Event_ExecSaveGame( void );
+	void					Event_getHealth( void );
+	void					Event_AddBloodSpray( void );
+	void					Event_UpdateFrost( float freeze );
+	void					Event_SelectBestWeapon( void );
+	void					Event_KeptInPlace( float newval );
+	void					Event_Tip( const char *message );
+	void					Event_SetViewAngles( const idAngles &vAngles );
+	//void					Event_SetSlomoSound( float slomoval );
 };
 
 ID_INLINE bool idPlayer::IsReady( void ) {

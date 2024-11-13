@@ -254,4 +254,272 @@ extern const char *si_gameTypeArgs[];
 
 extern const char *ui_skinArgs[];
 
+
+// sikk - New Cvars -
+//-------------------------------------------------
+// sikk---> Crosshair Cvars
+extern idCVar	g_crosshair;
+extern idCVar	g_crosshairType;
+extern idCVar	g_crosshairLerp;
+// <---sikk
+
+// sikk---> Hud management
+extern idCVar	g_hudType;
+extern idCVar	g_useDynamicHud;
+extern idCVar	g_dynamicHudTime;
+// <---sikk
+
+// sikk---> IR Goggles/Headlight Mod
+extern idCVar	g_goggleType;
+extern idCVar	g_batteryLife;
+extern idCVar	g_batteryRechargeRate;
+// <---sikk
+
+// sikk---> Global Ambient Light
+extern idCVar	g_useAmbientLight;
+extern idCVar	g_ambientLightRadius;
+extern idCVar	g_ambientLightColor;
+// <---sikk
+
+// sikk---> Explosion FX
+extern idCVar	g_useExplosionFX;
+extern idCVar	g_explosionFXTime;
+extern idCVar	g_explosionFXScale;
+// <---sikk
+
+// sikk---> Blood Spray Screen Effect
+extern idCVar	g_showBloodSpray;
+extern idCVar	g_bloodSprayTime;
+extern idCVar	g_bloodSprayDistance;
+extern idCVar	g_bloodSprayFrequency;
+// <---sikk
+
+extern idCVar	g_screenFrostTime;		// sikk - Screen Frost
+
+extern idCVar	g_tracerFrequency;		// sikk - Tracer Frequency
+
+extern idCVar	g_playerHeadType;		// sikk - Player Head Type
+
+extern idCVar	g_showFirstPersonBody;	// sikk - First Person Body
+
+extern idCVar	g_enablePortalSky;		// sikk - Portal Sky Box
+
+
+// sikk---> Health Management System
+extern idCVar	g_healthManagementType;
+extern idCVar	g_healthPackTotal;
+extern idCVar	g_healthPackUses;
+extern idCVar	g_healthPackTime;
+extern idCVar	g_healthRegenTime;
+extern idCVar	g_healthRegenDelay;
+extern idCVar	g_healthRegenAmt;
+extern idCVar	g_healthRegenLimit;
+extern idCVar	g_healthRegenSteps;
+extern idCVar	g_healthRegenFeedback;
+// <---sikk
+
+// sikk---> Item Management
+extern idCVar	g_itemPickupType;
+extern idCVar	g_itemMaxArmorType;
+extern idCVar	g_itemHelmetFactor;
+extern idCVar	g_itemValueFactor;
+extern idCVar	g_itemRemovalFactor;
+extern idCVar	g_itemSearchFactor;
+// <---sikk
+
+// sikk---> Ammo Management
+extern idCVar	g_ammoCapacityType;
+extern idCVar	g_ammoClipSizeType;
+extern idCVar	g_ammoUsageType;
+// <---sikk
+
+// sikk---> Weapon Management
+extern idCVar	g_weaponAwareness;
+extern idCVar	g_weaponHandlingType;
+extern idCVar	g_weaponProjectileOrigin;
+// <---sikk
+
+extern idCVar	g_grabMode;					// sikk - Object Manipulation
+
+extern idCVar	g_disableFallDamage;		// sikk - Disable Fall Damage
+
+extern idCVar	g_damageType;				// sikk - Damage Type
+extern idCVar	g_damageZoneType;			// sikk - Locational Damage Type
+
+// sikk---> Enemy Health Management
+extern idCVar	g_enemyHealthType;
+extern idCVar	g_enemyHealthScale;
+extern idCVar	g_enemyHealthRandom;
+// <---sikk
+
+extern idCVar	g_enemySpectreFactor;		// sikk - Spectre Factor
+extern idCVar	g_enemyPainElementalFactor;	// sikk - Pain Elemental Factor
+extern idCVar	g_enemyBaronFactor;			// sikk - Baron of Hell Factor
+
+extern idCVar	g_burnAwayDelay;			// sikk - Monster Burn Away Delay
+
+extern idCVar	g_cyberdemonDamageType;		// sikk - Cyberdemon Damage Type
+
+extern idCVar	g_interRankAggression;		// sikk - Inter Rank Aggression
+
+extern idCVar	g_zombieResurrectionLimit;	// sikk - Zombie Resurrection
+
+// sikk---> Random Encounters System
+extern idCVar	g_useRandomEncounters;
+extern idCVar	g_randomEncountersMaxSpawns;
+extern idCVar	g_randomEncountersMinTime;
+extern idCVar	g_randomEncountersMaxTime;
+extern idCVar	g_randomEncountersDormantTime;
+// <---sikk
+
+
+extern idCVar	pm_thirdPersonOffset;		// sikk - Thirdpesron Camera
+
+
+// sikk---> PostProcess Effects
+extern idCVar	r_useSoftShadows;
+extern idCVar	r_softShadowsBlurFilter;
+extern idCVar	r_softShadowsBlurScale;
+extern idCVar	r_softShadowsBlurEpsilon;
+
+extern idCVar	r_useEdgeAA;
+extern idCVar	r_edgeAASampleScale;
+extern idCVar	r_edgeAAFilterScale;
+
+extern idCVar	r_useHDR;
+extern idCVar	r_hdrToneMapper;
+extern idCVar	r_hdrAdaptationRate;
+extern idCVar	r_hdrMiddleGray;
+extern idCVar	r_hdrWhitePoint;
+extern idCVar	r_hdrBlueShiftFactor;
+extern idCVar	r_hdrDither;
+extern idCVar	r_hdrDitherSize;
+extern idCVar	r_hdrLumThresholdMax;
+extern idCVar	r_hdrLumThresholdMin;
+extern idCVar	r_hdrBloomToneMapper;
+extern idCVar	r_hdrBloomMiddleGray;
+extern idCVar	r_hdrBloomWhitePoint;
+extern idCVar	r_hdrBloomThreshold;
+extern idCVar	r_hdrBloomOffset;
+extern idCVar	r_hdrBloomScale;
+extern idCVar	r_hdrBloomSize;
+extern idCVar	r_hdrFlareGamma;
+extern idCVar	r_hdrFlareScale;
+extern idCVar	r_hdrFlareSize;
+extern idCVar	r_hdrGlareStyle;
+extern idCVar	r_hdrGlareScale;
+extern idCVar	r_hdrGlareSize;
+
+extern idCVar	r_useBloom;
+extern idCVar	r_bloomBufferSize;
+extern idCVar	r_bloomBlurIterations;
+extern idCVar	r_bloomBlurScaleX;
+extern idCVar	r_bloomBlurScaleY;
+extern idCVar	r_bloomScale;
+extern idCVar	r_bloomGamma;
+
+extern idCVar	r_useSSIL;
+extern idCVar	r_ssilRadius;
+extern idCVar	r_ssilAmount;
+extern idCVar	r_ssilBlurMethod;
+extern idCVar	r_ssilBlurScale;
+extern idCVar	r_ssilBlurQuality;
+extern idCVar	r_ssilBlurEpsilon;
+
+extern idCVar	r_useSSAO;
+extern idCVar	r_ssaoMethod;
+extern idCVar	r_ssaoRadius;
+extern idCVar	r_ssaoAmount;
+extern idCVar	r_ssaoBias;
+extern idCVar	r_ssaoBlurMethod;
+extern idCVar	r_ssaoBlurScale;
+extern idCVar	r_ssaoBlurQuality;
+extern idCVar	r_ssaoBlurEpsilon;
+extern idCVar	r_ssaoBlendPower;
+extern idCVar	r_ssaoBlendScale;
+
+extern idCVar	r_useSunShafts;
+extern idCVar	r_sunShaftsSize;
+extern idCVar	r_sunShaftsStrength;
+extern idCVar	r_sunShaftsMaskStrength;
+extern idCVar	r_sunShaftsQuality;
+extern idCVar	r_sunOriginX;
+extern idCVar	r_sunOriginY;
+extern idCVar	r_sunOriginZ;
+extern idCVar	r_useLensFlare;
+extern idCVar	r_lensFlareStrength;
+
+extern idCVar	r_useMotionBlur;
+extern idCVar	r_motionBlurScale;
+extern idCVar	r_motionBlurMaskDistance;
+extern idCVar	r_motionBlurFPSThreshold;
+extern idCVar	r_motionBlurMinThreshold;
+extern idCVar	r_motionBlurMaxThreshold;
+extern idCVar	r_motionBlurFactor;
+extern idCVar	r_motionBlurLerp;
+extern idCVar	r_motionBlurQuality;
+
+extern idCVar	r_useDepthOfField;
+extern idCVar	r_dofBlurScale;
+extern idCVar	r_dofBlurQuality;
+extern idCVar	r_dofNear;
+extern idCVar	r_dofFar;
+extern idCVar	r_dofFocus;
+extern idCVar	r_dofConditionAlways;
+extern idCVar	r_dofConditionCinematic;
+extern idCVar	r_dofConditionGUI;
+extern idCVar	r_dofConditionTalk;
+extern idCVar	r_dofConditionReload;
+extern idCVar	r_dofConditionZoom;
+
+extern idCVar	r_useColorGrading;
+extern idCVar	r_colorGradingParm;
+extern idCVar	r_colorGradingType;
+extern idCVar	r_colorGradingSharpness;
+
+extern idCVar	r_useCelShading;
+extern idCVar	r_celShadingMethod;
+extern idCVar	r_celShadingScale;
+extern idCVar	r_celShadingThreshold;
+
+extern idCVar	r_useFilmgrain;
+extern idCVar	r_filmgrainBlendMode;
+extern idCVar	r_filmgrainScale;
+extern idCVar	r_filmgrainStrength;
+extern idCVar	r_useVignetting;				// <---sikk
+
+//GRIMM
+extern idCVar   g_useCheckpointing;				
+extern idCVar   s_musicvolume_DB;				
+extern idCVar   jumping;						
+extern idCVar   dashing;						
+extern idCVar   hpack;							
+extern idCVar   g_UseClutter;					
+extern idCVar   g_ClutterDensity;				
+extern idCVar   secrets;						
+extern idCVar   secretsfound;					
+extern idCVar   breakablesfound;				
+extern idCVar   breakables;						
+extern idCVar   smash;							
+extern idCVar   g_breakables_lifetime;			
+extern idCVar   g_breakables_ranlifetime;		
+extern idCVar   g_gibs_lifetime;				
+extern idCVar   g_gibs_ranlifetime;				
+extern idCVar   g_trapskill;				
+extern idCVar	g_ItemPickupFlash;
+extern idCVar	g_PickupFullItems;
+extern idCVar	r_screenresolution;
+extern idCVar	r_VisualFXPreset;
+extern idCVar	g_MaximumGibs;
+extern idCVar	g_MaximumBreakables;
+extern idCVar	g_decalStay;
+extern idCVar   s_useEnvironmentalSounds;
+extern idCVar   g_useShissleFX;
+extern idCVar   ShowStats;
+extern idCVar	g_bulletstaytime;
+extern idCVar	g_useburnlights;
+extern idCVar   g_usemodelragdolls;
+extern idCVar	g_PaintSplatterMode;
+extern idCVar	g_UseDynamicPaint;
+
 #endif /* !__SYS_CVAR_H__ */

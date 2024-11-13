@@ -56,7 +56,14 @@ void idWorldspawn::Spawn( void ) {
 	idStr				scriptname;
 	idThread			*thread;
 	const function_t	*func;
-	const idKeyValue	*kv;
+	//const idKeyValue	*kv;		<-- not used in grimm
+
+	// grimm -->
+	
+	gameSoundWorld->SetSlowmo( false );
+	gameSoundWorld->SetSlowmoSpeed( 0.8f );
+
+	// <-- grimm
 
 	assert( gameLocal.world == NULL );
 	gameLocal.world = this;
@@ -82,6 +89,12 @@ void idWorldspawn::Spawn( void ) {
 		}
 	}
 
+	// grimm --> set the current ambient light levels for this session
+	SetAmbientLight();
+	// <-- grimm
+
+	/* grimm --> not needed for us. I call everything from main anyway.
+
 	// call any functions specified in worldspawn
 	kv = spawnArgs.MatchPrefix( "call" );
 	while( kv != NULL ) {
@@ -94,6 +107,8 @@ void idWorldspawn::Spawn( void ) {
 		thread->DelayedStart( 0 );
 		kv = spawnArgs.MatchPrefix( "call", kv );
 	}
+	*/ 
+	// <-- grimm
 }
 
 /*
@@ -118,6 +133,10 @@ void idWorldspawn::Restore( idRestoreGame *savefile ) {
 	if ( spawnArgs.GetBool( "no_stamina" ) ) {
 		pm_stamina.SetFloat( 0.0f );
 	}
+
+	// grimm --> set the current ambient light levels for this session
+	SetAmbientLight();
+	// <-- grimm
 }
 
 /*
@@ -137,5 +156,29 @@ idWorldspawn::Event_Remove
 ================
 */
 void idWorldspawn::Event_Remove( void ) {
-	gameLocal.Error( "Tried to remove world" );
+	gameLocal.Error( "Cannot remove the world." );
 }
+
+// grimm --> sets the ambient type for the current session, specified in the worldspawn entity (any brush in the map)
+/*
+================
+idWorldspawn::SetAmbientLight
+================
+*/
+void idWorldspawn::SetAmbientLight( void ) {
+	int AmbientType = spawnArgs.GetInt("AmbientType");
+	gameLocal.Printf("Ambienttype set to %i.\n", AmbientType);
+
+	if ( AmbientType == 0 ) {
+			cvarSystem->SetCVarString( "g_ambientLightColor", "0.12 0.06 0.04" );		
+	} else if ( AmbientType == 1 ) {
+			cvarSystem->SetCVarString( "g_ambientLightColor", "0.04 0.07 0.11" );
+	} else if ( AmbientType == 2 ) {
+			cvarSystem->SetCVarString( "g_ambientLightColor", "0.08 0.08 0.08");
+	} else if (AmbientType == 3) {
+			cvarSystem->SetCVarString( "g_ambientLightColor", "0.04 0.12 0.06");
+	} else {
+			cvarSystem->SetCVarString( "g_ambientLightColor", "0.12 0.06 0.04" );
+	}	
+}
+// <-- grimm

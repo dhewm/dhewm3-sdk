@@ -68,6 +68,7 @@ extern const idEventDef EV_SetSkin;
 extern const idEventDef EV_StartSoundShader;
 extern const idEventDef EV_StopSound;
 extern const idEventDef EV_CacheSoundShader;
+extern const idEventDef EV_SprayDecal;
 
 // Think flags
 enum {
@@ -227,6 +228,13 @@ public:
 	bool					StartSoundShader( const idSoundShader *shader, const s_channelType channel, int soundShaderFlags, bool broadcast, int *length );
 	void					StopSound( const s_channelType channel, bool broadcast );	// pass SND_CHANNEL_ANY to stop all sounds
 	void					SetSoundVolume( float volume );
+
+	//grimm -->
+	void					FadeSound( float volume, float length );
+	void					Event_SprayDecal( idVec3 spray_origin, const char *mtr_decal, idVec3 spray_angle, float size );
+	//void					Event_SprayDecal( const char *mtr_decal );
+	//<-- grimm
+
 	void					UpdateSound( void );
 	int						GetListenerId( void ) const;
 	idSoundEmitter *		GetSoundEmitter( void ) const;
@@ -465,6 +473,7 @@ private:
 	void					Event_HasFunction( const char *name );
 	void					Event_CallFunction( const char *name );
 	void					Event_SetNeverDormant( int enable );
+
 };
 
 /*

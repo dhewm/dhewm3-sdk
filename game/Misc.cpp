@@ -613,7 +613,7 @@ idExplodable::Event_Explode
 void idExplodable::Event_Explode( idEntity *activator ) {
 	const char *temp;
 
-	if ( spawnArgs.GetString( "def_damage", "damage_explosion", &temp ) ) {
+	if ( spawnArgs.GetString( "def_damage", "damage_generic_explosion", &temp ) ) {
 		gameLocal.RadiusDamage( GetPhysics()->GetOrigin(), activator, activator, this, this, temp );
 	}
 
@@ -1360,6 +1360,7 @@ idStaticEntity::idStaticEntity( void ) {
 	fadeStart = 0;
 	fadeEnd	= 0;
 	runGui = false;
+	//sndHum = NULL;
 }
 
 /*
@@ -1375,6 +1376,7 @@ void idStaticEntity::Save( idSaveGame *savefile ) const {
 	savefile->WriteInt( fadeStart );
 	savefile->WriteInt( fadeEnd );
 	savefile->WriteBool( runGui );
+	//savefile->WriteSoundShader( sndHum );
 }
 
 /*
@@ -1383,6 +1385,7 @@ idStaticEntity::Restore
 ===============
 */
 void idStaticEntity::Restore( idRestoreGame *savefile ) {
+
 	savefile->ReadInt( spawnTime );
 	savefile->ReadBool( active );
 	savefile->ReadVec4( fadeFrom );
@@ -1390,7 +1393,38 @@ void idStaticEntity::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( fadeStart );
 	savefile->ReadInt( fadeEnd );
 	savefile->ReadBool( runGui );
+	//savefile->ReadSoundShader( sndHum );
+
+	// grimm --> if this is a spray entity, re-apply the spray
+	if ( spawnArgs.GetBool("SprayObject") ) {
+		Spray();
+	}
+	// <-- grimm
 }
+
+/* grim --> spray painting.
+=============== 
+idStaticEntity::Spray
+===============
+*/
+void idStaticEntity::Spray( void ) {
+
+	if ( g_UseDynamicPaint.GetBool() ) {
+		// CHANGE THIS: make the textures come from the decal.
+		float k = gameLocal.random.RandomFloat() * 3;
+		if ( k <= 1.0f ) {
+			Event_SprayDecal( GetPhysics()->GetOrigin(), spawnArgs.GetString( "mtr_decal", "textures/decals/vin_splat_death2_dark" ), spawnArgs.GetVector( "angle", "0 0 0" ), spawnArgs.GetFloat( "spray_size", "360" ) );
+		}
+		if ( k > 1.0f && k <= 2.0f ) {
+			Event_SprayDecal( GetPhysics()->GetOrigin(), spawnArgs.GetString( "mtr_decal1", "textures/decals/vin_splatblood1" ), spawnArgs.GetVector( "angle", "0 0 0" ), spawnArgs.GetFloat( "spray_size", "360" ) );
+		}
+		if ( k > 2 ) {
+			Event_SprayDecal( GetPhysics()->GetOrigin(), spawnArgs.GetString( "mtr_decal2", "textures/decals/vin_splatblood2" ), spawnArgs.GetVector( "angle", "0 0 0" ), spawnArgs.GetFloat( "spray_size", "360" ) );
+		}
+	}
+
+}
+// <-- grimm
 
 /*
 ===============
@@ -1401,6 +1435,7 @@ void idStaticEntity::Spawn( void ) {
 	bool solid;
 	bool hidden;
 
+	
 	// an inline static model will not do anything at all
 	if ( spawnArgs.GetBool( "inline" ) || gameLocal.world->spawnArgs.GetBool( "inlineAllStatics" ) ) {
 		Hide();
@@ -1409,6 +1444,20 @@ void idStaticEntity::Spawn( void ) {
 
 	solid = spawnArgs.GetBool( "solid" );
 	hidden = spawnArgs.GetBool( "hide" );
+
+	// grim --> used for torches
+	// grimm --> i'm a dumbass, could've just used s_shader
+	/*
+	idStr	snd_idle = spawnArgs.GetString("snd_torchidle");
+	if ( snd_idle.Length() && s_useEnvironmentalSounds.GetBool() ) {
+		sndHum = declManager->FindSound( snd_idle.c_str() );
+
+		if ( sndHum && !hidden ) {
+			StartSoundShader( sndHum, SND_CHANNEL_ANY, 0, false, NULL );
+		}
+	}
+	*/
+	// <-- grimm
 
 	if ( solid && !hidden ) {
 		GetPhysics()->SetContents( CONTENTS_SOLID );
@@ -1423,12 +1472,28 @@ void idStaticEntity::Spawn( void ) {
 	if ( model.Find( ".prt" ) >= 0 ) {
 		// we want the parametric particles out of sync with each other
 		renderEntity.shaderParms[ SHADERPARM_TIMEOFFSET ] = gameLocal.random.RandomInt( 32767 );
+
+// sikk---> Depth Render
+		renderEntity.suppressSurfaceInViewID = -8;
+		renderEntity.noShadow = 1;
+// <---sikk
 	}
 
 	fadeFrom.Set( 1, 1, 1, 1 );
 	fadeTo.Set( 1, 1, 1, 1 );
 	fadeStart = 0;
 	fadeEnd	= 0;
+
+	// grimm --> if this is a spray entity, spray something
+	if ( spawnArgs.GetBool("SprayObject") ) {
+		Spray();
+
+		//hide the static if we're not in painting mode.
+		if ( !g_PaintSplatterMode.GetBool() ) {
+			Hide();
+		}
+	}
+	// <--grimm
 
 	// NOTE: this should be used very rarely because it is expensive
 	runGui = spawnArgs.GetBool( "runGui" );
@@ -1514,6 +1579,14 @@ void idStaticEntity::Show( void ) {
 	if ( spawnArgs.GetBool( "solid" ) ) {
 		GetPhysics()->SetContents( CONTENTS_SOLID );
 	}
+
+	// grimm --> if an idle sound was set then use it.
+	/*
+	if ( sndHum ) {
+		StartSoundShader( sndHum, SND_CHANNEL_ANY, 0, false, NULL );
+	}
+	*/
+	// grimm --> if an idle sound was set then use it.
 }
 
 /*
@@ -3156,3 +3229,63 @@ void idPhantomObjects::Think( void ) {
 		BecomeInactive( TH_THINK );
 	}
 }
+
+// sikk---> Portal Sky Box
+/*
+===============================================================================
+
+idPortalSky
+
+===============================================================================
+*/
+
+CLASS_DECLARATION( idEntity, idPortalSky )
+	EVENT( EV_PostSpawn,	idPortalSky::Event_PostSpawn )
+	EVENT( EV_Activate,		idPortalSky::Event_Activate )
+END_CLASS
+
+/*
+===============
+idPortalSky::idPortalSky
+===============
+*/
+idPortalSky::idPortalSky( void ) {
+}
+
+/*
+===============
+idPortalSky::~idPortalSky
+===============
+*/
+idPortalSky::~idPortalSky( void ) {
+}
+
+/*
+===============
+idPortalSky::Spawn
+===============
+*/
+void idPortalSky::Spawn( void ) {
+	if ( !spawnArgs.GetBool( "triggered" ) ) {
+		PostEventMS( &EV_PostSpawn, 1 );
+	}
+}
+
+/*
+================
+idPortalSky::Event_PostSpawn
+================
+*/
+void idPortalSky::Event_PostSpawn() {
+	gameLocal.SetPortalSkyEnt( this );
+}
+
+/*
+================
+idPortalSky::Event_Activate
+================
+*/
+void idPortalSky::Event_Activate( idEntity *activator ) {
+	gameLocal.SetPortalSkyEnt( this );
+}
+// <---sikk

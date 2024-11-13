@@ -374,6 +374,13 @@ void idMover::Spawn( void ) {
 		}
 	}
 
+	//GRIMM
+	if ( spawnArgs.GetBool( "neverblocked" ) ) {
+		physicsObj.SetContents( CONTENTS_PLAYERCLIP | CONTENTS_RENDERMODEL);
+		physicsObj.SetClipMask( MASK_PLAYERSOLID );
+	}
+	//GRIMM
+
 	health = spawnArgs.GetInt( "health" );
 	if ( health ) {
 		fl.takedamage = true;
@@ -401,6 +408,12 @@ void idMover::Show( void ) {
 	if ( spawnArgs.GetBool( "solid", "1" ) ) {
 		physicsObj.SetContents( CONTENTS_SOLID );
 	}
+	//GRIMM
+	if ( spawnArgs.GetBool( "neverblocked", "1" ) ) {
+		physicsObj.SetContents( CONTENTS_PLAYERCLIP );
+		physicsObj.SetClipMask( MASK_PLAYERSOLID );
+	}
+	//GRIMM
 	SetPhysics( &physicsObj );
 }
 
@@ -999,7 +1012,7 @@ idMover::Event_PartBlocked
 */
 void idMover::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_grimm_1", damage, INVALID_JOINT );
 	}
 	if ( g_debugMover.GetBool() ) {
 		gameLocal.Printf( "%d: '%s' blocked by '%s'\n", gameLocal.time, name.c_str(), blockingEntity->name.c_str() );
@@ -3788,7 +3801,7 @@ idDoor::Event_PartBlocked
 */
 void idDoor::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_grimm_1", damage, INVALID_JOINT );
 	}
 }
 
@@ -4225,7 +4238,7 @@ idPlat::Event_PartBlocked
 */
 void idPlat::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_grimm_1", damage, INVALID_JOINT );
 	}
 }
 
@@ -4316,7 +4329,7 @@ idMover_Periodic::Event_PartBlocked
 */
 void idMover_Periodic::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
-		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
+		blockingEntity->Damage( this, this, vec3_origin, "damage_grimm_1", damage, INVALID_JOINT );
 	}
 }
 

@@ -191,6 +191,10 @@ public:
 	virtual void			ShowEditingDialog( void );
 
 	static void				DropAFs( idEntity *ent, const char *type, idList<idEntity *> *list );
+	
+	// grimm --> bloodspray
+	float					NextSprayTime;
+	// <-- grimm
 
 protected:
 	idAF					af;				// articulated figure
@@ -227,6 +231,11 @@ public:
 	virtual void			Present( void );
 	virtual	void			Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir, const char *damageDefName, const float damageScale, const int location );
 	virtual void			SpawnGibs( const idVec3 &dir, const char *damageDefName );
+
+// sikk---> Searchable Corpses
+	bool					searchable;
+	bool					IsGibbed( void ) { return gibbed; };
+// <---sikk
 
 protected:
 	idRenderModel *			skeletonModel;

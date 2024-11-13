@@ -78,6 +78,15 @@ extern const idEventDef EV_Thread_FadeOut;
 extern const idEventDef EV_Thread_FadeTo;
 extern const idEventDef EV_Thread_Restart;
 
+// grimm -->
+extern const idEventDef EV_Thread_ExecCMD;
+extern const idEventDef EV_Thread_Tip;
+extern const idEventDef EV_Thread_GetPlayer;
+extern const idEventDef EV_Thread_SetSoundSlowmo;
+extern const idEventDef EV_Thread_SetSoundSlowmoSpeed;
+
+// <-- grimm
+
 class idThread : public idClass {
 private:
 	static idThread				*currentThread;
@@ -187,6 +196,14 @@ private:
 	void						Event_DebugBounds( const idVec3 &color, const idVec3 &mins, const idVec3 &maxs, const float lifetime );
 	void						Event_DrawText( const char *text, const idVec3 &origin, float scale, const idVec3 &color, const int align, const float lifetime );
 	void						Event_InfluenceActive( void );
+	
+	// grimm -->
+	void						Event_ExecCMD( const char *text );
+	void						Event_Tip( const char *message );
+	void						Event_GetPlayer( void );
+	void						Event_SetSlomoSound( float son );
+	void						Event_SetSlomoSpeed( float speed );
+	// <-- grimm
 
 public:
 								CLASS_PROTOTYPE( idThread );

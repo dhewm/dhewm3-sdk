@@ -993,11 +993,46 @@ void idTrigger_Hurt::Spawn( void ) {
 idTrigger_Hurt::Event_Touch
 ================
 */
+/* Original code:
 void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
 	const char *damage;
 
 	if ( on && other && gameLocal.time >= nextTime ) {
 		damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
+		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
+
+		ActivateTargets( other );
+		CallScript();
+
+		nextTime = gameLocal.time + SEC2MS( delay );
+	}
+}
+*/
+
+/*
+================
+GRIMM: idTrigger_Hurt::Event_Touch
+================
+*/
+void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
+	const char *damage;
+	const char *playerdamage;
+	const char *monsterdamage;
+
+	if ( on && other && gameLocal.time >= nextTime ) {
+
+		damage = spawnArgs.GetString( "def_damage", "damage_vintrap" );
+		playerdamage = spawnArgs.GetString( "def_player_damage" );
+		monsterdamage = spawnArgs.GetString( "def_monster_damage" );
+
+		if ( other->IsType( idPlayer::Type ) && playerdamage){
+			damage = playerdamage;
+		} 
+		
+		if ( other->IsType( idAI::Type ) && monsterdamage ){
+			damage = monsterdamage;
+		} 
+	
 		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
 
 		ActivateTargets( other );

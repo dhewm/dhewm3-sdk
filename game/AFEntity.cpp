@@ -524,7 +524,7 @@ CLASS_DECLARATION( idAnimatedEntity, idAFEntity_Base )
 	EVENT( EV_SetConstraintPosition,	idAFEntity_Base::Event_SetConstraintPosition )
 END_CLASS
 
-static const float BOUNCE_SOUND_MIN_VELOCITY	= 80.0f;
+static const float BOUNCE_SOUND_MIN_VELOCITY	= 40.0f;	//<-- grimm changed from 80 to 40 to make cloth sound more realistic.
 static const float BOUNCE_SOUND_MAX_VELOCITY	= 200.0f;
 
 /*
@@ -538,6 +538,7 @@ idAFEntity_Base::idAFEntity_Base( void ) {
 	nextSoundTime = 0;
 	spawnOrigin.Zero();
 	spawnAxis.Identity();
+	NextSprayTime = 0.0f;
 }
 
 /*
@@ -561,6 +562,7 @@ void idAFEntity_Base::Save( idSaveGame *savefile ) const {
 	savefile->WriteVec3( spawnOrigin );
 	savefile->WriteMat3( spawnAxis );
 	savefile->WriteInt( nextSoundTime );
+	savefile->WriteFloat( NextSprayTime );
 	af.Save( savefile );
 }
 
@@ -575,9 +577,20 @@ void idAFEntity_Base::Restore( idRestoreGame *savefile ) {
 	savefile->ReadVec3( spawnOrigin );
 	savefile->ReadMat3( spawnAxis );
 	savefile->ReadInt( nextSoundTime );
+	savefile->ReadFloat( NextSprayTime );
 	LinkCombat();
 
 	af.Restore( savefile );
+
+	//restore any splat that was made
+	//Repaint the world with a decal if needed
+	idStr   mtr_collide;
+	mtr_collide = spawnArgs.GetString( "mtr_collide" );
+	float splatsize = spawnArgs.GetFloat( "mtr_splatsize", "282" );
+
+	if ( mtr_collide.Length() && g_UseDynamicPaint.GetBool() ) {
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, splatsize, mtr_collide.c_str(), 0, true );
+	}
 }
 
 /*
@@ -589,6 +602,15 @@ void idAFEntity_Base::Spawn( void ) {
 	spawnOrigin = GetPhysics()->GetOrigin();
 	spawnAxis = GetPhysics()->GetAxis();
 	nextSoundTime = 0;
+
+	// spawn a decal so there's some blood there upon spawn time.
+	idStr   mtr_collide;
+	mtr_collide = spawnArgs.GetString( "mtr_collide" );
+	float splatsize = spawnArgs.GetFloat( "mtr_splatsize", "282" );
+
+	if ( mtr_collide.Length() && g_UseDynamicPaint.GetBool() ) {
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, splatsize, mtr_collide.c_str(), 0, true );
+	}
 }
 
 /*
@@ -628,7 +650,21 @@ idAFEntity_Base::Think
 ================
 */
 void idAFEntity_Base::Think( void ) {
-	RunPhysics();
+	const char *spclass;
+	spclass = spawnArgs.GetString("spawnclass");
+
+	//grimm --> disable physics when user requests it.
+	if ( idStr::Icmp( spclass, "idAFEntity_Generic" ) == 0 && g_usemodelragdolls.GetBool() ) {
+		RunPhysics();
+	}
+
+	if ( idStr::Icmp( spclass, "idAFEntity_Generic" ) != 0 ) {
+		RunPhysics();
+	}
+	// <-- grimm		
+
+	//RunPhysics();
+
 	UpdateAnimation();
 	if ( thinkFlags & TH_UPDATEVISUALS ) {
 		Present();
@@ -752,6 +788,30 @@ idAFEntity_Base::Collide
 ================
 */
 bool idAFEntity_Base::Collide( const trace_t &collision, const idVec3 &velocity ) {
+		// grimm --> this needed a bit of adjusting for the sake of cloth and performance I've taken out the specific volume depending on impact.
+
+	if ( af.IsActive() && gameLocal.time > nextSoundTime ) {
+		//simply start the sound on SND_CHANNEL_ANY.
+		StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL );
+		nextSoundTime = gameLocal.time + 500;
+	}
+
+	// grimm -->
+	// spray something because the animation changed..
+	idStr   mtr_collide;
+	mtr_collide = spawnArgs.GetString( "mtr_collide" );
+
+	if ( IsActive() && mtr_collide.Length() && NextSprayTime < gameLocal.GetTime() ) {
+		NextSprayTime = gameLocal.GetTime() + 750.0f;
+		//float ranScale;
+		//ranScale = 64 + ( 100.0f * gameLocal.random.CRandomFloat() );
+
+		//gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), GetPhysics()->GetGravity(), 128.0f, true, ranScale, mtr_collide.c_str() );
+		gameLocal.ProjectDecal( GetPhysics()->GetOrigin(), -collision.c.normal, 128.0f, true, 128.0f, mtr_collide.c_str(), 0, false );
+	}
+	// <-- grimm
+
+
 	float v, f;
 
 	if ( af.IsActive() ) {
@@ -965,6 +1025,7 @@ idAFEntity_Gibbable::idAFEntity_Gibbable( void ) {
 	skeletonModel = NULL;
 	skeletonModelDefHandle = -1;
 	gibbed = false;
+	searchable = false;	// sikk - Searchable Corpses
 }
 
 /*
@@ -987,6 +1048,8 @@ idAFEntity_Gibbable::Save
 void idAFEntity_Gibbable::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( gibbed );
 	savefile->WriteBool( combatModel != NULL );
+
+	savefile->WriteBool( searchable );	// sikk - Searchable Corpses
 }
 
 /*
@@ -999,6 +1062,8 @@ void idAFEntity_Gibbable::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadBool( gibbed );
 	savefile->ReadBool( hasCombatModel );
+
+	savefile->ReadBool( searchable );	// sikk - Searchable Corpses
 
 	InitSkeletonModel();
 
@@ -1017,6 +1082,8 @@ void idAFEntity_Gibbable::Spawn( void ) {
 	InitSkeletonModel();
 
 	gibbed = false;
+
+	spawnArgs.GetBool( "searchable", "0", searchable );	// sikk - Searchable Corpses
 }
 
 /*
@@ -1092,7 +1159,8 @@ void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const
 		return;
 	}
 	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
-	if ( health < -20 && spawnArgs.GetBool( "gib" ) ) {
+// sikk - Changed gib health from -20 to -health
+	if ( health < -spawnArgs.GetInt( "health" ) && spawnArgs.GetBool( "gib" ) ) {
 		Gib( dir, damageDefName );
 	}
 }
@@ -1173,14 +1241,19 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	UnlinkCombat();
 
 	if ( g_bloodEffects.GetBool() ) {
-		if ( gameLocal.time > gameLocal.GetGibTime() ) {
+		// sikk - Since "nextGibTime" is a member of idGameLocal and not idAFEntity||idAFEntity_Gibbable
+		// the folloing if statement is only true once per damage event instead of per entity being damaged.
+		// This is why only one entity will get gibbed while the rest just disappear after a few seconds.
+		// I commented this out instead of moving the variable to the proper class because it's easier and
+		// the delay is only 200ms so the difference should be unnoticable 
+//		if ( gameLocal.time > gameLocal.GetGibTime() ) {
 			gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
 			SpawnGibs( dir, damageDefName );
 			renderEntity.noShadow = true;
 			renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
 			StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
 			gibbed = true;
-		}
+//		}
 	} else {
 		gibbed = true;
 	}
@@ -2683,7 +2756,7 @@ idGameEdit::AF_CreateMesh
 idRenderModel *idGameEdit::AF_CreateMesh( const idDict &args, idVec3 &meshOrigin, idMat3 &meshAxis, bool &poseIsSet ) {
 	int i, jointNum;
 	const idDeclAF *af;
-	const idDeclAF_Body *fb;
+	const idDeclAF_Body *fb = NULL;	// sikk - warning C4701: potentially uninitialized local variable used
 	renderEntity_t ent;
 	idVec3 origin, *bodyOrigin, *newBodyOrigin, *modifiedOrigin;
 	idMat3 axis, *bodyAxis, *newBodyAxis, *modifiedAxis;

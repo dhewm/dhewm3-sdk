@@ -80,6 +80,14 @@ class idThread;
 class idEditEntities;
 class idLocationEntity;
 
+#if 0 // TODO: needed?
+#define	MAX_CLIENTS				32
+#define	GENTITYNUM_BITS			13
+#define	MAX_GENTITIES			(1<<GENTITYNUM_BITS)
+#define	ENTITYNUM_NONE			(MAX_GENTITIES-1)
+#define	ENTITYNUM_WORLD			(MAX_GENTITIES-2)
+#endif // 0
+
 //============================================================================
 extern const int NUM_RENDER_PORTAL_BITS;
 
@@ -294,6 +302,34 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+	idList<int>				currentLights;			// sikk - Soft Shadows PostProcess
+
+// sikk---> Explosion FX PostProcess
+	idVec3					explosionOrigin;
+	int						explosionRadius;
+	int						explosionDamage;
+	int						explosionTime;
+// <---sikk
+
+// sikk---> Random Encounters System
+	idList<int>				randomEnemyList;		// current list of eligible enemies
+	int						randomEnemyListNum;		// holds the size of the list for when loading a save game
+	int						randomEnemyTime;		// holds next spawn time
+	int						randomEnemyTally;		// holds number of random enemies that are active
+	int						GetEnemyNumFromName( idStr name );
+	idStr					GetEnemyNameFromNum( int num );
+	idStr					GetHellSkin( int num );
+	bool					SpawnRandomEnemy( void );
+// <---sikk
+
+// sikk---> Portal Sky Box
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+	void					idGameLocal::SetPortalSkyEnt( idEntity *ent ) {	portalSkyEnt = ent; }
+	bool					idGameLocal::IsPortalSkyAcive( void ) { return portalSkyActive; }
+	pvsHandle_t				GetPlayerPVS( void ) { return playerPVS; };
+// <---sikk
+
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -368,6 +404,7 @@ public:
 
 	bool					CheatsOk( bool requirePlayer = true );
 	void					SetSkill( int value );
+	void					SetTrapSkill( int value );
 	gameState_t				GameState( void ) const;
 	idEntity *				SpawnEntityType( const idTypeInfo &classdef, const idDict *args = NULL, bool bIsClientReadSnapshot = false );
 	bool					SpawnEntityDef( const idDict &args, idEntity **ent = NULL, bool setDefaults = true );
@@ -410,7 +447,7 @@ public:
 	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake );
 	void					RadiusPushClipModel( const idVec3 &origin, const float push, const idClipModel *clipModel );
 
-	void					ProjectDecal( const idVec3 &origin, const idVec3 &dir, float depth, bool parallel, float size, const char *material, float angle = 0 );
+	void					ProjectDecal( const idVec3 &origin, const idVec3 &dir, float depth, bool parallel, float size, const char *material, float angle = 0, bool forever = false );
 	void					BloodSplat( const idVec3 &origin, const idVec3 &dir, float size, const char *material );
 
 	void					CallFrameCommand( idEntity *ent, const function_t *frameCommand );

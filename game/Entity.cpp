@@ -121,6 +121,10 @@ const idEventDef EV_HasFunction( "hasFunction", "s", 'd' );
 const idEventDef EV_CallFunction( "callFunction", "s" );
 const idEventDef EV_SetNeverDormant( "setNeverDormant", "d" );
 
+// grimm --> for grimm_spray entity.
+const idEventDef EV_SprayDecal( "sprayDecal", "vsvf" );
+// <-- grimm
+
 ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_GetName,				idEntity::Event_GetName )
 	EVENT( EV_SetName,				idEntity::Event_SetName )
@@ -185,6 +189,7 @@ ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_HasFunction,			idEntity::Event_HasFunction )
 	EVENT( EV_CallFunction,			idEntity::Event_CallFunction )
 	EVENT( EV_SetNeverDormant,		idEntity::Event_SetNeverDormant )
+	EVENT( EV_SprayDecal,			idEntity::Event_SprayDecal )
 END_CLASS
 
 /*
@@ -266,15 +271,21 @@ void idGameEdit::ParseSpawnArgsToRenderEntity( const idDict *args, renderEntity_
 
 	args->GetVector( "origin", "0 0 0", renderEntity->origin );
 
-	// get the rotation matrix in either full form, or single angle form
-	if ( !args->GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", renderEntity->axis ) ) {
-		angle = args->GetFloat( "angle" );
-		if ( angle != 0.0f ) {
-			renderEntity->axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
-		} else {
-			renderEntity->axis.Identity();
-		}
-	}
+	// grimm --> added 'random_rotspawn' spawnarg for randomly rotated entities upon mapload.
+	if ( args->GetBool( "random_rotspawn", "0" ) ) {
+		renderEntity->axis = idAngles( 0.0f, gameLocal.random.RandomFloat() * 360 , 0.0f).ToMat3();
+	} else {
+		//original code:
+		// get the rotation matrix in either full form, or single angle form
+		if ( !args->GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", renderEntity->axis ) ) {
+			angle = args->GetFloat( "angle" );
+			if ( angle != 0.0f ) {
+				renderEntity->axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+			} else {
+				renderEntity->axis.Identity();
+			}
+		} // <-- original code
+	} // <--grimm
 
 	renderEntity->referenceSound = NULL;
 
@@ -541,7 +552,15 @@ void idEntity::Spawn( void ) {
 		}
 	}
 
-	health = spawnArgs.GetInt( "health" );
+// sikk---> Doom/Custom Health Values
+	if ( g_enemyHealthType.GetInteger() == 1 && spawnArgs.GetInt( "health_doom" ) ) {
+		health = spawnArgs.GetInt( "health_doom" );
+	} else if ( g_enemyHealthType.GetInteger() == 2 && spawnArgs.GetInt( "health_custom" ) ) {
+		health = spawnArgs.GetInt( "health_custom" );
+	} else {
+		health = spawnArgs.GetInt( "health" );
+	}
+// <---sikk
 
 	InitDefaultPhysics( origin, axis );
 
@@ -559,7 +578,9 @@ void idEntity::Spawn( void ) {
 
 	// auto-start a sound on the entity
 	if ( refSound.shader && !refSound.waitfortrigger ) {
-		StartSoundShader( refSound.shader, SND_CHANNEL_ANY, 0, false, NULL );
+		//StartSoundShader( refSound.shader, SND_CHANNEL_ANY, 0, false, NULL );
+		// grimm --> changed to snd_channel_ambient
+		StartSoundShader( refSound.shader, SND_CHANNEL_AMBIENT, 0, false, NULL );		
 	}
 
 	// setup script object
@@ -1663,6 +1684,19 @@ void idEntity::SetSoundVolume( float volume ) {
 	refSound.parms.volume = volume;
 }
 
+/* grimm -->
+================
+idEntity::FadeSound
+
+  Can be called while sound is playing.
+================
+*/
+void idEntity::FadeSound( float volume, float length ) {
+	refSound.referenceSound->FadeSound(0,volume,length);
+}
+
+//<-- grimm
+
 /*
 ================
 idEntity::UpdateSound
@@ -2558,7 +2592,7 @@ bool idEntity::RunPhysics( void ) {
 	endTime = gameLocal.time;
 
 	gameLocal.push.InitSavingPushedEntityPositions();
-	blockedPart = NULL;
+	blockedPart = blockingEntity = NULL;	// sikk - warning C4701: potentially uninitialized local variable used
 
 	// save the physics state of the whole team and disable the team for collision detection
 	for ( part = this; part != NULL; part = part->teamChain ) {
@@ -2998,7 +3032,16 @@ void idEntity::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 		gameLocal.Error( "Unknown damageDef '%s'\n", damageDefName );
 	}
 
-	int	damage = damageDef->GetInt( "damage" );
+// sikk---> Damage Type
+	int	damage;
+	//if ( g_damageType.GetInteger() == 1 && damageDef->GetInt( "damage_doom_scale" ) ) {
+	//	damage = damageDef->GetInt( "damage_doom_scale" ) * ( gameLocal.random.RandomInt( 255 ) % damageDef->GetInt( "damage_doom_range" ) + 1 );
+	//} else if ( g_damageType.GetInteger() == 2 && damageDef->GetInt( "damage_custom" ) ) {
+	//	damage = damageDef->GetInt( "damage_custom" );
+	//} else {
+		damage = damageDef->GetInt( "damage" );
+	//}
+// <---sikk
 
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );
@@ -4578,6 +4621,28 @@ void idEntity::Event_SetNeverDormant( int enable ) {
 	fl.neverDormant	= ( enable != 0 );
 	dormantStart = 0;
 }
+
+/* grimm --> spraydecal
+================
+idEntity::Event_SprayDecal
+================
+*/
+void idEntity::Event_SprayDecal( idVec3 spray_origin, const char *mtr_decal, idVec3 spray_angle, float size ) {
+
+	//srpay something
+	idVec3 newangle = spray_angle;	
+	//gameLocal.Printf( "%s <--current vector\n", spray_angle->ToString() );
+	
+	if ( spray_angle.x <= -45 ) {
+		newangle.z = 90;
+	}
+	if ( spray_angle.x >= 45 ) {
+		newangle.z = -90;
+	}
+
+	gameLocal.ProjectDecal( spray_origin, newangle, 256.0f, true, size, mtr_decal, 0, true ); 	
+}
+
 
 /***********************************************************************
 

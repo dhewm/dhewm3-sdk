@@ -39,6 +39,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "PlayerIcon.h"
 #include "GameEdit.h"
 
+#include "Grab.h"
+
 class idAI;
 
 /*
@@ -639,7 +641,7 @@ public:
 	void					CheckKillAccolade( void );
 	int						lastAccoladeCheck;
 	int						nextAccoladeCheck;
-	void					SpawnThing( char *clname );
+	void					SpawnThing( const char *clname );
 	
 	// obstacle checking (move cloth etc..)
 	void					CheckObstacle( void );

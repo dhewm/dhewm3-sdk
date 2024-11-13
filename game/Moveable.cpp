@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 
 #include "Moveable.h"
+#include "SmokeParticles.h"
 
 /*
 ===============================================================================
@@ -290,7 +291,7 @@ void idMoveable::Hide( void ) {
 
 	// grimm --> blood spray
 	last_spraytime = 0;
-	if ( mtr_collide.c_str() != "" && last_spraytime < gameLocal.GetTime() ) {
+	if ( mtr_collide.c_str()[0] != '\0'  && last_spraytime < gameLocal.GetTime() ) {
 		idVec3 org = physicsObj.GetOrigin();
 		gameLocal.ProjectDecal( org, GetPhysics()->GetGravity(), 128.0f, true, 96.0f, mtr_collide.c_str() );
 	}

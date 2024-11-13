@@ -37,6 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SmokeParticles.h"
 
 #include "Projectile.h"
+#include "Fx.h"
 
 /*
 ===============================================================================
@@ -946,7 +947,7 @@ void idProjectile::Explode( const trace_t &collision, idEntity *ignore ) {
 			}
 // sikk---> Entities hit directly by a projectile will no longer be ignored by splash damage
 //			PostEventSec( &EV_RadiusDamage, delay, ignore );
-			PostEventSec( &EV_RadiusDamage, delay, NULL );
+			PostEventSec( &EV_RadiusDamage, delay );
 		} else {
 //			Event_RadiusDamage( ignore );
 			Event_RadiusDamage( NULL );

@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Game_local.h"
 
 #include "SmokeParticles.h"
+#include "Entity.h"
 
 static const char *smokeParticle_SnapshotName = "_SmokeParticle_Snapshot_";
 

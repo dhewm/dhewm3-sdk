@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Player.h"
 
 #include "Trigger.h"
+#include "ai/AI.h"
 
 /*
 ===============================================================================

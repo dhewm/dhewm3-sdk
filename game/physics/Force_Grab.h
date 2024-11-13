@@ -3,6 +3,8 @@
 #ifndef __FORCE_GRAB_H__
 #define __FORCE_GRAB_H__
 
+#include "physics/Force.h"
+
 /*
 ===============================================================================
 

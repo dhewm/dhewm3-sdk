@@ -40,6 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Camera.h"
 #include "Fx.h"
 #include "Misc.h"
+#include "Moveable.h"
 
 const int ASYNC_PLAYER_INV_AMMO_BITS = idMath::BitsForInteger( 999 );	// 9 bits to cover the range [0, 999]
 const int ASYNC_PLAYER_INV_CLIP_BITS = -7;								// -7 bits to cover the range [-1, 60]
@@ -1403,7 +1404,7 @@ void idPlayer::Init( void ) {
 	//grimm -->
 	music_suspense			= gameLocal.FindEntity("music_suspense");
 	music_combat			= gameLocal.FindEntity("music_combat");
-	use_combat_music		= gameLocal.world->spawnArgs.GetBool("use_combat_music", false);
+	use_combat_music		= gameLocal.world->spawnArgs.GetBool("use_combat_music", "0");
 	combat_musicon			= false;
 	music_waittime			= 0.0f;
 
@@ -7288,7 +7289,7 @@ void idPlayer::Event_SetSlomoSound( float slomoval ) {
 idPlayer::SpawnThing( char clname );
 =================
 */
-void idPlayer::SpawnThing( char *clname ) {
+void idPlayer::SpawnThing( const char *clname ) {
 	float		yaw;
 	idVec3		org;
 	idDict		dict;

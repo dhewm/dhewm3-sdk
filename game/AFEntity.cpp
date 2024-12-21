@@ -1213,7 +1213,7 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	}
 
 
-	PostEventSec( &EV_Gibbed, 4.0f );
+	PostEventMS( &EV_Gibbed, 1.0f ); // Blood Mod
 }
 
 /*

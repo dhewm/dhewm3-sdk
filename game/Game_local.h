@@ -163,6 +163,12 @@ typedef struct {
 	int			dist;
 } spawnSpot_t;
 
+enum {
+	PORTALSKY_STANDARD = 0,		// standard D3XP portalsky
+	PORTALSKY_GLOBAL = 1,			// always following portal sky since the start of the level
+	PORTALSKY_LOCAL = 2,			// when triggered start follwing always from the spawn position
+};
+
 //============================================================================
 
 class idEventQueue {
@@ -294,6 +300,21 @@ public:
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
 
+        idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+	bool					globalPortalSky;	
+	int					portalSkyScale;		
+	int					currentPortalSkyType;	//0 = classic, 1 = global, 2 = local 
+	idVec3			        portalSkyOrigin;	
+	idVec3			        portalSkyGlobalOrigin;	
+	idVec3			        playerOldEyePos;
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyActive();
+	bool					CheckGlobalPortalSky();	
+	void					SetGlobalPortalSky(const char *name);
+	void					SetCurrentPortalSkyType(int type);	// 0 = classic, 1 = global, 2 = local
+	int					GetCurrentPortalSkyType();	//0 = classic, 1 = global, 2 = local
+
 	// ---------------------- Public idGame Interface -------------------
 
 							idGameLocal();
@@ -386,6 +407,8 @@ public:
 
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
+	
+	pvsHandle_t			GetPlayerPVS() { return playerPVS; };
 
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;

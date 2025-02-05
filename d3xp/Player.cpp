@@ -8779,8 +8779,8 @@ idPlayer::AddAIKill
 =============
 */
 void idPlayer::AddAIKill( void ) {
-
-#ifndef _D3XP
+// koz we want to do this for LM
+// #ifndef _D3XP
 
 	int max_souls;
 	int ammo_souls;
@@ -8801,7 +8801,7 @@ void idPlayer::AddAIKill( void ) {
 			StartSound( "snd_soulcube_ready", SND_CHANNEL_ANY, 0, false, NULL );
 		}
 	}
-#endif
+// #endif
 }
 
 /*

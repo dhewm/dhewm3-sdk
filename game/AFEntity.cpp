@@ -1123,8 +1123,30 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 	// spawn gib articulated figures
 	idAFEntity_Base::DropAFs( this, "gib", &list );
 
-	// spawn gib items
-	idMoveableItem::DropItems( this, "gib", &list );
+	// darknar 2025 start
+	if (spawnArgs.GetBool("realgib_random")) {
+		int randGib = gameLocal.random.RandomInt(4);
+		// spawn gib items
+		if (randGib == 1) {
+			idMoveableItem::DropItems(this, "1gib", &list);
+		}
+		else if (randGib == 2) {
+			idMoveableItem::DropItems(this, "2gib", &list);
+		}
+		else if (randGib == 3) {
+			idMoveableItem::DropItems(this, "3gib", &list);
+		}
+		else if (randGib == 4) {
+			idMoveableItem::DropItems(this, "4gib", &list);
+		}
+		else {
+			idMoveableItem::DropItems(this, "gib", &list);
+		}
+	}
+	else {
+		idMoveableItem::DropItems(this, "gib", &list);
+	}
+	// darknar 2025 end
 
 	// blow out the gibs in the given direction away from the center of the entity
 	entityCenter = GetPhysics()->GetAbsBounds().GetCenter();
@@ -1140,7 +1162,7 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 			list[i]->GetPhysics()->SetContents(0); // darknar
 			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
 			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
-			velocity.NormalizeFast();
+			//velocity.NormalizeFast(); // Blood Mod
 			velocity += ( i & 1 ) ? dir : -dir;
 			// list[i]->GetPhysics()->SetLinearVelocity( velocity * 75.0f );
 			list[i]->GetPhysics()->SetLinearVelocity(velocity * gibPower); // darknar gib power

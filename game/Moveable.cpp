@@ -74,10 +74,7 @@ idMoveable::idMoveable( void ) {
 	explode				= false;
 	unbindOnDeath		= false;
 	allowStep			= false;
-	canDamage			= false;
-
-	nextSoundTime = 0; // darknar collide data
-	nextCollideFxTime = 0; // Blood Mod	
+	canDamage			= false;	
 }
 
 /*

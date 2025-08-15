@@ -1125,9 +1125,12 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 
 	// darknar 2025 start
 	if (spawnArgs.GetBool("realgib_random")) {
-		int randGib = gameLocal.random.RandomInt(5);
+		int randGib = gameLocal.random.RandomInt(spawnArgs.GetInt(va("realgib_random_num"), "1"));
 		// spawn gib items
-		if (randGib == 2) {
+		if (randGib == 1) {
+			idMoveableItem::DropItems(this, "1gib", &list);
+		}
+		else if (randGib == 2) {
 			idMoveableItem::DropItems(this, "2gib", &list);
 		}
 		else if (randGib == 3) {
@@ -1135,9 +1138,6 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 		}
 		else if (randGib == 4) {
 			idMoveableItem::DropItems(this, "4gib", &list);
-		}
-		else if (randGib == 5) {
-			idMoveableItem::DropItems(this, "5gib", &list);
 		}
 		else {
 			idMoveableItem::DropItems(this, "gib", &list);

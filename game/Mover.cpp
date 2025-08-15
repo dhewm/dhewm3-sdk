@@ -1784,6 +1784,13 @@ idElevator::Event_TeamBlocked
 ================
 */
 void idElevator::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity ) {
+
+	// Darknar 2025-2 start
+	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // added blockingEntity so test no reverse on crushing gibs
+		return;		// crushers don't reverse
+	}
+	// Darknar 2025-2 end
+	
 	if ( blockedEntity == this ) {
 		Event_GotoFloor( lastFloor );
 	} else if ( blockedEntity && blockedEntity->IsType( idDoor::Type ) ) {
@@ -3763,9 +3770,11 @@ idDoor::Blocked_Door
 void idDoor::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity ) {
 	SetBlocked( true );
 
-	if ( crusher ) {
+	// Darknar 2025-2 start
+	if ( crusher || blockingEntity->IsType(idMoveableGibItem::Type) ) { // added blockingEntity so test no reverse on crushing gibs
 		return;		// crushers don't reverse
 	}
+	// Darknar 2025-2 end
 
 	// reverse direction
 	Use_BinaryMover( moveMaster->GetActivator() );
@@ -4220,6 +4229,13 @@ idPlat::Event_TeamBlocked
 ================
 */
 void idPlat::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity ) {
+
+	// Darknar 2025-2 start
+	if ( blockingEntity->IsType(idMoveableGibItem::Type) ) { // added blockingEntity so test no reverse on crushing gibs
+		return;		// do not reverse if there is a gib item. crush and remove all of them
+	}
+	// Darknar 2025-2 end
+	
 	// reverse direction
 	Use_BinaryMover( activatedBy.GetEntity() );
 }

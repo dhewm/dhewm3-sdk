@@ -2191,8 +2191,15 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health <= spawnArgs.GetInt( va( /*va("health_gib"),*/ ), "0" ) ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) { // Blood Mod - health_gib sets a custom value for gibbing, 0 = default (currently disabled)
-				Gib( dir, damageDefName );
+			if (damageDef->GetBool("gibbing")) {
+				if ((health <= spawnArgs.GetInt(va("health_gib"), "0")) && spawnArgs.GetBool("gib")) {
+					Gib(dir, damageDefName);
+				}
+			}
+			if (damageDef->GetBool("gibbing_explosion")) {
+				if ((health <= 0) && spawnArgs.GetBool("gib")) {
+					Gib(dir, damageDefName);
+				}
 			}
 		} else {
 			Pain( inflictor, attacker, damage, dir, location );

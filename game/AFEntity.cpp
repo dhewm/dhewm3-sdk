@@ -1107,6 +1107,7 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 	float gibTime; // darknar
 	float gibPower; // darknar
 	bool gibNonSolid;
+	bool gibbing; // Blood Mod
 	idVec3 entityCenter, velocity;
 	idList<idEntity *> list;
 
@@ -1151,12 +1152,20 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 	// blow out the gibs in the given direction away from the center of the entity
 	entityCenter = GetPhysics()->GetAbsBounds().GetCenter();
 	gibNonSolid = damageDef->GetBool( "gibNonSolid" );
+	gibbing = damageDef->GetBool("gibbing"); // Blood Mod
 	for ( i = 0; i < list.Num(); i++ ) {
 		if ( gibNonSolid ) {
 			list[i]->GetPhysics()->SetContents( 0 );
 			list[i]->GetPhysics()->SetClipMask( 0 );
 			list[i]->GetPhysics()->UnlinkClip();
 			list[i]->GetPhysics()->PutToRest();
+		if (gibbing) { // Blood Mod add
+			list[i]->GetPhysics()->SetContents(0);
+			list[i]->GetPhysics()->SetClipMask(CONTENTS_SOLID);
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += (i & 1) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity(velocity * 85.0f);
 		} else {
 			//list[i]->GetPhysics()->SetContents( CONTENTS_CORPSE );
 			list[i]->GetPhysics()->SetContents(0); // darknar

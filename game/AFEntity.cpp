@@ -1159,6 +1159,7 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 			list[i]->GetPhysics()->SetClipMask( 0 );
 			list[i]->GetPhysics()->UnlinkClip();
 			list[i]->GetPhysics()->PutToRest();
+		}
 		if (gibbing) { // Blood Mod add
 			list[i]->GetPhysics()->SetContents(0);
 			list[i]->GetPhysics()->SetClipMask(CONTENTS_SOLID);

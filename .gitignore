@@ -1,1 +1,5 @@
 /build*
+/.vs/buildSDK/v16
+/.vs/ProjectSettings.json
+/.vs/slnx.sqlite
+/out/build/x64-Debug

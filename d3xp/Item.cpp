@@ -1620,6 +1620,8 @@ idMoveableItem::idMoveableItem() {
 	trigger = NULL;
 	smoke = NULL;
 	smokeTime = 0;
+
+	nextCollideFxTime = 0; // Blood Mod
 #ifdef _D3XP
 	nextSoundTime = 0;
 #endif
@@ -1651,6 +1653,10 @@ void idMoveableItem::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteParticle( smoke );
 	savefile->WriteInt( smokeTime );
+	
+	savefile->WriteString( fxCollide ); // darknar collide data
+	savefile->WriteString( mtrCollide ); // darknar
+	savefile->WriteInt( nextCollideFxTime ); // Blood Mod
 #ifdef _D3XP
 	savefile->WriteInt( nextSoundTime );
 #endif
@@ -1669,6 +1675,10 @@ void idMoveableItem::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadParticle( smoke );
 	savefile->ReadInt( smokeTime );
+	
+	savefile->ReadString( fxCollide ); // darknar collide data
+	savefile->ReadString( mtrCollide ); // darknar
+	savefile->ReadInt( nextCollideFxTime ); // Blood Mod
 #ifdef _D3XP
 	savefile->ReadInt( nextSoundTime );
 #endif
@@ -1710,6 +1720,10 @@ void idMoveableItem::Spawn( void ) {
 	if ( spawnArgs.GetBool( "clipshrink" ) ) {
 		trm.Shrink( CM_CLIP_EPSILON );
 	}
+
+	fxCollide = spawnArgs.GetString( "fx_collide" ); // darknar collide data
+	mtrCollide = spawnArgs.GetString( "mtr_collide" ); // darknar
+	nextCollideFxTime = 0; // Blood Mod
 
 	// get rigid body properties
 	spawnArgs.GetFloat( "density", "0.5", density );
@@ -1784,10 +1798,11 @@ void idMoveableItem::Think( void ) {
 #ifdef _D3XP
 /*
 =================
-idMoveableItem::Collide
+idMoveableItem::Collide // darknar collide data, allows idMoveableGibItem and idMoveableItem spawn a collide fx when collides. I was using a idMoveable to make the gib splats, if that was causing lag, this can help to make the blood decals.
 =================
 */
-bool idMoveableItem::Collide( const trace_t &collision, const idVec3 &velocity ) {
+
+bool idMoveableItem::Collide(const trace_t& collision, const idVec3& velocity) {
 	float v, f;
 
 	v = -( velocity * collision.c.normal );
@@ -1799,6 +1814,22 @@ bool idMoveableItem::Collide( const trace_t &collision, const idVec3 &velocity )
 			SetSoundVolume( f );
 		}
 		nextSoundTime = gameLocal.time + 500;
+		
+		// darknar start
+		if ( fxCollide.Length() && gameLocal.time > nextCollideFxTime ) {
+			if ( mtrCollide.Length() ) {
+				gameLocal.ProjectDecal( collision.c.point, -collision.c.normal, 8.0f, true, spawnArgs.GetFloat( "gib_decal_size", "16.0" ), spawnArgs.RandomPrefix( "mtr_collide", gameLocal.random ) ); // Blood Mod 1.8
+			}
+			// darknar end
+			// Blood Mod start
+			int CollideFxTime;
+			idEntityFx::StartFx( fxCollide, &collision.c.point, NULL, this, false );
+			if ( !spawnArgs.GetInt( "next_collide_fx_time", "500", CollideFxTime ) ) {
+				CollideFxTime = spawnArgs.GetInt( va( "next_collide_fx_time" ), "500" ); // Set a delay for the next blood splat to appear in Fx effects. 500 = default
+			}
+			nextCollideFxTime = gameLocal.time + CollideFxTime;
+		}
+		// Blood Mod end
 	}
 
 	return false;
@@ -1844,14 +1875,18 @@ idEntity *idMoveableItem::DropItem( const char *classname, const idVec3 &origin,
 		item->GetPhysics()->SetAxis( axis );
 		item->GetPhysics()->SetLinearVelocity( velocity );
 		item->UpdateVisuals();
+		// Blood Mod deleted this
+		/*
 		if ( activateDelay ) {
 			item->PostEventMS( &EV_Activate, activateDelay, item );
 		}
+
 		if ( !removeDelay ) {
 			removeDelay = 5 * 60 * 1000;
 		}
 		// always remove a dropped item after 5 minutes in case it dropped to an unreachable location
 		item->PostEventMS( &EV_Remove, removeDelay );
+		*/
 	}
 	return item;
 }
@@ -2166,3 +2201,16 @@ void idObjectiveComplete::Event_HideObjective( idEntity *e ) {
 		}
 	}
 }
+
+// darknar start change
+
+/*
+================
+idMoveableGibItem
+================
+*/
+
+CLASS_DECLARATION(idMoveableItem, idMoveableGibItem)
+END_CLASS
+
+// darknar end change

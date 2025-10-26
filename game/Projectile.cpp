@@ -1545,7 +1545,7 @@ void idSoulCubeMissile::KillTarget( const idVec3 &dir ) {
 			static_cast<idPlayer *>( ownerEnt )->GiveHealthPool( act->health );
 		}
 		act->Damage( this, owner.GetEntity(), dir,  spawnArgs.GetString( "def_damage" ), 1.0f, INVALID_JOINT );
-		act->GetAFPhysics()->SetTimeScale( 0.25 );
+		//act->GetAFPhysics()->SetTimeScale( 0.25 ); // Blood Mod 1.8
 		StartSound( "snd_explode", SND_CHANNEL_BODY, 0, false, NULL );
 	}
 }

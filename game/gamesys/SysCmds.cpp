@@ -268,11 +268,11 @@ Cmd_ClearGibs_f
 Kill all gib moveable in a level.
 ==================
 */
-void Cmd_ClearGibs_f(const idCmdArgs& args) {
-	if (!gameLocal.GetLocalPlayer()) {
+void Cmd_ClearGibs_f( const idCmdArgs& args ) {
+	if ( !gameLocal.GetLocalPlayer() ) {
 		return;
 	}
-	KillEntities(args, idMoveableGibItem::Type);
+	KillEntities( args, idMoveableGibItem::Type );
 }
 // darknar end change
 

@@ -168,7 +168,7 @@ public:
 	void					Spawn( void );
 	virtual void			Think( void );
 #ifdef _D3XP
-	virtual bool			Collide( const trace_t &collision, const idVec3 &velocity );
+	virtual bool			Collide( const trace_t& collision, const idVec3& velocity ); // darknar, probably this can be useful if the splat fx moveable gib was causing lag. Allow idMoveableItem class spawn fx on collision
 #endif
 	virtual bool			Pickup( idPlayer *player );
 
@@ -188,6 +188,9 @@ private:
 	const idDeclParticle *	smoke;
 	int						smokeTime;
 
+	idStr					fxCollide; // darknar, fx collide data
+	idStr                   mtrCollide; // darknar
+	int                     nextCollideFxTime; // Blood Mod
 #ifdef _D3XP
 	int						nextSoundTime;
 #endif
@@ -312,5 +315,19 @@ private:
 	void					Event_HideObjective( idEntity *e );
 	void					Event_GetPlayerPos();
 };
+
+// darknar start change
+
+/*
+===============================================================================
+idMoveableGibItem
+===============================================================================
+*/
+class idMoveableGibItem : public idMoveableItem {
+public:
+	CLASS_PROTOTYPE( idMoveableGibItem );
+};
+
+// darknar end change
 
 #endif /* !__GAME_ITEM_H__ */

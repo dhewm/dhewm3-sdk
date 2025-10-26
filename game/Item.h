@@ -161,7 +161,7 @@ public:
 
 	void					Spawn( void );
 	virtual void			Think( void );
-	virtual bool			Collide(const trace_t& collision, const idVec3& velocity); // darknar, probably this can be useful if the splat fx moveable gib was causing lag. Allow idMoveableItem class spawn fx on collision
+	virtual bool			Collide( const trace_t& collision, const idVec3& velocity ); // darknar, probably this can be useful if the splat fx moveable gib was causing lag. Allow idMoveableItem class spawn fx on collision
 	virtual bool			Pickup( idPlayer *player );
 
 	static void				DropItems( idAnimatedEntity *ent, const char *type, idList<idEntity *> *list );
@@ -177,8 +177,8 @@ private:
 	int						smokeTime;
 	int						nextSoundTime; // darknar, fx collide data
 	idStr					fxCollide; // darknar, fx collide data
-	idStr                                   mtrCollide; // darknar
-	int                                     nextCollideFxTime; // Blood Mod
+	idStr                   mtrCollide; // darknar
+	int                     nextCollideFxTime; // Blood Mod
 	void					Gib( const idVec3 &dir, const char *damageDefName );
 
 	void					Event_DropToFloor( void );
@@ -239,7 +239,7 @@ idMoveableGibItem
 */
 class idMoveableGibItem : public idMoveableItem {
 public:
-	CLASS_PROTOTYPE(idMoveableGibItem);
+	CLASS_PROTOTYPE( idMoveableGibItem );
 };
 
 // darknar end change

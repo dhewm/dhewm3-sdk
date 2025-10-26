@@ -46,6 +46,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Entity.h"
 
+class idProjectile; // PD3
+
 /*
 ===============================================================================
 
@@ -120,6 +122,8 @@ const idEventDef EV_StartFx( "startFx", "s" );
 const idEventDef EV_HasFunction( "hasFunction", "s", 'd' );
 const idEventDef EV_CallFunction( "callFunction", "s" );
 const idEventDef EV_SetNeverDormant( "setNeverDormant", "d" );
+const idEventDef EV_FireProjectile( "fireProjectile", "svv", 'e' ); // PD3
+const idEventDef EV_FireProjAtTarget( "fireProjAtTarget", "svE", 'e' ); // PD3
 
 ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_GetName,				idEntity::Event_GetName )
@@ -185,7 +189,91 @@ ABSTRACT_DECLARATION( idClass, idEntity )
 	EVENT( EV_HasFunction,			idEntity::Event_HasFunction )
 	EVENT( EV_CallFunction,			idEntity::Event_CallFunction )
 	EVENT( EV_SetNeverDormant,		idEntity::Event_SetNeverDormant )
+	EVENT( EV_FireProjectile,       idEntity::Event_FireProjectile ) // PD3
+	EVENT( EV_FireProjAtTarget,     idEntity::Event_FireProjAtTarget ) // PD3
 END_CLASS
+
+/*
+================
+idEntity::CommonFireProjectile // PD3
+================
+*/
+idProjectile* idEntity::CommonFireProjectile( const char* projDefName, const idVec3& firePos, const idVec3& dir ) {
+	idProjectile* proj;
+	idEntity* ent;
+	idDict         projectileDict;
+
+	if ( gameLocal.isClient ) { return NULL; }
+
+	const idDeclEntityDef* projectileDef = gameLocal.FindEntityDef( projDefName, false );
+	if ( !projectileDef ) {
+		gameLocal.Warning( "No def '%s' found", projDefName );
+		return NULL;
+	}
+
+	projectileDict = projectileDef->dict;
+	if ( !projectileDict.GetNumKeyVals() ) {
+		gameLocal.Warning( "No projectile defined '%s'", projDefName );
+		return NULL;
+	}
+
+	if ( IsType( idPlayer::Type ) ) {
+		static_cast<idPlayer*>( this )->AddProjectilesFired( 1 );
+		gameLocal.AlertAI( this );
+	}
+
+	gameLocal.SpawnEntityDef( projectileDict, &ent, false );
+
+	if ( !ent || !ent->IsType( idProjectile::Type ) ) {
+		gameLocal.Error( "'%s' is not an idProjectile", projDefName );
+	}
+
+	if ( projectileDict.GetBool( "net_instanthit" ) ) {
+		ent->fl.networkSync = false;
+	}
+
+	proj = static_cast<idProjectile*>( ent );
+	proj->Create( this, firePos, dir );
+	proj->Launch( firePos, dir, vec3_origin );
+	return proj;
+}
+
+/*
+=====================
+idEntity::CommonGetAimDir // PD3
+=====================
+*/
+void idEntity::CommonGetAimDir( const idVec3& firePos, idEntity* aimAtEnt, idVec3& aimDir ) {
+	idVec3   mainTargetPos;
+	idVec3   secTargetPos; //not used, but necessary
+
+	if ( aimAtEnt ) { //target entity ok!
+		if ( aimAtEnt->IsType( idPlayer::Type ) ) { //player - head
+			static_cast<idPlayer*>( aimAtEnt )->GetAIAimTargets( aimAtEnt->GetPhysics()->GetOrigin(), mainTargetPos, secTargetPos );
+		}
+		else if ( aimAtEnt->IsType( idActor::Type ) ) { //AI - chest
+			static_cast<idActor*>( aimAtEnt )->GetAIAimTargets( aimAtEnt->GetPhysics()->GetOrigin(), secTargetPos, mainTargetPos );
+		}
+		else { //center
+			mainTargetPos = aimAtEnt->GetPhysics()->GetAbsBounds().GetCenter();
+		}
+
+		aimDir = mainTargetPos - firePos;
+		aimDir.Normalize();
+
+	}
+	else { //no valid aimAtEnt entity!
+		if ( IsType( idPlayer::Type ) ) { //player - view
+			static_cast<idPlayer*>( this )->viewAngles.ToVectors( &aimDir, NULL, NULL );
+		}
+		else if ( IsType( idActor::Type ) ) { //AI - axis
+			aimDir = static_cast<idActor*>( this )->viewAxis[ 0 ];
+		}
+		else {
+			aimDir = GetPhysics()->GetAxis()[ 0 ];
+		}
+	}
+}
 
 /*
 ================
@@ -4579,6 +4667,36 @@ void idEntity::Event_SetNeverDormant( int enable ) {
 	dormantStart = 0;
 }
 
+/*
+================
+idEntity::Event_FireProjectile PD3
+================
+*/
+void idEntity::Event_FireProjectile( const char* projDefName, const idVec3& firePos, const idAngles& fireAng ) {
+	idProjectile* proj;
+	idVec3   dir;
+
+	dir = fireAng.ToForward();
+	proj = CommonFireProjectile( projDefName, firePos, dir );
+
+	idThread::ReturnEntity( proj );
+}
+
+/*
+================
+idEntity::Event_FireProjAtTarget PD3
+================
+*/
+void idEntity::Event_FireProjAtTarget( const char* projDefName, const idVec3& firePos, idEntity* aimAtEnt ) {
+	idProjectile* proj;
+	idVec3         dir;
+
+	CommonGetAimDir( firePos, aimAtEnt, dir );
+	proj = CommonFireProjectile( projDefName, firePos, dir );
+
+	idThread::ReturnEntity( proj );
+}
+
 /***********************************************************************
 
    Network
@@ -4883,6 +5001,8 @@ const idEventDef EV_SetJointPos( "setJointPos", "ddv" );
 const idEventDef EV_SetJointAngle( "setJointAngle", "ddv" );
 const idEventDef EV_GetJointPos( "getJointPos", "d", 'v' );
 const idEventDef EV_GetJointAngle( "getJointAngle", "d", 'v' );
+const idEventDef EV_FireProjectileFromJoint( "fireProjectileFromJoint", "sdv", 'e' );  // PD3
+const idEventDef EV_FireProjAtTargetFromJoint( "fireProjAtTargetFromJoint", "sdE", 'e' ); // PD3
 
 CLASS_DECLARATION( idEntity, idAnimatedEntity )
 	EVENT( EV_GetJointHandle,		idAnimatedEntity::Event_GetJointHandle )
@@ -4892,6 +5012,8 @@ CLASS_DECLARATION( idEntity, idAnimatedEntity )
 	EVENT( EV_SetJointAngle,		idAnimatedEntity::Event_SetJointAngle )
 	EVENT( EV_GetJointPos,			idAnimatedEntity::Event_GetJointPos )
 	EVENT( EV_GetJointAngle,		idAnimatedEntity::Event_GetJointAngle )
+	EVENT( EV_FireProjectileFromJoint, idAnimatedEntity::Event_FireProjectileFromJoint ) // PD3
+	EVENT( EV_FireProjAtTargetFromJoint, idAnimatedEntity::Event_FireProjAtTargetFromJoint ) // PD3
 END_CLASS
 
 /*
@@ -4902,8 +5024,9 @@ idAnimatedEntity::idAnimatedEntity
 idAnimatedEntity::idAnimatedEntity() {
 	animator.SetEntity( this );
 	damageEffects = NULL;
-	nextBloodPoolTime = 0; // Blood Mod
+
 	nextSplatTime = 0; // Blood Mod
+	nextBloodPoolTime = 0; // Blood Mod
 }
 
 /*
@@ -4933,8 +5056,8 @@ void idAnimatedEntity::Save( idSaveGame *savefile ) const {
 	// Wounds are very temporary, ignored at this time
 	//damageEffect_t			*damageEffects;
 
-	savefile->WriteInt(nextBloodPoolTime); // Blood Mod
-	savefile->WriteInt(nextSplatTime); // Blood Mod
+	savefile->WriteInt( nextSplatTime ); // Blood Mod
+	savefile->WriteInt( nextBloodPoolTime ); // Blood Mod
 }
 
 /*
@@ -4958,8 +5081,8 @@ void idAnimatedEntity::Restore( idRestoreGame *savefile ) {
 		}
 	}
 
-	savefile->ReadInt(nextBloodPoolTime); // Blood Mod
-	savefile->ReadInt(nextSplatTime); // Blood Mod
+	savefile->ReadInt( nextSplatTime ); // Blood Mod
+	savefile->ReadInt( nextBloodPoolTime ); // Blood Mod
 }
 
 /*
@@ -5179,11 +5302,11 @@ idAnimatedEntity::AddLocalDamageEffect
 void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec3 &localOrigin, const idVec3 &localNormal, const idVec3 &localDir, const idDeclEntityDef *def, const idMaterial *collisionMaterial ) {
 	const char *sound, *splat, *decal, *bleed, *key;
 	damageEffect_t	*de;
-	idVec3 gravDir;
-	idPhysics *phys;
-
-	idMat3 axis;
 	idVec3 origin, dir;
+	idMat3 axis;
+	idVec3 gravDir; // Blood Mod
+	idPhysics* phys; // Blood Mod
+
 	axis = renderEntity.joints[jointNum].ToMat3() * renderEntity.axis;
 	origin = renderEntity.origin + renderEntity.joints[jointNum].ToVec3() * renderEntity.axis;
 
@@ -5200,7 +5323,6 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 
 	// start impact sound based on material type
 	key = va( "snd_%s", materialType );
-
 	sound = spawnArgs.GetString( key );
 
 	if ( *sound == '\0' ) {
@@ -5211,97 +5333,92 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		StartSoundShader( declManager->FindSound( sound ), SND_CHANNEL_BODY, 0, false, NULL );
 	}
 
-	//if (health > 0) {
-		int splatTime;
+	int splatTime;
 
-	if (gameLocal.time > nextSplatTime) {
-			// blood splats are thrown onto nearby surfaces
-			key = va("mtr_splat_%s", materialType);
-			splat = spawnArgs.RandomPrefix(key, gameLocal.random);
+	if ( gameLocal.time > nextSplatTime ) {
+		// blood splats are thrown onto nearby surfaces
+		key = va( "mtr_splat_%s", materialType );
+		splat = spawnArgs.RandomPrefix( key, gameLocal.random );
 
-			if (*splat == '\0') {
-				splat = def->dict.RandomPrefix(key, gameLocal.random);
-			}
+		if ( *splat == '\0' ) {
+			splat = def->dict.RandomPrefix( key, gameLocal.random );
+		}
 
-			if (*splat != '\0') {
-				//gameLocal.BloodSplat(origin, dir, 64.0f, splat);
-				gameLocal.BloodSplat( origin, dir, def->dict.GetFloat( va("size_splat_%s", materialType), "64.0f"), splat ); // Blood Mod - Set blood splat size, 64 = default
-			}
+		if ( *splat != '\0' ) {
+			gameLocal.BloodSplat( origin, dir, def->dict.GetFloat( va( "size_splat_%s", materialType ), "64.0f" ), splat ); // Blood Mod - Set blood splat size, 64 = default
+		}
 
-			// Blood Mod - Set a delay for the next blood splat to appear, 300 = default
-			if (!spawnArgs.GetInt("next_splat_time", "300", splatTime)) {
-				splatTime = def->dict.GetInt( va("next_splat_time"), "300");
-			}
-			nextSplatTime = gameLocal.time + splatTime;
+		// Blood Mod - Set a delay for the next blood splat to appear, 300 = default
+		if ( !spawnArgs.GetInt( "next_splat_time", "300", splatTime ) ) {
+			splatTime = def->dict.GetInt( va( "next_splat_time" ), "300" );
+		}
+		nextSplatTime = gameLocal.time + splatTime;
 	}
-	//}
 
 	//Create blood pools at feet, Only when alive - By Clone JCD
-	if (health > 0){ 
+	if ( health > 0 ){ 
 		int bloodpoolTime;
 
 		if( gameLocal.time > nextBloodPoolTime ) {  // You can use this condition instead :- if (gameLocal.isNewFrame)
 			key = va( "mtr_bloodPool_%s", materialType );
 			splat = spawnArgs.RandomPrefix( key, gameLocal.random );
+
 			if ( *splat == '\0' ) {
 				splat = def->dict.RandomPrefix( key, gameLocal.random );
 			}
+
 			if ( *splat != '\0' ) {
 				phys = GetPhysics();
 				gravDir = phys->GetGravity();
 				gravDir.Normalize();
-				if( spawnArgs.GetBool("bloodPool_below_origin")  ) {
-					gameLocal.BloodSplat( phys->GetOrigin(), gravDir, def->dict.GetFloat ( va ("size_bloodPool_%s", materialType), "64.0f"), splat );
-				}
-				else {
-					gameLocal.BloodSplat( origin, gravDir, def->dict.GetFloat ( va ("size_bloodPool_%s", materialType), "64.0f"), splat );
-				}
+				gameLocal.BloodSplat( origin, gravDir, def->dict.GetFloat ( va ("size_bloodPool_%s", materialType), "64.0f"), splat );
 			}
 
 			// This condition makes sure that we dont spawn overlapping bloodpools in a single frame.
-			if(!spawnArgs.GetInt( "next_bloodpool_time", "500", bloodpoolTime) ){
-				bloodpoolTime = def->dict.GetInt( va("next_bloodpool_time"), "500");
+			if( !spawnArgs.GetInt( "next_bloodpool_time", "500", bloodpoolTime ) ) {
+				bloodpoolTime = def->dict.GetInt( va( "next_bloodpool_time" ), "500" );
 			}
-			nextBloodPoolTime = gameLocal.time +  bloodpoolTime; // This avoids excessive bloodpool overlapping
+			nextBloodPoolTime = gameLocal.time + bloodpoolTime; // This avoids excessive bloodpool overlapping
 		}
 	}
-
-	// can't see wounds on the player model in single player mode.
-    // Blood Mod deleted this. Needed for the Full Body Awareness mod so that wounds from zombie shots appear on the player body
-	//if ( !( IsType( idPlayer::Type ) && !gameLocal.isMultiplayer ) ) {
-	
 		
-	    // blood splats can be thrown on the body itself two - By Clone JC Denton
-		key = va( "mtr_splatSelf_%s", materialType );
-		splat = spawnArgs.RandomPrefix( key, gameLocal.random );
-		if ( *splat == '\0' ) {
-			splat = def->dict.RandomPrefix( key, gameLocal.random );
-		}
-		if ( *splat != '\0' ) {
-			ProjectOverlay( origin, dir, def->dict.GetFloat ( va ("size_splatSelf_%s", materialType), "15.0f"), splat ); 
-		}
+	// blood splats can be thrown on the body itself two - By Clone JC Denton
+	key = va( "mtr_splatSelf_%s", materialType );
+	splat = spawnArgs.RandomPrefix( key, gameLocal.random );
 
-		// place a wound overlay on the model
-		if( g_debugDamage.GetBool() ) {
-			gameLocal.Printf("\nCollision Material Type: %s", materialType);
-			gameLocal.Printf("\n File: %s", collisionMaterial->GetFileName());
-			gameLocal.Printf("\n material: %s", collisionMaterial->ImageName());
-		}
+	if ( *splat == '\0' ) {
+		splat = def->dict.RandomPrefix( key, gameLocal.random );
+	}
 
-		key = va( "mtr_wound_%s", materialType );
-		decal = spawnArgs.RandomPrefix( key, gameLocal.random );
-		if ( *decal == '\0' ) {
-			decal = def->dict.RandomPrefix( key, gameLocal.random );
-		}
-		if ( *decal == '\0' ) {
-			decal = def->dict.GetString( "mtr_wound" ); // Default decal
-		}
-		if ( *decal != '\0' ) {
-			float size;	
-			if ( !def->dict.GetFloat( va( "size_wound_%s", materialType ), "6.0", size ) ) { // If Material Specific decal size not found, look for default size
+	if ( *splat != '\0' ) {
+		ProjectOverlay( origin, dir, def->dict.GetFloat ( va ("size_splatSelf_%s", materialType), "15.0f"), splat ); 
+	}
+
+	// place a wound overlay on the model
+	if( g_debugDamage.GetBool() ) {
+		gameLocal.Printf("\nCollision Material Type: %s", materialType);
+		gameLocal.Printf("\n File: %s", collisionMaterial->GetFileName());
+		gameLocal.Printf("\n material: %s", collisionMaterial->ImageName());
+	}
+
+	key = va( "mtr_wound_%s", materialType );
+	decal = spawnArgs.RandomPrefix( key, gameLocal.random );
+
+	if ( *decal == '\0' ) {
+		decal = def->dict.RandomPrefix( key, gameLocal.random );
+	}
+
+	if ( *decal == '\0' ) {
+		decal = def->dict.GetString( "mtr_wound" ); // Default decal
+	}
+
+	if ( *decal != '\0' ) {
+		float size;	
+
+		if ( !def->dict.GetFloat( va( "size_wound_%s", materialType ), "6.0", size ) ) { // If Material Specific decal size not found, look for default size
 				size = def->dict.GetFloat( "size_wound", "6.0" );
 		}
-			ProjectOverlay( origin, dir, size, decal ); 
+		ProjectOverlay( origin, dir, size, decal ); 
 	}
 
 	// a blood spurting wound is added
@@ -5318,7 +5435,7 @@ void idAnimatedEntity::AddLocalDamageEffect( jointHandle_t jointNum, const idVec
 		this->damageEffects = de;
 
 		de->jointNum = jointNum;
-		de->type = static_cast<const idDeclParticle *>(declManager->FindType(DECL_PARTICLE, bleed));
+		de->type = static_cast<const idDeclParticle *>( declManager->FindType( DECL_PARTICLE, bleed ) ); // Blood Mod
         
 		de->localOrigin = localOrigin;
 		de->localNormal = localNormal;
@@ -5496,4 +5613,46 @@ void idAnimatedEntity::Event_GetJointAngle( jointHandle_t jointnum ) {
 	idAngles ang = axis.ToAngles();
 	idVec3 vec( ang[ 0 ], ang[ 1 ], ang[ 2 ] );
 	idThread::ReturnVector( vec );
+}
+
+/*
+================
+idAnimatedEntity::Event_FireProjectileFromJoint // PD3
+================
+*/
+void idAnimatedEntity::Event_FireProjectileFromJoint( const char* projDefName, jointHandle_t jointnum, const idAngles& fireAng ) {
+	idProjectile* proj;
+	idVec3         dir;
+	idVec3         firePos;
+	idMat3         axis; //useless but needed
+
+	if ( !GetJointWorldTransform( jointnum, gameLocal.time, firePos, axis ) ) {
+		gameLocal.Warning( "Joint # %d out of range on entity '%s'", jointnum, name.c_str() );
+	}
+
+	dir = fireAng.ToForward();
+	proj = CommonFireProjectile( projDefName, firePos, dir );
+
+	idThread::ReturnEntity( proj );
+}
+
+/*
+================
+idAnimatedEntity::Event_FireProjAtTargetFromJoint // PD3
+================
+*/
+void idAnimatedEntity::Event_FireProjAtTargetFromJoint( const char* projDefName, jointHandle_t jointnum, idEntity* aimAtEnt ) {
+	idProjectile* proj;
+	idVec3         dir;
+	idVec3         firePos;
+	idMat3         axis; //useless but needed
+
+	if ( !GetJointWorldTransform( jointnum, gameLocal.time, firePos, axis ) ) {
+		gameLocal.Warning( "Joint # %d out of range on entity '%s'", jointnum, name.c_str() );
+	}
+
+	CommonGetAimDir( firePos, aimAtEnt, dir );
+	proj = CommonFireProjectile( projDefName, firePos, dir );
+
+	idThread::ReturnEntity( proj );
 }

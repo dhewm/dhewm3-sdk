@@ -1004,8 +1004,10 @@ void idMover::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( g_debugMover.GetBool() ) {
 		gameLocal.Printf( "%d: '%s' blocked by '%s'\n", gameLocal.time, name.c_str(), blockingEntity->name.c_str() );
 	}
-	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // darknar, remove gib if is blocking the mover.
-		blockingEntity->PostEventMS(&EV_Remove, 0);
+
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // darknar, remove gib if is blocking the mover.
+		blockingEntity->PostEventSec( &EV_Remove, 0 );
+		blockingEntity->StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL );
 	}
 }
 
@@ -1786,8 +1788,8 @@ idElevator::Event_TeamBlocked
 void idElevator::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity ) {
 
 	// Darknar 2025-2 start
-	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // added blockingEntity so test no reverse on crushing gibs
-		return;		// crushers don't reverse
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // added blockingEntity so test no reverse on crushing gibs
+		return; // crushers don't reverse
 	}
 	// Darknar 2025-2 end
 	
@@ -3771,8 +3773,8 @@ void idDoor::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntit
 	SetBlocked( true );
 
 	// Darknar 2025-2 start
-	if ( crusher || blockingEntity->IsType(idMoveableGibItem::Type) ) { // added blockingEntity so test no reverse on crushing gibs
-		return;		// crushers don't reverse
+	if ( crusher || blockingEntity->IsType( idMoveableGibItem::Type ) ) { // added blockingEntity so test no reverse on crushing gibs
+		return; // crushers don't reverse
 	}
 	// Darknar 2025-2 end
 
@@ -3802,8 +3804,10 @@ void idDoor::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
 		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
 	}
-	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // darknar, remove gib if is blocking the mover.
-		blockingEntity->PostEventMS(&EV_Remove, 0);
+
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // darknar, remove gib if is blocking the mover.
+		blockingEntity->PostEventMS( &EV_Remove, 0 );
+		blockingEntity->StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL );
 	}
 }
 
@@ -4231,7 +4235,7 @@ idPlat::Event_TeamBlocked
 void idPlat::Event_TeamBlocked( idEntity *blockedEntity, idEntity *blockingEntity ) {
 
 	// Darknar 2025-2 start
-	if ( blockingEntity->IsType(idMoveableGibItem::Type) ) { // added blockingEntity so test no reverse on crushing gibs
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // added blockingEntity so test no reverse on crushing gibs
 		return;		// do not reverse if there is a gib item. crush and remove all of them
 	}
 	// Darknar 2025-2 end
@@ -4249,8 +4253,10 @@ void idPlat::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
 		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
 	}
-	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // darknar, remove gib if is blocking the mover.
-		blockingEntity->PostEventMS(&EV_Remove, 0);
+
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // darknar, remove gib if is blocking the mover.
+		blockingEntity->PostEventMS( &EV_Remove, 0 );
+		blockingEntity->StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL );
 	}
 }
 
@@ -4343,8 +4349,10 @@ void idMover_Periodic::Event_PartBlocked( idEntity *blockingEntity ) {
 	if ( damage > 0.0f ) {
 		blockingEntity->Damage( this, this, vec3_origin, "damage_moverCrush", damage, INVALID_JOINT );
 	}
-	if (blockingEntity->IsType(idMoveableGibItem::Type)) { // darknar, remove gib if is blocking the mover.
-		blockingEntity->PostEventMS(&EV_Remove, 0);
+
+	if ( blockingEntity->IsType( idMoveableGibItem::Type ) ) { // darknar, remove gib if is blocking the mover.
+		blockingEntity->PostEventMS( &EV_Remove, 0 );
+		blockingEntity->StartSound( "snd_bounce", SND_CHANNEL_ANY, 0, false, NULL );
 	}
 }
 

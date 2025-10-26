@@ -2262,9 +2262,184 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 				health = -999;
 			}
 			Killed( inflictor, attacker, damage, dir, location );
-			if ( ( health < -20 ) && spawnArgs.GetBool( "gib" ) && damageDef->GetBool( "gib" ) ) {
+
+			// Blood Mod 1.8 start
+
+			// default (not used)
+			if ( damageDef->GetBool( "gib" ) && ( health < -20 ) && spawnArgs.GetBool( "gib" ) ) {
 				Gib( dir, damageDefName );
 			}
+
+			// gibNonSolid (not used)
+			else if ( damageDef->GetBool( "gibNonSolid" ) && ( health < -20 ) && spawnArgs.GetBool( "gib" ) ) {
+				Gib( dir, damageDefName );
+			}
+
+			// gibbing for bfg
+			else if ( damageDef->GetBool( "gibbing_bfg" ) ) {
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_explosion", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// gibbing for plasmagun
+			else if ( damageDef->GetBool( "gibbing_plasma" ) ) {
+				// for monsters that have a skeleton
+				if ( spawnArgs.GetBool( "gibbing_plasma" ) && ( health <= spawnArgs.GetInt( va( "health_gib" ), "-70" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+
+				// for other monsters that don't have gibbing_plasma
+				else if ( !spawnArgs.GetBool( "no_blood_fx" ) && !spawnArgs.GetBool( "gibbing_plasma" ) && ( health <= spawnArgs.GetInt( va( "health_gib" ), "-70" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_small", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && !spawnArgs.GetBool( "gibbing_plasma" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// gibbing for shotgun
+			else if ( damageDef->GetBool( "gibbing_shotgun" ) ) {
+				// default
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= spawnArgs.GetInt( va( "health_gib_shotgun" ), "-200" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_small", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// gibbing for chaingun
+			else if ( damageDef->GetBool( "gibbing_chaingun" ) ) {
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= spawnArgs.GetInt( va( "health_gib" ), "-70" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_small", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// gibbing for chainsaw
+			else if ( damageDef->GetBool( "gibbing_chainsaw" ) ) {
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= spawnArgs.GetInt( va( "health_gib" ), "-70" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_explosion", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// d3xp - not used
+			/*
+			// gibbing for soulcube
+			else if ( damageDef->GetBool( "gibbing_soulcube" ) ) {
+				if ( spawnArgs.GetBool( "gibbing_soulcube" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+
+				// for other monsters that don't have gibbing_soulcube
+				else if ( !spawnArgs.GetBool( "gibbing_soulcube" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+			*/
+
+			// gibbing for machinegun
+			else if ( damageDef->GetBool( "gibbing_machinegun" ) ) {
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= spawnArgs.GetInt( va( "health_gib" ), "-70" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_small", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// gibbing for handgrenade
+			else if ( damageDef->GetBool( "gibbing_handgrenade" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+				spawnArgs.Set( "blood_fx_explosion", "1" );
+				Gib( dir, damageDefName );
+			}
+
+			// gibbing for rocketlauncher
+			else if ( damageDef->GetBool( "gibbing_rocketlauncher" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+				spawnArgs.Set( "blood_fx_explosion", "1" );
+				Gib( dir, damageDefName );
+			}
+
+			// gibbing for monster damage
+			else if ( damageDef->GetBool( "damage_gib" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+				spawnArgs.Set( "blood_fx_small", "1" );
+				Gib( dir, damageDefName );
+			}
+
+			// d3xp - gibbing for shotgun_double
+			else if ( damageDef->GetBool( "gibbing_shotgun_double" ) ) {
+				if ( !spawnArgs.GetBool( "no_blood_fx" ) && ( health <= spawnArgs.GetInt( va( "health_gib_shotgun" ), "-200" ) ) && spawnArgs.GetBool( "gib" ) ) {
+					spawnArgs.Set( "blood_fx_small", "1" );
+					Gib( dir, damageDefName );
+				}
+
+				// blood fx disabled, instant gibbing (used for lostsoul and trite)
+				else if ( spawnArgs.GetBool( "no_blood_fx" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+					Gib( dir, damageDefName );
+				}
+			}
+
+			// d3xp - gibbing for projectiles caught by the grabber
+			else if ( damageDef->GetBool( "damage_grab_gib" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+				spawnArgs.Set( "blood_fx_small", "1" );
+				Gib( dir, damageDefName );
+			}
+
+			// used for gibbing
+			if ( spawnArgs.GetBool( "blood_fx_small" ) ) {
+
+				// call the blood_fx_small script
+				const function_t* funcB;
+				funcB = scriptObject.GetFunction( "blood_fx_small" );
+				if ( funcB ) {
+					idThread* thread;
+					thread = new idThread();
+					thread->CallFunction( this, funcB, false );
+					thread->Start();
+				}
+			}
+
+			// used for gibbing
+			else if ( spawnArgs.GetBool( "blood_fx_explosion" ) ) {
+
+				// call the blood_fx_explosion script
+				const function_t* funcC;
+				funcC = scriptObject.GetFunction( "blood_fx_explosion" );
+				if ( funcC ) {
+					idThread* thread;
+					thread = new idThread();
+					thread->CallFunction( this, funcC, false );
+					thread->Start();
+				}
+			}
+			// Blood Mod 1.8 end
 		} else {
 			Pain( inflictor, attacker, damage, dir, location );
 		}

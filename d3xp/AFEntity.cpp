@@ -38,6 +38,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "AFEntity.h"
 
+#include "Fx.h" // Blood Mod 1.8
+
 /*
 ===============================================================================
 
@@ -1105,9 +1107,77 @@ void idAFEntity_Gibbable::Damage( idEntity *inflictor, idEntity *attacker, const
 		return;
 	}
 	idAFEntity_Base::Damage( inflictor, attacker, dir, damageDefName, damageScale, location );
-	if ( health < -20 && spawnArgs.GetBool( "gib" ) ) {
+
+	// Blood Mod 1.8 start
+	const idDict* damageDef = gameLocal.FindEntityDefDict( damageDefName );
+	if ( !damageDef ) {
+		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
+	}
+
+	// add a check for gib = 1 to prevent ragdolls from decaying if the value is 0
+	// this is the same as the idActor::Damage function, but for ragdolls
+	// this also allows the BFG to kill and gibbing monsters before the projectile explodes
+	if ( damageDef->GetBool( "gib" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
 		Gib( dir, damageDefName );
 	}
+
+	else if ( damageDef->GetBool( "gibNonSolid" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_bfg" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_plasma" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_shotgun" ) && ( health <= -150 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_chaingun" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	// d3xp - not used
+	/*
+	else if ( damageDef->GetBool( "gibbing_chainsaw" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_soulcube" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+	*/
+
+	else if ( damageDef->GetBool( "gibbing_machinegun" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_handgrenade" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "gibbing_rocketlauncher" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	else if ( damageDef->GetBool( "damage_gib" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	// d3xp
+	else if ( damageDef->GetBool( "gibbing_shotgun_double" ) && ( health <= -150 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+
+	// d3xp
+	else if ( damageDef->GetBool( "damage_grab_gib" ) && ( health <= 0 ) && spawnArgs.GetBool( "gib" ) ) {
+		Gib( dir, damageDefName );
+	}
+	// Blood Mod 1.8 end
 }
 
 #ifdef _D3XP
@@ -1167,9 +1237,13 @@ idAFEntity_Gibbable::SpawnGibs
 */
 void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefName ) {
 	int i;
-	bool gibNonSolid;
+	float gibTime; // darknar
+	float gibPower; // darknar
 	idVec3 entityCenter, velocity;
 	idList<idEntity *> list;
+
+	gibTime = g_gib_remove_time.GetFloat(); // darknar
+	gibPower = g_gib_power.GetFloat(); // darknar
 
 	assert( !gameLocal.isClient );
 
@@ -1181,19 +1255,108 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 	// spawn gib articulated figures
 	idAFEntity_Base::DropAFs( this, "gib", &list );
 
-	// spawn gib items
-	idMoveableItem::DropItems( this, "gib", &list );
+	// darknar 2025 start
+	if ( spawnArgs.GetBool( "realgib_random" ) ) {
+		int randGib = gameLocal.random.RandomInt(spawnArgs.GetInt( va( "realgib_random_num" ), "1" ) );
+		// spawn random gib items
+		if ( randGib == 1 ) {
+			idMoveableItem::DropItems( this, "1gib", &list );
+		}
+		else if ( randGib == 2 ) {
+			idMoveableItem::DropItems( this, "2gib", &list );
+		}
+		else if ( randGib == 3 ) {
+			idMoveableItem::DropItems( this, "3gib", &list );
+		}
+		else if ( randGib == 4 ) {
+			idMoveableItem::DropItems( this, "4gib", &list );
+		}
+		else if ( randGib == 5 ) {
+			idMoveableItem::DropItems( this, "5gib", &list );
+		}
+		else if ( randGib == 6 ) {
+			idMoveableItem::DropItems( this, "6gib", &list );
+		}
+		else if ( randGib == 7 ) {
+			idMoveableItem::DropItems( this, "7gib", &list );
+		}
+		else if ( randGib == 8 ) {
+			idMoveableItem::DropItems( this, "8gib", &list );
+		}
+		else if ( randGib == 9 ) {
+			idMoveableItem::DropItems( this, "9gib", &list );
+		}
+		else {
+			idMoveableItem::DropItems( this, "gib", &list );
+		}
+	}
+
+	// Blood Mod 1.8 add
+	else if ( spawnArgs.GetBool( "gib_plasma" ) ) {
+		idMoveableItem::DropItems( this, "100gib", &list );
+	}
+
+	else {
+		// spawn gib items
+		idMoveableItem::DropItems( this, "gib", &list );
+	}
+	// darknar 2025 end
+
+	// Blood Mod 1.8 start
+	bool gib;
+	gib = damageDef->GetBool( "gib" );
+
+	bool gibNonSolid;
+	gibNonSolid = damageDef->GetBool( "gibNonSolid" );
+
+	bool gibbing_bfg;
+	gibbing_bfg = damageDef->GetBool( "gibbing_bfg" );
+
+	bool gibbing_plasma;
+	gibbing_plasma = damageDef->GetBool( "gibbing_plasma" );
+
+	bool gibbing_shotgun;
+	gibbing_shotgun = damageDef->GetBool( "gibbing_shotgun" );
+
+	bool gibbing_chaingun;
+	gibbing_chaingun = damageDef->GetBool( "gibbing_chaingun" );
+
+	// d3xp - not used
+	/*
+	bool gibbing_chainsaw;
+	gibbing_chainsaw = damageDef->GetBool( "gibbing_chainsaw" );
+
+	bool gibbing_soulcube;
+	gibbing_soulcube = damageDef->GetBool( "gibbing_soulcube" );
+	*/
+
+	bool gibbing_machinegun;
+	gibbing_machinegun = damageDef->GetBool( "gibbing_machinegun" );
+
+	bool gibbing_handgrenade;
+	gibbing_handgrenade = damageDef->GetBool( "gibbing_handgrenade" );
+
+	bool gibbing_rocketlauncher;
+	gibbing_rocketlauncher = damageDef->GetBool( "gibbing_rocketlauncher" );
+
+	bool damage_gib;
+	damage_gib = damageDef->GetBool( "damage_gib" );
+
+	// d3xp
+	bool gibbing_shotgun_double;
+	gibbing_shotgun_double = damageDef->GetBool( "gibbing_shotgun_double" );
+
+	// d3xp
+	bool damage_grab_gib;
+	damage_grab_gib = damageDef->GetBool( "damage_grab_gib" );
 
 	// blow out the gibs in the given direction away from the center of the entity
 	entityCenter = GetPhysics()->GetAbsBounds().GetCenter();
-	gibNonSolid = damageDef->GetBool( "gibNonSolid" );
+
 	for ( i = 0; i < list.Num(); i++ ) {
-		if ( gibNonSolid ) {
-			list[i]->GetPhysics()->SetContents( 0 );
-			list[i]->GetPhysics()->SetClipMask( 0 );
-			list[i]->GetPhysics()->UnlinkClip();
-			list[i]->GetPhysics()->PutToRest();
-		} else {
+
+		// default (not used)
+		if ( gib ) {
 #ifdef _D3XP
 			list[i]->GetPhysics()->SetContents( 0 );
 #else
@@ -1205,13 +1368,147 @@ void idAFEntity_Gibbable::SpawnGibs( const idVec3 &dir, const char *damageDefNam
 			velocity += ( i & 1 ) ? dir : -dir;
 			list[i]->GetPhysics()->SetLinearVelocity( velocity * 75.0f );
 		}
+
+		// gibNonSolid (not used)
+		else if ( gibNonSolid ) {
+			list[i]->GetPhysics()->SetContents( 0 );
+			list[i]->GetPhysics()->SetClipMask( 0 );
+			list[i]->GetPhysics()->UnlinkClip();
+			list[i]->GetPhysics()->PutToRest();
+		}
+
+		// gibbing for bfg (health <= 0)
+		else if ( gibbing_bfg ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// gibbing for plasmagun
+		else if ( gibbing_plasma ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// gibbing for shotgun
+		else if ( gibbing_shotgun ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+		
+		// gibbing for chaingun 
+		else if ( gibbing_chaingun ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// d3xp - not used
+		/*
+		// gibbing for chainsaw
+		else if ( gibbing_chainsaw ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// gibbing for soulcube (health <= 0)
+		else if ( gibbing_soulcube ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * 5.0f );
+		}
+		*/
+
+		// gibbing for machinegun
+		else if ( gibbing_machinegun ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// gibbing for handgrenade (health <= 0)
+		else if ( gibbing_handgrenade ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * 5.0f );
+		}
+
+		// gibbing for rocketlauncher (health <= 0) "damage_gib"
+		else if ( gibbing_rocketlauncher ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// gibbing for monster damage (health <= 0)
+		else if ( damage_gib ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * gibPower ); // darknar gib power (recommended 10.0f)
+		}
+
+		// d3xp - gibbing for shotgun_double
+		else if ( gibbing_shotgun_double ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity.NormalizeFast();
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * 100.0f );
+		}
+
+		// d3xp - for projectiles caught by the grabber
+		else if ( damage_grab_gib ) {
+			list[i]->GetPhysics()->SetContents( 0 ); // CONTENTS_CORPSE // darknar
+			list[i]->GetPhysics()->SetClipMask( CONTENTS_SOLID );
+			velocity = list[i]->GetPhysics()->GetAbsBounds().GetCenter() - entityCenter;
+			velocity += ( i & 1 ) ? dir : -dir;
+			list[i]->GetPhysics()->SetLinearVelocity( velocity * 5.0f );
+		}
+		// Blood Mod 1.8 end
+
 #ifdef _D3XP
 		// Don't allow grabber to pick up temporary gibs
-		list[i]->noGrab = true;
+		//list[i]->noGrab = true;  // Blood Mod 1.8 (d3xp)
 #endif
-		list[i]->GetRenderEntity()->noShadow = true;
-		list[i]->GetRenderEntity()->shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-		list[i]->PostEventSec( &EV_Remove, 4.0f );
+		// darknar start
+		if ( !g_gib_shadows.GetBool() ) {
+			list[i]->GetRenderEntity()->noShadow = true; // shadows can be optional, 1 = enable shadows, 0 = no shadows ( default )
+		}
+
+		if ( gibTime > 0.0f ) { // darknar, if the float is > to 0, do the remove after x seconds
+			list[i]->PostEventSec( &EV_Remove, gibTime ); // darknar, define a float in Cvar, gibs are removed after thes time
+		}
+		// darknar end
 	}
 }
 
@@ -1228,7 +1525,7 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 
 #ifdef _D3XP
 	// Don't grab this ent after it's been gibbed (and now invisible!)
-	noGrab = true;
+	//noGrab = true; // Blood Mod 1.8 (d3xp)
 #endif
 
 	const idDict *damageDef = gameLocal.FindEntityDefDict( damageDefName );
@@ -1236,33 +1533,145 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 		gameLocal.Error( "Unknown damageDef '%s'", damageDefName );
 	}
 
-	if ( damageDef->GetBool( "gibNonSolid" ) ) {
+	// Blood Mod 1.8 start
+	float gibTime; // darknar
+	gibTime = g_gib_remove_time.GetFloat(); // darknar
+
+	// play sounds through fx if necessary
+	if ( !gibbed ) {
+		// used for NPC
+		idStr fxDeathSound1 = spawnArgs.GetString( "fx_NPC_sound" );
+		if ( fxDeathSound1.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathSound1, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+
+		// used for lostsoul
+		idStr fxDeathSound2 = spawnArgs.GetString( "fx_lostsoul_sound" );
+		if ( fxDeathSound2.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathSound2, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+	}
+
+	// default (not used)
+	if ( damageDef->GetBool( "gib" ) ) {
+		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
+		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+
+		PostEventMS( &EV_Gibbed, 0 );
+	}
+
+	// gibNonSolid (not used)
+	else if ( damageDef->GetBool( "gibNonSolid" ) ) {
 		GetAFPhysics()->SetContents( 0 );
 		GetAFPhysics()->SetClipMask( 0 );
 		GetAFPhysics()->UnlinkClip();
 		GetAFPhysics()->PutToRest();
-	} else {
+
+		PostEventMS( &EV_Gibbed, 0 );
+	}
+
+	// show a skeleton if this gibbing_plasma
+	else if ( damageDef->GetBool( "gibbing_plasma" ) && spawnArgs.GetBool( "gibbing_plasma" ) ) {
 		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
 		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+		GetAFPhysics()->SetTimeScale( 0.80 );
+		spawnArgs.Set( "realgib_random", "0" );
+		spawnArgs.Set( "gib_plasma", "1" );
+
+		if ( spawnArgs.GetBool( "allow_demonburn" ) && damageDef->GetBool( "allow_demonburn" ) ) {
+			StartSound( "snd_plasma_gib", SND_CHANNEL_ANY, 0, false, NULL );
+
+			// darknar burn fx
+			idStr fxDeathBurn = spawnArgs.GetString( "fx_burned" );
+			if ( fxDeathBurn.Length() > 0 ) {
+				idEntityFx::StartFx( fxDeathBurn, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			}
+		}
+
+		// blood fx for NPC
+		idStr fxDeathBlood = spawnArgs.GetString( "fx_blood" );
+		if ( fxDeathBlood.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathBlood, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+
+		if ( gibTime > 0.0f ) {
+			PostEventSec( &EV_Gibbed, gibTime ); // darknar gib time
+		}
 	}
+
+	// for other monsters that don't have gibbing_plasma
+	else if ( damageDef->GetBool( "gibbing_plasma" ) && !spawnArgs.GetBool( "gibbing_plasma" ) ) {
+		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
+		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+
+		PostEventMS( &EV_Gibbed, 0 );
+	}
+
+	// d3xp - not used
+	/*
+	// show a skeleton if this gibbing_soulcube (no_gibbing_soulcube use imp and commando)
+	else if ( damageDef->GetBool( "gibbing_soulcube" ) && !spawnArgs.GetBool( "no_gibbing_soulcube" ) && spawnArgs.GetBool( "gibbing_soulcube" ) ) {
+		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
+		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+		GetAFPhysics()->SetTimeScale( 0.80 );
+		GetAFPhysics()->PutToRest(); // freeze in place
+		StartSound( "snd_plasma_gib", SND_CHANNEL_ANY, 0, false, NULL );
+		spawnArgs.Set( "realgib_random", "0" );
+		spawnArgs.Set( "gib_plasma", "1" );
+
+		// create a new sound using the fx system (also adds several effects)
+		idStr fxDeathSS = damageDef->GetString( "fx_soulcube_sound" );
+		if ( fxDeathSS.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathSS, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+
+		// darknar burn fx
+		idStr fxDeathBurn = spawnArgs.GetString( "fx_burned" );
+		if ( fxDeathBurn.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathBurn, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+
+		if ( gibTime > 0.0f ) {
+			PostEventSec( &EV_Gibbed, gibTime ); // darknar gib time
+		}
+	}
+
+	// for other monsters that don't have gibbing_soulcube
+	else if ( damageDef->GetBool( "gibbing_soulcube" ) && !spawnArgs.GetBool( "gibbing_soulcube" ) ) {
+		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
+		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+
+		// create a new sound using the fx system (also adds several effects)
+		idStr fxDeathSS = damageDef->GetString( "fx_soulcube_sound" );
+		if ( fxDeathSS.Length() > 0 ) {
+			idEntityFx::StartFx( fxDeathSS, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+		}
+
+		PostEventMS( &EV_Gibbed, 0 );
+	}
+	*/
+
+	// default (used)
+	else {
+		GetAFPhysics()->SetContents( CONTENTS_CORPSE );
+		GetAFPhysics()->SetClipMask( CONTENTS_SOLID );
+
+		PostEventMS( &EV_Gibbed, 0 );
+	}
+	// Blood Mod 1.8 end
 
 	UnlinkCombat();
 
-	if ( g_bloodEffects.GetBool() ) {
-		if ( gameLocal.time > gameLocal.GetGibTime() ) {
-			gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
-			SpawnGibs( dir, damageDefName );
-			renderEntity.noShadow = true;
-			renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
-			StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
-			gibbed = true;
-		}
+	if ( g_bloodEffects.GetBool() ) { // Blood Mod
+		gameLocal.SetGibTime( gameLocal.time + GIB_DELAY );
+		SpawnGibs( dir, damageDefName );
+		renderEntity.noShadow = true;
+		renderEntity.shaderParms[ SHADERPARM_TIME_OF_DEATH ] = gameLocal.time * 0.001f;
+		StartSound( "snd_gibbed", SND_CHANNEL_ANY, 0, false, NULL );
+		gibbed = true;
 	} else {
 		gibbed = true;
 	}
-
-
-	PostEventSec( &EV_Gibbed, 4.0f );
 }
 
 /*
@@ -3239,7 +3648,7 @@ void idHarvestable::Init(idEntity* parent) {
 
 	idStr sound = parent->spawnArgs.GetString("harvest_sound");
 	if(sound.Length() > 0) {
-		 parent->StartSound( sound.c_str(), SND_CHANNEL_ANY, 0, false, NULL);
+		 parent->StartSound( sound.c_str(), SND_CHANNEL_BODY, 0, false, NULL ); // Blood Mod 1.8 (d3xp)
 	}
 
 
@@ -3334,7 +3743,7 @@ void idHarvestable::Gib() {
 	if(parent) {
 		idStr sound = parent->spawnArgs.GetString("harvest_sound");
 		if(sound.Length() > 0) {
-			parent->StopSound(SND_CHANNEL_ANY, false);
+			parent->StopSound( SND_CHANNEL_BODY, false ); // Blood Mod 1.8 (d3xp)
 		}
 	}
 }
@@ -3361,6 +3770,7 @@ void idHarvestable::BeginBurn() {
 	if(skin.Length()) {
 		parent->SetSkin(declManager->FindSkin(skin.c_str()));
 	}
+	parent->spawnArgs.Set( "gib", "0" ); // Blood Mod 1.8 (d3xp)
 	parent->GetRenderEntity()->noShadow = true;
 	parent->SetShaderParm( SHADERPARM_TIME_OF_DEATH, gameLocal.slow.time * 0.001f );
 

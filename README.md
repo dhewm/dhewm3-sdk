@@ -1,4 +1,4 @@
-# Blood Mod 1.7
+# Blood Mod 1.8
 
 Thanks to *ALord7* for giving me the mods source code for porting!
 

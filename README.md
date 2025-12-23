@@ -64,3 +64,94 @@ On Linux and similar the following should work (if you have cmake, make and GCC/
 (Make sure to actually have the mods game data in the right directory as well;
 the directory name should be the same as the game lib name, but without .so/.dylib,
 for example dentonmod/ for dentonmod.so)
+
+## Credits
+
+### The Team
+
+**Andreas Håndlykken (AKA Slash)**<br/>
+Lead Concept Artist, Texture Artist, Modeler, Pirate Captain
+
+**Bas de Zwart (AKA BloodRayne)**<br/>
+Project Founder. Models, Textures, Weapons, Scripting
+
+**Brandon Captain (AKA Zeroth)**<br/>
+SDK Programmer, Scripting, SVN/Server host and Admin
+
+**Caffeine Freak**<br/>
+Lead Level Designer. All of HUB 1 - H1M1(detailing/scripting), H1M2(All), H1M3(All)
+
+**Calavera_Jo**<br/>
+Coder
+
+**Deadite4**<br/>
+Sound FX/VO Engineer, Handyman, Coordinator, PR
+
+**Justin Lassen**<br/>
+Composer, All Music
+
+**Mystic Realmz**<br/>
+Composer
+
+**Parsonsbear**<br/>
+Pickup and Map Models/Textures
+
+**Shadow**<br/>
+Level Designer
+
+**Solarsplace**<br/>
+Coder
+
+**Spookt**<br/>
+Writer. Story Arc, Journals
+
+**TomJ**<br/>
+Level Designer, Hub 2 (H2M1(future release))
+
+<br/>
+
+### Ocassional Contributors
+
+**BHenderson**<br/>
+Animations
+
+<br/>
+
+### Past Members
+
+**CodenniumRed**<br/>
+Level Designer, H1M1 Layout
+
+**Gazz**<br/>
+Level Designer, H1M3(1st initial block out)
+
+**Gman**<br/>
+Static Models
+
+**RazorBladder**<br/>
+Lead Texture Artist. Models, Textures
+
+**Ruckus**<br/>
+Map Models
+
+**Slyrr**<br/>
+Lead Creature Models, Lead Animations
+
+**Zurra**<br/>
+Models, Textures
+
+<br/>
+
+### Testers
+
+**Indoril Lichenvale**<br/>
+**JC316**<br/>
+**RaVeN**<br/>
+**Redeemer812**
+
+<br/>
+
+### Special Thanks
+
+**LegendGuard**<br/>
+Who ported to dhewm3

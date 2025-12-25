@@ -549,11 +549,19 @@ bool idItem::GiveToPlayer( idPlayer *player ) {
 	}
 
 	if ( val ) {
-		if ( spawnArgs.GetString("scriptobject") != "" ) {
-			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool("dontNotifyOnPickup") ) {
-				CallFunc("pickup_message");
+		if ( spawnArgs.GetString( "scriptobject" ) != "" ) {
+			// dhewm3 hates leaving that unchecked at runtime. Without these checks, game crashes
+			const function_t *pickup_message_func = scriptObject.GetFunction( "pickup_message" );
+			const function_t *pickup_effect_func = scriptObject.GetFunction( "pickup_effect" );
+
+			if ( !g_noPickupNotification.GetBool() && !spawnArgs.GetBool( "dontNotifyOnPickup" )
+			&& pickup_message_func != NULL ) {
+				CallFunc( "pickup_message" );
 			}
-			CallFunc("pickup_effect");
+
+			if ( pickup_effect_func != NULL ) {
+				CallFunc( "pickup_effect" );
+			}
 		}
 
 		gameLocal.SetPersistentRemove(name.c_str());

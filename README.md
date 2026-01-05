@@ -1,21 +1,24 @@
 # HeXen: Edge Of Chaos
 
-This is the source of HeXen: Edge Of Chaos (aka HEOC) game by HEOC Team, LegendGuard ported to the dhewm3 SDK.
+This is the source of HeXen: Edge Of Chaos (HEOC) game by HEOC Team, LegendGuard ported to the dhewm3 SDK.
 
 The original source can be downloaded at https://www.moddb.com/mods/hexen-edge-of-chaos/downloads/hexen-edge-of-chaos-demo-source-patch
 or https://github.com/LegendaryGuard/HeXen_Edge_Of_Chaos (Special thanks: LegendGuard).
 
 Reference (for more info): https://web.archive.org/web/20190803175542/http://hexenmod.net/about/
 
-heXen:Edge of Chaos will be a new and free game, based on the original Hexen franchise that was developed by id Software and Raven Software. The game utilizes the id Tech 4 GPL engine that id Software released on November 22, 2011. Previously the project was a total conversion for Doom 3.
+HeXen:Edge of Chaos is a free fan game, based on the original Hexen franchise that was developed by id Software and Raven Software. The game utilizes the id Tech 4 GPL engine that id Software released on November 22, 2011. Previously the project was a total conversion for Doom 3.
 
-Edge of Chaos is being developed by a team of fans who have always loved the original Hexen since it came out. In fact, most of us spent countless hours with the entire series. When id Software released Doom3, we immediately saw immense potential in the engine itself; the 'Hell' maps gave us the inspiration to make a hack-and-slash game based, primarily, on the original Hexen. Our story ties into the expansion packs and also touches upon the Heretic narrative; especially the incredible atmosphere painted into these rich worlds and their darkling journeys.
+Edge of Chaos was developed by a team of fans who had always loved the original Hexen since it came out. The team spent countless hours with the entire series. When id Software released Doom3, they saw immense potential in the engine itself; the 'Hell' maps gave them the inspiration to make a hack-and-slash game based, primarily, on the original Hexen. Their story was designed to tie into the expansion packs and also touch upon the Heretic narrative, aiming to capture the incredible atmosphere of those rich worlds and their darkling journeys.
 
-The game will be released in three episodes, each based on one character class. Our first demo release, an excerpt from the first episode, is based on the Cleric class. The second and third episodes will be based on the warrior and sorceress class respectively. We've chosen to use an episodic approach in order to create a manageable release schedule.
+The project was planned for release in three episodes, each based on one character class. The only release, a demo excerpt, was based on the Cleric class. The second and third episodes, which remained unreleased, were intended to be based on the warrior and sorceress class respectively. The team had chosen to use an episodic approach in order to aim for a manageable release schedule.
+
+This was the grand vision for HEOC. It seems like the project is dead, but they released this demo in 2010 which can now be played with dhewm3.
+
+After a long time...<br/>
+**A monumental thank you to Zeroth for releasing this mod under GPL!**
 
 You can download the mod resources at https://www.moddb.com/games/doom-iii/downloads/hexen-edge-of-chaos-dhewm3-edition
-
-You could start it with `./dhewm3 +set fs_game eoc`
 
 ## How to build
 
@@ -64,6 +67,10 @@ On Linux and similar the following should work (if you have cmake, make and GCC/
 (Make sure to actually have the mods game data in the right directory as well;
 the directory name should be the same as the game lib name, but without .so/.dylib,
 for example dentonmod/ for dentonmod.so)
+
+## License
+
+The code changes of HEOC have been released under GPLv2 or later (by Brandon Captain (AKA Zeroth)). As the Doom 3 source code (that the dhewm3 SDK is based on) was released under GPLv3 or later, that's the effective license of this code.
 
 ## Credits
 

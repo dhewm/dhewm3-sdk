@@ -1414,18 +1414,20 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 	float gibTime; // darknar
 	gibTime = g_gib_remove_time.GetFloat(); // darknar
 
+	idVec3 center = GetPhysics()->GetAbsBounds().GetCenter();
+
 	// play sounds through fx if necessary
 	if ( !gibbed ) {
 		// used for NPC
 		idStr fxDeathSound1 = spawnArgs.GetString( "fx_NPC_sound" );
 		if ( fxDeathSound1.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathSound1, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathSound1, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 
 		// used for lostsoul
 		idStr fxDeathSound2 = spawnArgs.GetString( "fx_lostsoul_sound" );
 		if ( fxDeathSound2.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathSound2, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathSound2, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 	}
 
@@ -1461,14 +1463,14 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 			// darknar burn fx
 			idStr fxDeathBurn = spawnArgs.GetString( "fx_burned" );
 			if ( fxDeathBurn.Length() > 0 ) {
-				idEntityFx::StartFx( fxDeathBurn, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+				idEntityFx::StartFx( fxDeathBurn, &center, &GetPhysics()->GetAxis(), this, false );
 			}
 		}
 
 		// blood fx for NPC
 		idStr fxDeathBlood = spawnArgs.GetString( "fx_blood" );
 		if ( fxDeathBlood.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathBlood, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathBlood, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 
 		if ( gibTime > 0.0f ) {
@@ -1497,13 +1499,13 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 		// create a new sound using the fx system (also adds several effects)
 		idStr fxDeathSS = damageDef->GetString( "fx_soulcube_sound" );
 		if ( fxDeathSS.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathSS, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathSS, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 
 		// darknar burn fx
 		idStr fxDeathBurn = spawnArgs.GetString( "fx_burned" );
 		if ( fxDeathBurn.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathBurn, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathBurn, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 
 		if ( gibTime > 0.0f ) {
@@ -1519,7 +1521,7 @@ void idAFEntity_Gibbable::Gib( const idVec3 &dir, const char *damageDefName ) {
 		// create a new sound using the fx system (also adds several effects)
 		idStr fxDeathSS = damageDef->GetString( "fx_soulcube_sound" );
 		if ( fxDeathSS.Length() > 0 ) {
-			idEntityFx::StartFx( fxDeathSS, static_cast<const idVec3*>( &( GetPhysics()->GetAbsBounds().GetCenter() ) ), &GetPhysics()->GetAxis(), this, false );
+			idEntityFx::StartFx( fxDeathSS, &center, &GetPhysics()->GetAxis(), this, false );
 		}
 
 		PostEventMS( &EV_Gibbed, 0 );

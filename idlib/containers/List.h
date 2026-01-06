@@ -151,9 +151,7 @@ idList<type>::idList( int )
 */
 template< class type >
 ID_INLINE idList<type>::idList( int newgranularity ) {
-#if defined(_DEBUG) && 0
 	assert( newgranularity > 0 );
-#endif
 	list		= NULL;
 	granularity	= newgranularity;
 	Clear();
@@ -312,9 +310,7 @@ template< class type >
 ID_INLINE void idList<type>::SetGranularity( int newgranularity ) {
 	int newsize;
 
-#if defined(_DEBUG) && 0
 	assert( newgranularity > 0 );
-#endif
 	granularity = newgranularity;
 
 	if ( list ) {
@@ -420,11 +416,9 @@ ID_INLINE void idList<type>::Resize( int newsize, int newgranularity ) {
 	type	*temp;
 	int		i;
 
-#if defined(_DEBUG) && 0
 	assert( newsize >= 0 );
 
 	assert( newgranularity > 0 );
-#endif
 	granularity = newgranularity;
 
 	// free up the list if no data is being reserved
@@ -596,10 +590,8 @@ Release builds do no range checking.
 */
 template< class type >
 ID_INLINE type &idList<type>::operator[]( int index ) {
-#if defined(_DEBUG) && 0
 	assert( index >= 0 );
 	assert( index < num );
-#endif
 
 	return list[ index ];
 }

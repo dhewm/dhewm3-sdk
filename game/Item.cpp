@@ -1822,9 +1822,7 @@ idItem::SetOwner
 ================
 */
 void idItem::SetOwner( idPlayer *_owner ) {
-#if defined(_DEBUG) && 0
 	assert( !owner );
-#endif
 	owner = _owner;
 	lastOwner = _owner;
 	// SetName( va( "%s_weapon", owner->name.c_str() ) );
@@ -1843,9 +1841,7 @@ idItem::CallFunc
 bool idItem::CallFunc( char *funcName ) {
 	const function_t *func = GetScriptFunction( (const char*) funcName );
 	if ( !func ) {
-#if defined(_DEBUG) && 0
 		assert( 0 );
-#endif
 		gameLocal.Error( "Can't find function use' in object '%s'", scriptObject.GetTypeName() );
 		return false;
 	}

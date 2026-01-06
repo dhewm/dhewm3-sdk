@@ -154,10 +154,8 @@ ID_INLINE void idStrPool::FreeString( const idPoolStr *poolStr ) {
 				}
 			}
 		}
-#if defined(_DEBUG) && 0
 		assert( i != -1 );
 		assert( pool[i] == poolStr );
-#endif
 		delete pool[i];
 		pool.RemoveIndex( i );
 		poolHash.RemoveIndex( hash, i );

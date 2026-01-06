@@ -1665,9 +1665,7 @@ bool idEntity::StartSound( const char *soundName, const s_channelType channel, i
 
 	// we should ALWAYS be playing sounds from the def.
 	// hardcoded sounds MUST be avoided at all times because they won't get precached.
-#if defined(_DEBUG) && 0
 	assert( idStr::Icmpn( soundName, "snd_", 4 ) == 0 );
-#endif
 
 	if ( !spawnArgs.GetString( soundName, "", &sound ) ) {
 		return false;

@@ -965,7 +965,7 @@ idClip::TestHugeTranslation
 */
 ID_INLINE bool TestHugeTranslation( trace_t &results, const idClipModel *mdl, const idVec3 &start, const idVec3 &end, const idMat3 &trmAxis ) {
 	if ( mdl != NULL && ( end - start ).LengthSqr() > Square( CM_MAX_TRACE_DIST ) ) {
-
+		// assert( 0 ); DG: this was annoying and not really necessary, a Warning should suffice.
 
 		results.fraction = 0.0f;
 		results.endpos = start;
@@ -982,7 +982,6 @@ ID_INLINE bool TestHugeTranslation( trace_t &results, const idClipModel *mdl, co
 
 		gameLocal.Warning( "  from (%.2f %.2f %.2f) to (%.2f %.2f %.2f)\n", start.x, start.y, start.z, end.x, end.y, end.z);
 
-		//assert( 0 ); DG: this assertion is overkill, warnings suffice and it's not like I can do anything about map issues in code
 		return true;
 	}
 	return false;

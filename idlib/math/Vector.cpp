@@ -294,7 +294,13 @@ void idVec3::ProjectSelfOntoSphere( const float radius ) {
 	}
 }
 
-
+// HEXEN : Zeroth
+float idVec3::toAngle( idVec3 B) {
+// return the angle in degrees between two idVec3s
+	idVec3	Bn = B; Bn.Normalize();
+	idVec3	An = *this; An.Normalize();
+	return RAD2DEG( idMath::ACos( An * Bn ) );
+}
 
 //===============================================================
 //

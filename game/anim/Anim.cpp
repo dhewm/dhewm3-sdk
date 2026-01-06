@@ -1075,6 +1075,8 @@ void idAnimManager::FlushUnusedAnims( void ) {
 	idList<idMD5Anim *>		removeAnims;
 
 	for( i = 0; i < animations.Num(); i++ ) {
+		
+
 		animptr = animations.GetIndex( i );
 		if ( animptr && *animptr ) {
 			if ( ( *animptr )->NumRefs() <= 0 ) {

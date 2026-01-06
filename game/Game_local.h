@@ -51,6 +51,15 @@ If you have questions concerning this license or the applicable additional terms
 #define protected	public
 #endif
 
+// HEXEN : Zeroth
+#define NUM_UNIQUE_ARTIFACTS	(16)
+#define EOC_NUM_VMODES	(15)
+#define EOC_RELEASE		(1)
+
+#define LAGO_IMG_WIDTH 64
+#define LAGO_IMG_HEIGHT 64
+#define LAGO_WIDTH	64
+
 /*
 ===============================================================================
 
@@ -96,6 +105,7 @@ extern const int NUM_RENDER_PORTAL_BITS;
 
 ===============================================================================
 */
+
 typedef struct entityState_s {
 	int						entityNumber;
 	idBitMsg				state;
@@ -220,6 +230,13 @@ private:
 
 //============================================================================
 
+// HEXEN : Zeroth
+struct r_vmodes_type {
+	int width;
+	int height;
+	int ratio;
+};
+
 class idGameLocal : public idGame {
 public:
 	idDict					serverInfo;				// all the tunable parameters, like numclients, etc
@@ -232,6 +249,7 @@ public:
 	int						firstFreeIndex;			// first free index in the entities array
 	int						num_entities;			// current number <= MAX_GENTITIES
 	idHashIndex				entityHash;				// hash table to quickly find entities by name
+	idHashIndex				entypeHash;				// hash table to quickly find entities by type (works in paralel with entityHash)
 	idWorldspawn *			world;					// world entity
 	idLinkList<idEntity>	spawnedEntities;		// all spawned entities
 	idLinkList<idEntity>	activeEntities;			// all thinking entities (idEntity::thinkFlags != 0)
@@ -277,6 +295,7 @@ public:
 	//     so it can be set to 16 or 17 in different frames
 	//     so 60 frames add up to 1000ms
 	int						msec;					// time since last update in milliseconds
+	bool					paused; // // HEXEN : Zeroth
 
 	int						vacuumAreaNum;			// -1 if level doesn't have any outside areas
 
@@ -297,6 +316,15 @@ public:
 
 	idEntityPtr<idEntity>	lastGUIEnt;				// last entity with a GUI, used by Cmd_NextGUI_f
 	int						lastGUI;				// last GUI on the lastGUIEnt
+
+// HEXEN : Zeroth
+public:
+	idEntityPtr<idEntity>	portalSkyEnt;
+	bool					portalSkyActive;
+	void					SetPortalSkyEnt( idEntity *ent );
+	bool					IsPortalSkyAcive();
+	r_vmodes_type				r_vmodes[EOC_NUM_VMODES];
+	int					r_vmode;
 
 	// ---------------------- Public idGame Interface -------------------
 
@@ -391,6 +419,11 @@ public:
 	bool					InPlayerPVS( idEntity *ent ) const;
 	bool					InPlayerConnectedArea( idEntity *ent ) const;
 
+public:
+	pvsHandle_t				GetPlayerPVS()			{ return playerPVS; };
+
+
+
 	void					SetCamera( idCamera *cam );
 	idCamera *				GetCamera( void ) const;
 	bool					SkipCinematic( void );
@@ -406,12 +439,16 @@ public:
 	static void				ArgCompletion_EntityName( const idCmdArgs &args, void(*callback)( const char *s ) );
 	idEntity *				FindTraceEntity( idVec3 start, idVec3 end, const idTypeInfo &c, const idEntity *skip ) const;
 	idEntity *				FindEntity( const char *name ) const;
+
+// HEXEN : Zeroth
+	idEntity *				FindEntityType( const idTypeInfo &type ) const;
+
 	idEntity *				FindEntityUsingDef( idEntity *from, const char *match ) const;
 	int						EntitiesWithinRadius( const idVec3 org, float radius, idEntity **entityList, int maxCount ) const;
 
 	void					KillBox( idEntity *ent, bool catch_teleport = false );
 	void					RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEntity *attacker, idEntity *ignoreDamage, idEntity *ignorePush, const char *damageDefName, float dmgPower = 1.0f );
-	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake );
+	void					RadiusPush( const idVec3 &origin, const float radius, const float push, const idEntity *inflictor, const idEntity *ignore, float inflictorScale, const bool quake, const bool notlocalplayer=false, const bool notprojectiles=true );
 	void					RadiusPushClipModel( const idVec3 &origin, const float push, const idClipModel *clipModel );
 
 	void					ProjectDecal( const idVec3 &origin, const idVec3 &dir, float depth, bool parallel, float size, const char *material, float angle = 0 );
@@ -451,6 +488,33 @@ public:
 	int						GetGibTime() { return nextGibTime; };
 
 	bool					NeedRestart();
+
+	
+// HEXEN : Zeroth
+// HEXEN : Zeroth
+// ****** thanks SnoopJeDi ( http://www.doom3world.org/phpbb2/viewtopic.php?f=56&t=12469&p=214427#p214427 )
+	idList<int>             musicSpeakers; //SnoopJeDi - holds entitynum values for speakers with s_music set
+// ******
+	void					SetLocalPlayerSpawnPoint(idStr point);
+//	void					FoliageRendering( void );
+	idStr					eoc_MapPath;
+	void					InitHub(void);
+	void					SendLocalUserHudMessage( const char *message );
+	void					SendLocalUserHudMessage( idStr message );
+	void					UpdateFog( void );
+	void					SetPersistentRemove( const char *name );
+	void					SetPersistentLightOn( const char *name, bool state );
+	void					SetPersistentLightBroken( const char *name );
+	void					SetPersistentTrigger( const char *type, const char *name, const bool state );
+	void					SetPersistentTriggerInt( const char *type, const char *var, const char *name, int val );
+	void					SavePersistentMoveables(void);
+// HEXEN : Zeroth
+public:
+	idStr					eoc_LocalPlayerSpawnPoint;
+	float					eoc_MapLoading;
+	float					eoc_MapLoadingPrev;
+	idStr					mapNameForCheat;
+	idList<idVec3 *>		BanishLocationList;
 
 private:
 	const static int		INITIAL_SPAWN_COUNT = 1;
@@ -497,6 +561,7 @@ private:
 
 	idStaticList<spawnSpot_t, MAX_GENTITIES> spawnSpots;
 	idStaticList<idEntity *, MAX_GENTITIES> initialSpots;
+
 	int						currentInitialSpot;
 
 	idDict					newInfo;
@@ -658,6 +723,23 @@ typedef enum {
 
 extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
+extern const idVec3 DEFAULT_GRAVITY_NORMAL;
 extern const int	CINEMATIC_SKIP_DELAY;
+
+
+// DG: Note: all the following includes were added by h:eoc, not sure if they're *really* needed here
+#include "script/Script_Interpreter.h"
+#include "script/Script_Thread.h"
+
+// HEXEN : Zeroth
+#include "projectiles/Wraithverge.h"
+#include "projectiles/FireStorm.h"
+#include "projectiles/Soul.h"
+#include "ai/AI_Veloxite.h"
+#include "ai/AI_Golem.h"
+#include "ai/AI_Shadowspawn.h"
+#include "objects/Tree.h"
+#include "objects/Leaf.h"
+#include "objects/LeafEmitter.h"
 
 #endif	/* !__GAME_LOCAL_H__ */

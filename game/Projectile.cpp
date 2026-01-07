@@ -2226,7 +2226,9 @@ void idDebris::Launch( void ) {
 	bool		randomPosition;
 	float		direction_from_spawner;
 	idVec3		newDir;
-	idVec3		originBeforeAdjust;
+	// DG: FIXME: originBeforeAdjustis never set but used below,
+	//     I initialize it to (0, 0, 0) so it at least has a deterministic and valid value
+	idVec3		originBeforeAdjust(0, 0, 0);
 	float		randomAngular;
 	idVec2		fuse_random;
 
@@ -2290,8 +2292,11 @@ void idDebris::Launch( void ) {
 
 		// overrides "randomDirection"
 		if ( direction_from_spawner != 0 ) {
+			// DG: FIXME: originBeforeAdjust is never set
 			newDir = GetPhysics()->GetOrigin() - originBeforeAdjust;
 			newDir.Normalize();
+			// DG: FIXME: what is this supposed to do? direction_from_spawner
+			//     doesn't change the direction of newdir, it only scales it
 			velocity += direction_from_spawner * newDir;
 
 			// get center of bounds on moveable

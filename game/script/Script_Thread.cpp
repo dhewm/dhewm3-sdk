@@ -1937,7 +1937,7 @@ void idThread::Event_GetRandomBanishLocation( void ) {
 
 	if ( gameLocal.BanishLocationList.Num() < 1 ) {
 		gameLocal.Error("There are no Banish Locations\n.");
-		idThread::ReturnVector( idVec3() );
+		idThread::ReturnVector( idVec3(0, 0, 0) ); // DG: making sure the vector is initialized
 		return;
 	}
 

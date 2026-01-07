@@ -1393,7 +1393,7 @@ void idTrigger_Touch::TouchEntities( void ) { //Z.TODO: this is getting messy, m
 // HEXEN : Zeroth - for trigger_hurtmulti
 	const char *damage;
 	idStr name;
-	bool dontTrigger;
+	bool dontTrigger = true; // DG: initializing this so ensure it has a deterministic value
 
 // HEXEN : Zeroth - for limit entity type
 	idEntity	*entity=NULL;

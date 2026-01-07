@@ -1786,7 +1786,7 @@ idAI::Event_TestMeleeAttack
 =====================
 */
 void idAI::Event_TestMeleeAttack( void ) {
-	bool result = TestMelee( idVec3() );
+	bool result = TestMelee( idVec3(0, 0, 0) ); // DG: making sure the idVec3 has a deterministic value
 	idThread::ReturnInt( result );
 }
 

@@ -360,9 +360,10 @@ void Cmd_ClearPLI_f( const idCmdArgs &args ) {
 void Cmd_VidRestart_f( const idCmdArgs &args ) {
 	bool doit=false;
 
-	int ratio;
-	int width;
-	int height;
+	// DG: initialized these variables to appease the compiler
+	int ratio = 0;
+	int width = 0;
+	int height = 0;
 
 	int eoc_cvarmode = r_vmode.GetInteger();
 

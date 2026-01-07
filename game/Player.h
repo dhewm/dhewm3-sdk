@@ -252,7 +252,11 @@ public:
 	idScriptBool			AI_STRAFE_LEFT;
 	idScriptBool			AI_STRAFE_RIGHT;
 	idScriptBool			AI_ATTACK_HELD;
-	idScriptBool			AI_ATTACK2_HELD; // HEXEN : Zeroth
+	// DG: AI_ATTACK2_HELD seems unused. it used to cause an assertion when loading a level
+	//  because it wasn't linked, when linking it starting the game fails with
+	//  "ERROR: Missing 'AI_ATTACK2_HELD' field in script object 'player'"
+	//  which indicates that the scripts don't use this
+	//idScriptBool			AI_ATTACK2_HELD; // HEXEN : Zeroth
 	idScriptBool			AI_WEAPON_FIRED;
 	idScriptBool			AI_JUMP;
 	idScriptBool			AI_CROUCH;

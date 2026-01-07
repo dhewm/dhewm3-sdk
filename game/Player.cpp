@@ -1413,6 +1413,7 @@ void idPlayer::LinkScriptVariables( void ) {
 	AI_STRAFE_LEFT.LinkTo(		scriptObject, "AI_STRAFE_LEFT" );
 	AI_STRAFE_RIGHT.LinkTo(		scriptObject, "AI_STRAFE_RIGHT" );
 	AI_ATTACK_HELD.LinkTo(		scriptObject, "AI_ATTACK_HELD" );
+	//AI_ATTACK2_HELD.LinkTo(		scriptObject, "AI_ATTACK2_HELD" ); // DG: for HEXEN, in theory, but seems unused
 	AI_WEAPON_FIRED.LinkTo(		scriptObject, "AI_WEAPON_FIRED" );
 	AI_JUMP.LinkTo(				scriptObject, "AI_JUMP" );
 	AI_DEAD.LinkTo(				scriptObject, "AI_DEAD" );
@@ -1635,7 +1636,7 @@ void idPlayer::Init( void ) {
 	AI_STRAFE_LEFT	= false;
 	AI_STRAFE_RIGHT	= false;
 	AI_ATTACK_HELD	= false;
-	AI_ATTACK2_HELD	= false; // HEXEN : Zeroth
+	// AI_ATTACK2_HELD	= false; // HEXEN : Zeroth - DG: seems unused
 	AI_WEAPON_FIRED	= false;
 	AI_JUMP			= false;
 	AI_DEAD			= false;
@@ -3109,7 +3110,7 @@ void idPlayer::EnterCinematic( void ) {
 	AI_STRAFE_RIGHT	= false;
 	AI_RUN			= false;
 	AI_ATTACK_HELD	= false;
-	AI_ATTACK2_HELD	= false; // HEXEN : Zeroth
+	// AI_ATTACK2_HELD	= false; // HEXEN : Zeroth - DG: seems unused
 	AI_WEAPON_FIRED	= false;
 	AI_JUMP			= false;
 	AI_CROUCH		= false;
@@ -3207,7 +3208,7 @@ idPlayer::StopFiring
 */
 void idPlayer::StopFiring( void ) {
 	AI_ATTACK_HELD	= false;
-	AI_ATTACK2_HELD	= false; // HEXEN : Zeroth
+	//AI_ATTACK2_HELD	= false; // HEXEN : Zeroth - DG: seems unused
 	AI_WEAPON_FIRED = false;
 	AI_RELOAD		= false;
 	if ( weapon.GetEntity() ) {
@@ -3287,7 +3288,7 @@ void idPlayer::FireWeaponAlt( void ) {
 
 	if ( !hiddenWeapon && weapon.GetEntity()->IsReady() ) {
 		if ( weapon.GetEntity()->AmmoInClip() || weapon.GetEntity()->AmmoAvailable() ) {
-			AI_ATTACK2_HELD = true;
+			//AI_ATTACK2_HELD = true; - DG: seems unused
 			weapon.GetEntity()->BeginAttack2();
 			inventory.DoCombinedMana(); // HEXEN : Zeroth
 			if ( ( weapon_soulcube >= 0 ) && ( currentWeapon == weapon_soulcube ) ) {
@@ -4444,7 +4445,7 @@ void idPlayer::Weapon_Combat( void ) {
 		if ( ( usercmd.buttons & BUTTON_ATTACK2 ) && !weaponGone ) {
 			FireWeaponAlt();
 		} else if ( oldButtons & BUTTON_ATTACK2 ) {
-			AI_ATTACK2_HELD = false;
+			//AI_ATTACK2_HELD = false; - DG: seems unused
 			weapon.GetEntity()->EndAttack2();
 		}
 	}

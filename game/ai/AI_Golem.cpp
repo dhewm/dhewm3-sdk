@@ -196,8 +196,10 @@ void idAI_Golem::BlowUp( void ) {
 	//soul->GetPhysics()->SetOrigin( GetPhysics()->GetOrigin() );
 
 	// rocks get removed from head to toe.
-    for (int i=rocks.Num(); i >= 0; i--) {
-        if ( !rocks[i] ) {
+    for (int i=rocks.Num()-1; i >= 0; i--) {
+		// DG: this code should start at rocks.Num()-1 (last valid index)
+		//     and the check was "!rocks[i]" but the opposite is needed
+        if ( rocks[i] != NULL ) {
 			rocks[i]->GetPhysics()->SetGravity(gameLocal.GetGravity());
 			rocks[i]->spawnArgs.Set("golem_owned", 0);
 			rocks[i]->spawnArgs.Set("golem_bound", 0);

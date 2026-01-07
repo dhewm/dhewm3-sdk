@@ -26,6 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "Game_local.h"
 #include "sys/platform.h"
 #include "idlib/geometry/JointTransform.h"
 #include "idlib/LangDict.h"
@@ -1665,7 +1666,10 @@ bool idEntity::StartSound( const char *soundName, const s_channelType channel, i
 
 	// we should ALWAYS be playing sounds from the def.
 	// hardcoded sounds MUST be avoided at all times because they won't get precached.
-	assert( idStr::Icmpn( soundName, "snd_", 4 ) == 0 );
+	//assert( idStr::Icmpn( soundName, "snd_", 4 ) == 0 ); - DG: unfortunately EOC's game data does this anyway
+	if ( idStr::Icmpn( soundName, "snd_", 4 ) != 0 ) {
+		gameLocal.Warning( "Using hardcoded non precached sound %s, should use ones that start with snd_!", soundName );
+	}
 
 	if ( !spawnArgs.GetString( soundName, "", &sound ) ) {
 		return false;

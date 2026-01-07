@@ -454,7 +454,7 @@ public:
 	int				InventoryItemQty( const char *name ) const;
 	int				InventoryItemQty( int belt ); // specifically for artifacts
 	void				SortArtifacts( void ); // sort belt items in ascending order of their "artifact" keys
-	void				ArtifactExec( int belt, char *func, bool remove );
+	void				ArtifactExec( int belt, const char *func, bool remove );
 	void				ArtifactDrop( int belt, bool randomPos );
 	bool				ArtifactRemove( int belt );
 	void					ShowArtifactHud( void );

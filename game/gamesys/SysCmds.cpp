@@ -577,7 +577,7 @@ void Cmd_idkfa_f( const idCmdArgs &args ) {
 
 // HEXEN : Zeroth
 void Cmd_WallWalk_f( const idCmdArgs &args ) {
-	char		*msg;
+	const char		*msg;
 	idPlayer	*player;
 	idPhysics	*phys;
 

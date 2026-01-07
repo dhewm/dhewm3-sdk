@@ -1777,7 +1777,7 @@ void idItem::SetOwner( idPlayer *_owner ) {
 	//}
 }
 
-bool idItem::CallFunc(char *funcName) {
+bool idItem::CallFunc(const char *funcName) {
 	const function_t *func = GetScriptFunction( (const char*) funcName );
 	if ( !func ) {
 		assert( 0 );

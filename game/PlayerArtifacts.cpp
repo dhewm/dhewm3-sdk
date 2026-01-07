@@ -52,7 +52,7 @@ bool idPlayer::ActiveArtifact( const char *art ) {
 	return ActiveArtifact(tmp.GetInt("art"));
 }
 
-void idPlayer::ArtifactExec( int belt, char * funcName, bool remove ) {
+void idPlayer::ArtifactExec( int belt, const char * funcName, bool remove ) {
 	CleanupArtifactItems();
 
 	if (!ArtifactVerify(belt)) {

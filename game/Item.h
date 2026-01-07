@@ -63,7 +63,7 @@ public:
 	void					SetOwner( idPlayer *owner );
 	idPlayer*				GetOwner( void );
 	idPlayer*				GetLastOwner( void );
-	bool					CallFunc(char *funcName);
+	bool					CallFunc(const char *funcName);
 
 	enum {
 		EVENT_PICKUP = idEntity::EVENT_MAXEVENTS,

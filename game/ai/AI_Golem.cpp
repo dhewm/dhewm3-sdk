@@ -1,8 +1,11 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
 
-#include "../Game_local.h"
+#include "Entity.h"
+#include "Game_local.h"
+#include "Moveable.h"
+#include "AI.h"
+#include "AI_Golem.h"
+#include "WorldSpawn.h"
 
 const idVec3 GOLEM_ROCKS_NO_GRAVITY				= idVec3(0,0,0);
 const int GOLEM_ROCKS_MAX						= 13;

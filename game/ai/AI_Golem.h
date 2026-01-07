@@ -1,10 +1,8 @@
 #ifndef __AI_GOLEM_
 #define __AI_GOLEM_
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
-
-#include "../Game_local.h"
+#include "Game_local.h"
+#include "AI.h"
 
 const idVec3 GOLEM_TRACE_MINS	= idVec3(-1,-1,-1);
 const idVec3 GOLEM_TRACE_MAXS	= idVec3(-1,-1,-1);
@@ -39,7 +37,7 @@ private:
     void		nextBone( void );
 	void		BlowUp( void );
 	void		Event_SawEnemy( void );
-	idMoveable *idAI_Golem::FindGolemRock( void );
+	idMoveable	*FindGolemRock( void );
 };
 
 

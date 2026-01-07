@@ -1,8 +1,7 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
-
-#include "../Game_local.h"
+#include "Entity.h"
+#include "Moveable.h"
+#include "Leaf.h"
 
 CLASS_DECLARATION( idMoveable, idEntity_Leaf )
 

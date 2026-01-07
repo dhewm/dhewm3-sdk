@@ -1,9 +1,7 @@
 // HEXEN : Zeroth
 
-#include "../idlib/precompiled.h"
-#pragma hdrstop
-
 #include "Game_local.h"
+#include "Player.h"
 
 void idPlayer::Event_SetViewAngles( idVec3 &vec ) {
 	viewAngles[0] = vec.x;

@@ -350,7 +350,7 @@ ID_INLINE idVec3 idClip::TraceSurfaceNormal( trace_t &trace, const idVec3 &A, co
 
         // if near a surface
         if ( trace.fraction < 1.0f ) {
-                idVec3 bub=trace.c.normal;
+                //idVec3 bub=trace.c.normal;
 
                 return trace.c.normal;
         }else{

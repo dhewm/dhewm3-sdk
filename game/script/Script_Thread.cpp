@@ -28,9 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 
+#include "Game_local.h"
 #include "gamesys/SysCvar.h"
 #include "Player.h"
 #include "Camera.h"
+#include "SmokeParticles.h"
 
 #include "script/Script_Thread.h"
 

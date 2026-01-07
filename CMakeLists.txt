@@ -241,6 +241,8 @@ if(D3_COMPILER_IS_GCC_OR_CLANG)
 		add_compile_options(-fvisibility=hidden)
 	endif()
 
+	add_compile_options(-Werror=format)
+
 	# TODO fix these warnings
 	add_compile_options(-Wno-sign-compare)
 	add_compile_options(-Wno-switch)

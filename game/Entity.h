@@ -602,7 +602,7 @@ private:
 private:
 	void					Event_TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
 public:
-	idVec3					idAnimatedEntity::GetJointPos( jointHandle_t jointnum );
+	idVec3					GetJointPos( jointHandle_t jointnum );
 	void					TransitionJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &to, const idAngles &from, float seconds, float transitions );
 	void 					SetJointAngle( jointHandle_t jointnum, jointModTransform_t transform_type, const idAngles &angles );
 	idAngles				GetJointAngle( jointHandle_t jointnum );

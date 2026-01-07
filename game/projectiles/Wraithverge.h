@@ -1,6 +1,8 @@
 #ifndef __AI_WRAITHVERGE_H__
 #define __AI_WRAITHVERGE_H__
 
+#include "Projectile.h"
+
 /*************************************************************************
 
 WraithVerge Projectile (spawns other wraith types)

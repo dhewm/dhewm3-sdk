@@ -50,6 +50,19 @@ If you have questions concerning this license or the applicable additional terms
 #include "Trigger.h"
 
 #include "Game_local.h"
+#include "Sound.h"
+
+// HEXEN : Zeroth
+#include "projectiles/Wraithverge.h"
+#include "projectiles/FireStorm.h"
+#include "projectiles/Soul.h"
+#include "ai/AI_Veloxite.h"
+#include "ai/AI_Golem.h"
+#include "ai/AI_Shadowspawn.h"
+#include "objects/Tree.h"
+#include "objects/Leaf.h"
+#include "objects/LeafEmitter.h"
+
 
 const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
 

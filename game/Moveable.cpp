@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Fx.h"
 
 #include "Moveable.h"
+#include "Projectile.h"
+#include "SmokeParticles.h"
 
 /*
 ===============================================================================
@@ -1357,6 +1359,8 @@ bool idExplodingBarrel::ClientReceiveEvent( int event, int time, const idBitMsg 
 	return idBarrel::ClientReceiveEvent( event, time, msg );
 }
 
+
+#if 0
 /*********************************************************
 
 Zeroth's idWood.
@@ -2612,4 +2616,5 @@ Test code for trying to create clip models on the fly
 
 	//renderEntity.hModel = renderModelManager->AllocModel();
 	//renderEntity.hModel->InitEmpty( brittleFracture_SnapshotName );
+#endif
 

@@ -1,7 +1,7 @@
 #ifndef __AI_VELOXITE_H__
 #define __AI_VELOXITE_H__
 
-typedef enum v_stype {
+enum v_stype {
 	v_none = 0,
 	v_slope = 1,
 	v_wall = 2

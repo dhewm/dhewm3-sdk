@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/platform.h"
 #include "renderer/RenderSystem.h"
 
+#include "framework/DeclEntityDef.h"
 #include "gamesys/SysCvar.h"
 #include "Player.h"
 #include "Fx.h"

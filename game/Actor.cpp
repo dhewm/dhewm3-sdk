@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "WorldSpawn.h"
 
 #include "Actor.h"
-
+#include "Trigger.h"
 
 /***********************************************************************
 

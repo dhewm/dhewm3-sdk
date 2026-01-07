@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/platform.h"
 #include "script/Script_Thread.h"
 #include "Player.h"
+#include "ai/AI.h"
 
 #include "Trigger.h"
 

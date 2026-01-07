@@ -1108,7 +1108,7 @@ void idWeapon::UpdateGUI( void ) {
 		renderEntity.gui[ 0 ]->SetStateString( "player_ammo", "" );
 	} else {
 		// show remaining ammo
-		renderEntity.gui[ 0 ]->SetStateString( "player_totalammo", va( "%i", ammoamount - inclip) );
+		renderEntity.gui[ 0 ]->SetStateString( "player_totalammo", va( "%i", int(ammoamount - inclip)) ); // TODO: or use %f ?
 		renderEntity.gui[ 0 ]->SetStateString( "player_ammo", ClipSize() ? va( "%f", inclip ) : "--" );
 		renderEntity.gui[ 0 ]->SetStateString( "player_clips", ClipSize() ? va("%f", ammoamount / ClipSize()) : "--" );
 		renderEntity.gui[ 0 ]->SetStateString( "player_allammo", va( "%f/%f", inclip, ammoamount - inclip ) );
@@ -2921,7 +2921,8 @@ idWeapon::Event_CreateProjectile
 void idWeapon::Event_CreateProjectile( void ) {
 	if ( !gameLocal.isClient ) {
 // HEXEN : Zeroth
-		projectileEnts.Append( &idEntity() );
+		idEntity * newProjectile = new idEntity();
+		projectileEnts.Append( newProjectile );
 		int pnum=projectileEnts.Num()-1;
 		gameLocal.SpawnEntityDef( projectileDict, &(projectileEnts[pnum]), false );
 		if ( projectileEnts[pnum] ) {

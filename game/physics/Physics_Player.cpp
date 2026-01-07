@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "sys/platform.h"
 #include "gamesys/SysCvar.h"
+#include "Actor.h"
 #include "Entity.h"
 
 #include "physics/Physics_Player.h"

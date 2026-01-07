@@ -1,8 +1,8 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
+#include "Game_local.h"
+#include "Projectile.h"
 
-#include "../Game_local.h"
+#include "Soul.h"
 
 const float	SOUL_SPEED	= 1000.0f;
 

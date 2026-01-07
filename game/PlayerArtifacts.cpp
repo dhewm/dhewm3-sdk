@@ -1,9 +1,9 @@
 // HEXEN : Zeroth
 
-#include "../idlib/precompiled.h"
-#pragma hdrstop
-
 #include "Game_local.h"
+#include "Item.h"
+#include "Player.h"
+#include "gamesys/SysCvar.h"
 
 int idPlayer::FindArtifact( int art ) {
 	for (int belt=0; belt<Artifact.Num(); belt++) {
@@ -285,7 +285,7 @@ bool idPlayer::ArtifactVerify( int belt ) {
 
 	art=Artifact[belt]->GetInt("artifact");
 
-	sprintf(itemStr,Artifact[belt]->GetString("name"));
+	idStr::Copynz(itemStr, Artifact[belt]->GetString("name"), sizeof(itemStr));
 
 	if ( art == -1 ) {
 		return true; //?

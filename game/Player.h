@@ -42,6 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Mover.h"
 
 class idAI;
+class idProjectile;
 
 /*
 ===============================================================================
@@ -789,7 +790,7 @@ private:
 
 public:
 	idVec3					VecForwardP( void ) const;
-	idVec3					idPlayer::VecFacingP( void ) const;
+	idVec3					VecFacingP( void ) const;
 	void					OpenCustomGui( idStr file );
 };
 

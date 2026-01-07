@@ -44,6 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "WorldSpawn.h"
 #include "SmokeParticles.h"
 
+#include "ai/AI.h"
 #include "Entity.h"
 
 /*

@@ -1,8 +1,12 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
+#include "Game_local.h"
+#include "Player.h"
+#include "Projectile.h"
+#include "ai/AI.h"
+#include "ai/AI_Golem.h"
+#include "ai/AI_Veloxite.h"
 
-#include "../Game_local.h"
+#include "Wraithverge.h"
 
 const int	PROJ_WRAITH_CHASE_RANGE	= 768;
 const int	PROJ_WRAITH_SPAWN_DELAY	= 400;

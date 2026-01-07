@@ -723,10 +723,10 @@ typedef enum {
 
 extern const float	DEFAULT_GRAVITY;
 extern const idVec3	DEFAULT_GRAVITY_VEC3;
-extern const idVec3 DEFAULT_GRAVITY_NORMAL;
+extern const idVec3 DEFAULT_GRAVITY_NORMAL; // for HeXen: EOC
 extern const int	CINEMATIC_SKIP_DELAY;
 
-
+#if 0
 // DG: Note: all the following includes were added by h:eoc, not sure if they're *really* needed here
 #include "script/Script_Interpreter.h"
 #include "script/Script_Thread.h"
@@ -741,5 +741,6 @@ extern const int	CINEMATIC_SKIP_DELAY;
 #include "objects/Tree.h"
 #include "objects/Leaf.h"
 #include "objects/LeafEmitter.h"
+#endif // 0
 
 #endif	/* !__GAME_LOCAL_H__ */

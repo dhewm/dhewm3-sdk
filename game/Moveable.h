@@ -218,7 +218,8 @@ private:
 	void					Event_Explode();
 	void					Event_TriggerTargets();
 };	
-/**
+
+#if 0
 // HEXEN : Zeroth
 // for idWood and other entities with renderModels that need more vertex/face info
 class Destructible_FaceData_t {
@@ -276,5 +277,6 @@ private:
 	void					ConstructGeo( void );
 	
 };
-**/
+#endif
+
 #endif /* !__GAME_MOVEABLE_H__ */

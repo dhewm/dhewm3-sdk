@@ -1,8 +1,10 @@
 
-#include "../../idlib/precompiled.h"
-#pragma hdrstop
+#include "Game_local.h"
+#include "Player.h"
+#include "Projectile.h"
+#include "ai/AI.h"
 
-#include "../Game_local.h"
+#include "FireStorm.h"
 
 const int	FIREBEAM_METEOR_DELAY	= 300; // in msec
 const int	FIREBEAM_METEOR_NUM		= 8;

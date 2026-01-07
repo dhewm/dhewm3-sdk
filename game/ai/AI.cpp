@@ -2824,7 +2824,7 @@ void idAI::AnimMove( void ) {
 		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 5000 );
 	}
 
-	moveResult = physicsObj.GetMoveResult();
+	//moveResult = physicsObj.GetMoveResult();
 	if ( !af_push_moveables && attack.Length() && TestMelee( idVec3() ) ) {
 		DirectDamage( attack, enemy.GetEntity() );
 	} else {
@@ -2951,7 +2951,7 @@ void idAI::SlideMove( void ) {
 		gameRenderWorld->DebugLine( colorCyan, oldorigin, physicsObj.GetOrigin(), 5000 );
 	}
 
-	moveResult = physicsObj.GetMoveResult();
+	//moveResult = physicsObj.GetMoveResult();
 	if ( !af_push_moveables && attack.Length() && TestMelee( idVec3() ) ) {
 		DirectDamage( attack, enemy.GetEntity() );
 	} else {

@@ -1,6 +1,6 @@
 # HeXen: Edge Of Chaos
 
-This is the source of HeXen: Edge Of Chaos (HEOC) game by HEOC Team, LegendGuard ported to the dhewm3 SDK.
+This is the source of HeXen: Edge Of Chaos (HEOC) game by HEOC Team.
 
 You can **download** the required mod **game data** at https://www.moddb.com/games/doom-iii/downloads/hexen-edge-of-chaos-dhewm3-edition
 
@@ -29,7 +29,7 @@ You need [CMake](https://cmake.org/) either Visual Studio (2010 and newer have b
 
 1. Clone the dhewm3-sdk git repo
 2. switch to your git clone's directory: `cd dhewm3-sdk`
-2. (optional: switch to an existing mods branch: `git checkout hexeneoc`)
+2. (optional: switch to an existing mods branch: `git checkout eoc`)
 3. create a **build directory** in your `dhewm3-sdk/` directory (`build/` or `build-eoc/` or whatever)
 4. Start the CMake GUI
 5. Select your `dhewm3-sdk/` folder for *"Where is the source code"* and your  
@@ -56,7 +56,7 @@ for example dentonmod/ for dentonmod.dll)
 On Linux and similar the following should work (if you have cmake, make and GCC/g++ installed):
 1. Clone the dhewm3-sdk git repo
 2. switch to your git clone's directory: `cd dhewm3-sdk`
-3. (optional: switch to an existing mods branch: `git checkout hexeneoc`)
+3. (optional: switch to an existing mods branch: `git checkout eoc`)
 4. create a build directory: `mkdir build`
 5. switch to build directory: `cd build`
 6. create Makefile with CMake: `cmake ..`

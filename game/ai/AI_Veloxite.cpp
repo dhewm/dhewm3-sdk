@@ -128,8 +128,10 @@ void idAI_Veloxite::Spawn( void ) {
 	doPostTrans	=	false;
 	curTrans	=	0;
 	debuglevel	=	1;
+	next=0;
+	LinkScriptVariables();
+	// DG: script variables must be linked before using them
 	AI_ONWALL	=	onWall();
-	LinkScriptVariables();next=0;
 	// just to make sure 'trace' is safe
 	idVec3 addHeight = physicsObj.GetGravity();
 	addHeight.Normalize();

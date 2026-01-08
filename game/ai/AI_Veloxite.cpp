@@ -97,6 +97,8 @@ void idAI_Veloxite::Restore( idRestoreGame *savefile ) {
 	savefile->ReadVec3( veloxMaxs );
 	savefile->ReadVec3( traceMins );
 	savefile->ReadVec3( traceMaxs );
+	// Link the script variables back to the scriptobject - DG: and do this *before* using them
+	LinkScriptVariables();
 	bool b;
 	savefile->ReadBool( b ); b ? AI_ALIGNING = true : AI_ALIGNING = false;
 	savefile->ReadBool( b ); b ? AI_WALLING = true : AI_WALLING = false;
@@ -107,8 +109,6 @@ void idAI_Veloxite::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( b ); b ? AI_DROPATTACK = true : AI_DROPATTACK = false;
 	savefile->ReadBool( b ); b ? AI_ONWALL = true : AI_ONWALL = false;
 
-	// Link the script variables back to the scriptobject
-	LinkScriptVariables();
 }
 
 // ***********************************************************

@@ -8766,7 +8766,7 @@ void idPlayer::OpenStats( idStr nextMap, int level_no ) {
 	statsUI->SetStateInt( "health", health );
 	statsUI->SetStateInt( "level_no", level_no );
 	//statsUI->SetStateString( "entering", va( "Now Entering: %s", nextMapName ) );
-	statsUI->SetStateString( "nextMap", va( nextMap ) );
+	statsUI->SetStateString( "nextMap",  nextMap );
 	gameSoundWorld->PlayShaderDirectly( "music_stats", SND_CHANNEL_ANY );
 	//common->Printf( "^1Nextmap is: %s", va( nextMap ) );
 }

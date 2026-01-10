@@ -172,11 +172,13 @@ if [ "$MOD" = "all" ]; then
 		#  (not necessary on other platforms, but shouldn't hurt, I think)
 		for MOD in $(cat ../modlist.txt | tr -d "\\r"); do
 			handle_mod
+			echo ""
 		done
 	else
 		for i in */ ; do
 			MOD=$(basename "$i")
 			handle_mod
+			echo ""
 		done
 	fi
 else

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ $# -lt 2 ]; then
 	echo "Usage: $0 <action> <modname> [action args]"
@@ -69,30 +69,27 @@ pull_mod() {
 
 cmake_mod() {
 	echo "Setting up CMake build dir for $MOD"
-	cmake -S "$MOD/" -B "$MOD/build" $ACTIONARGS
+	cmake -S "$MOD/" -B "$MOD/build" "${ACTIONARGS[@]}"
 }
 
 build_mod() {
 	echo "Building $MOD"
-	cmake --build "$MOD/build" $ACTIONARGS
+	cmake --build "$MOD/build" "${ACTIONARGS[@]}"
 	echo ""
 }
 
 remove_mod() {
 	echo "Removing $MOD from mods/, its branch (incl. commits) will be preserved"
-	git worktree remove $ACTIONARGS "$MOD"
+	git worktree remove "${ACTIONARGS[@]}" "$MOD"
 }
 
 command_on_mod() {
-	# put $ACTIONARGS into $1, $2 etc
-	set $ACTIONARGS
-	if [ $# -eq 0 ]; then
+	if [ "${#ACTIONARGS[@]}" -eq 0 ]; then
 		echo "You must provide a custom command to run for the 'command' action!"
 		exit 1
 	fi
-	USERCMD="$1"
-	shift
-	"$USERCMD" "$@" "$MOD"
+	USERCMD="${ACTIONARGS[0]}"
+	"$USERCMD" "${ACTIONARGS[@]:1}" "$MOD"
 }
 
 handle_mod() {
@@ -126,9 +123,7 @@ handle_mod() {
 
 MOD="$2"
 shift; shift # now $1 is the first argument after the mod name (I hope :-p)
-# FIXME: this doesn't work with arguments that contain a space :-/
-#        might need full bash instead of posix shell after all (for arrays)
-ACTIONARGS="$@"
+ACTIONARGS=("$@")
 
 if [ ! -d mods ]; then
 	if mkdir mods ; then

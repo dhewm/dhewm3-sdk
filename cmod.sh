@@ -4,12 +4,12 @@ if [ $# -lt 2 ]; then
 	echo "Usage: $0 <action> <modname> [action args]"
 	echo "Supported actions: add, checkout, pull, cmake, build, remove, command, command_in"
 	echo "Special case: using 'all' as modname runs the action on all checked out mods"
-	echo "              For the 'checkout' action, 'all' runs on all mods from modlist.txt"
+	echo "              For the 'checkout' action, 'all' runs on all mods from acmodlist.txt"
 	echo "The 'cmake', 'build' and 'command' actions allow specifying additional arguments (action args) that are passed to cmake"
 	echo "Actions:"
 	echo "* 'checkout' (or 'co') checks out the <modname> branch with at mods/modname using git worktree."
 	echo "   It expects the branch to exist in the 'origin' remote"
-	echo "  '$0 checkout all' does this for all branches listed in modlist.txt"
+	echo "  '$0 checkout all' does this for all branches listed in acmodlist.txt"
 	echo "* 'add' creates a new local branch for a mod with given modname and checks it out into mods/modname"
 	echo "   (if the branch already exists it will be used, this just calls 'git worktree add modname'"
 	echo "    without the safeguards of the checkout action that are supposed to prevent typos)"
@@ -44,7 +44,7 @@ add_mod() {
 		echo "Creating branch '$MOD' and checking it out to directory of that name"
 		git worktree add "$MOD"
 		echo ""
-		echo "You may want to add '$MOD' to modlist.txt"
+		echo "You may want to add '$MOD' to acmodlist.txt"
 	fi
 }
 
@@ -155,7 +155,7 @@ fi
 cd mods
 
 if [ "$MOD" = "all" ]; then
-	# if special mod "all" was specified, run the action for all checked out mods (or the ones in modlist.txt for checkout)
+	# if special mod "all" was specified, run the action for all checked out mods (or the ones in acmodlist.txt for checkout)
 	if [ "$ACTION" = "add" ]; then
 		# well, except for add, it doesn't make sense without an explicit branch name
 		echo 'The "add" action requires specifying one mod name for the newly created branch, not "all"!'
@@ -166,11 +166,11 @@ if [ "$MOD" = "all" ]; then
 		echo "You want to checkout several mods, fetching origin..."
 		git fetch origin
 
-		echo "Checking out all mods in modlist.txt"
-		# Note: On Windows Git checks out modlist.txt with CRLF line-endings
+		echo "Checking out all mods in acmodlist.txt"
+		# Note: On Windows Git checks out acmodlist.txt with CRLF line-endings
 		#  which confuses Git Bash's cat... tr -d "\\r" removes the CR part
 		#  (not necessary on other platforms, but shouldn't hurt, I think)
-		for MOD in $(cat ../modlist.txt | tr -d "\\r"); do
+		for MOD in $(cat ../acmodlist.txt | tr -d "\\r"); do
 			handle_mod
 			echo ""
 		done

@@ -2,7 +2,7 @@
 
 if [ $# -lt 2 ]; then
 	echo "Usage: $0 <action> <modname> [action args]"
-	echo "Supported actions: add, checkout, pull, cmake, build, remove, command"
+	echo "Supported actions: add, checkout, pull, cmake, build, remove, command, command_in"
 	echo "Special case: using 'all' as modname runs the action on all checked out mods"
 	echo "              For the 'checkout' action, 'all' runs on all mods from modlist.txt"
 	echo "The 'cmake', 'build' and 'command' actions allow specifying additional arguments (action args) that are passed to cmake"
@@ -29,6 +29,9 @@ if [ $# -lt 2 ]; then
 	echo "   the other arguments you specified and the modname as last argument"
 	echo "   Example: $0 command all echo I have this mod:"
 	echo "   Will print 'I have this mod: bloodmod' 'I have this mod: cdoom' etc"
+	echo "* 'command_in': Changes into the directory of a mod and runs the custom command there"
+	echo "   BUT ONLY with the action args as arguments, not the modname"
+	echo "   Example: '$0 command_in cdoom git log' changes into mods/cdoom/ and runs 'git log' there"
 	exit 1
 fi
 
@@ -92,6 +95,18 @@ command_on_mod() {
 	"$USERCMD" "${ACTIONARGS[@]:1}" "$MOD"
 }
 
+command_in_mod() {
+	if [ "${#ACTIONARGS[@]}" -eq 0 ]; then
+		echo "You must provide a custom command to run for the 'command_in' action!"
+		exit 1
+	fi
+	MY_CUR_DIR="$PWD"
+	cd "$MOD"
+	USERCMD="${ACTIONARGS[0]}"
+	"$USERCMD" "${ACTIONARGS[@]:1}"
+	cd "$MY_CUR_DIR"
+}
+
 handle_mod() {
 	case "$ACTION" in
 		add )
@@ -114,6 +129,9 @@ handle_mod() {
 			;;
 		command )
 			command_on_mod
+			;;
+		command_in )
+			command_in_mod
 			;;
 		* )
 			echo "ERROR: Unknown action $ACTION"

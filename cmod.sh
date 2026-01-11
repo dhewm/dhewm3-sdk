@@ -2,7 +2,7 @@
 
 if [ $# -lt 2 ]; then
 	echo "Usage: $0 <action> <modname> [action args]"
-	echo "Supported actions: add, checkout, pull, cmake, build, remove, command, command_in"
+	echo "Supported actions: add, checkout, pull, cmake, cmake_remove, build, remove, command, command_in"
 	echo "Special case: using 'all' as modname runs the action on all checked out mods"
 	echo "              For the 'checkout' action, 'all' runs on all mods from acmodlist.txt"
 	echo "The 'cmake', 'build' and 'command' actions allow specifying additional arguments (action args) that are passed to cmake"
@@ -17,6 +17,7 @@ if [ $# -lt 2 ]; then
 	echo "* 'cmake' creates a CMake build directory in the <modname>'s directory (or all directories)"
 	echo "   You can specify additional options for CMake, e.g. '$0 cmake fitz -G Ninja -DFORCE_COLORED_OUTPUT=ON -DCMAKE_BUILD_TYPE=Debug'"
 	echo "   or: $0" 'cmake cdoom -A Win32 -G "Visual Studio 17 2022"'
+	echo "* 'cmake_remove' (or 'cmake_rm') removes the CMake build directory from <modnames> directory"
 	echo "* 'build' runs cmake --build for <modnames> build directory (or all mods build directories)"
 	echo "   Again you can specify additional arguments that are passed on to CMake (action args)"
 	echo "   example for Windows+MSVC: '$0 build cdoom --config RelWithDebInfo'"
@@ -75,6 +76,11 @@ cmake_mod() {
 	cmake -S "$MOD/" -B "$MOD/build" "${ACTIONARGS[@]}"
 }
 
+cmake_remove_mod() {
+	echo "Removing build dir of $MOD"
+	rm -rf "$MOD/build"
+}
+
 build_mod() {
 	echo "Building $MOD"
 	cmake --build "$MOD/build" "${ACTIONARGS[@]}"
@@ -120,6 +126,9 @@ handle_mod() {
 			;;
 		cmake )
 			cmake_mod
+			;;
+		cmake_remove | cmake_rm )
+			cmake_remove_mod
 			;;
 		build )
 			build_mod
@@ -170,9 +179,13 @@ if [ "$MOD" = "all" ]; then
 		# Note: On Windows Git checks out acmodlist.txt with CRLF line-endings
 		#  which confuses Git Bash's cat... tr -d "\\r" removes the CR part
 		#  (not necessary on other platforms, but shouldn't hurt, I think)
-		for MOD in $(cat ../acmodlist.txt | tr -d "\\r"); do
-			handle_mod
-			echo ""
+		readarray -t MODS < <(cat ../acmodlist.txt | tr -d "\\r")
+		for MOD in "${MODS[@]}"; do
+			# skip empty lines and lines that start with "#" (commented out)
+			if [ -n "$MOD" -a "${MOD:0:1}" != "#" ]; then
+				handle_mod
+				echo ""
+			fi
 		done
 	else
 		for i in */ ; do

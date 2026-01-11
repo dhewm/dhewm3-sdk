@@ -21,15 +21,15 @@ if [ $# -lt 2 ]; then
 	echo "   Again you can specify additional arguments that are passed on to CMake (action args)"
 	echo "   example for Windows+MSVC: '$0 build cdoom --config RelWithDebInfo'"
 	echo "   example for make-based builds: '$0 build cdoom -j16'"
-	echo "* 'remove' removes the git worktree for <modname> (or all mods) from mods/"
+	echo "* 'remove' (or 'rm') removes the git worktree for <modname> (or all mods) from mods/"
 	echo "   Fails if there are uncommitted changes, unless you use '--force' as action arg"
 	echo "   Commits are preserved in its branch, you can restore it with 'checkout'"
 	echo "   NOTE that untracked files (like the build/ dir) will be removed!"
-	echo "* 'command' lets you specify a custom command (first action arg) which is then run with"
+	echo "* 'command' (or 'cmd') lets you specify a custom command (first action arg) which is then run with"
 	echo "   the other arguments you specified and the modname as last argument"
 	echo "   Example: $0 command all echo I have this mod:"
 	echo "   Will print 'I have this mod: bloodmod' 'I have this mod: cdoom' etc"
-	echo "* 'command_in': Changes into the directory of a mod and runs the custom command there"
+	echo "* 'command_in' (or 'cmd_in') changes into the directory of a mod and runs the custom command there"
 	echo "   BUT ONLY with the action args as arguments, not the modname"
 	echo "   Example: '$0 command_in cdoom git log' changes into mods/cdoom/ and runs 'git log' there"
 	exit 1
@@ -124,13 +124,13 @@ handle_mod() {
 		build )
 			build_mod
 			;;
-		remove )
+		remove | rm )
 			remove_mod
 			;;
-		command )
+		command | cmd )
 			command_on_mod
 			;;
-		command_in )
+		command_in | cmd_in )
 			command_in_mod
 			;;
 		* )

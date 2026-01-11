@@ -5,11 +5,12 @@ for example:
 `./cmod.sh checkout d3le`  
 will checkout the branch for Doom3: Lost Mission (d3le) into `mods/d3le/`.  
 `./cmod.sh checkout all`  
-will checkout all mod branches listed in acmodlist.txt into `mods/`.
+will checkout all mod branches listed in `acmodlist.txt` into `mods/`.
 
 It also allows updating those branches from the remote server with git pull, creating CMake
 build directories for them (in `mods/modname/build/`), building them in those directories or
-custom commands and removing it from mods/ again.  
+custom commands and removing it from mods/ again.
+
 Run `./cmod.sh` without any arguments to get more information.
 
 This branch is useful if you want to build libs ("Game DLLs") for all mods or want to apply patches

@@ -1414,7 +1414,6 @@ void idPhysics_Player::DropTimers( void ) {
 void idPhysics_Player::EvalGravity( void ) {
 	const int transitions = 8;
 	const float transitionTime = 0.10f;
-	idVec3 curOrigin = clipModel->GetOrigin();
 	idVec3 curGrav = gravityVector;
 
 	float curTime = MS2SEC( gameLocal.realClientTime );
@@ -1423,7 +1422,6 @@ void idPhysics_Player::EvalGravity( void ) {
 		idVec3 gravDir =	TransitionToGravity		* curTransition +
 							TransitionFromGravity	* (transitions-curTransition);
 		gravDir.Normalize();
-		idActor * owner=static_cast< idActor * >(masterEntity);
 
 		if (curTransition == transitions) {
 			SetGravity(TransitionToGravity * gravAmount);

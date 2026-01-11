@@ -5142,7 +5142,6 @@ void idGameLocal::SetPersistentTriggerInt( const char *type, const char *var, co
 void idGameLocal::SavePersistentMoveables(void) {
 	idEntity* ent;
 	idStr tmp,name_str,st,name;
-	int nt=0;
 //	idVec3 vc;
 	idAngles ag;
 

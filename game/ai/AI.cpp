@@ -723,6 +723,7 @@ void idAI::Spawn( void ) {
 
 	spawnArgs.GetInt(	"team",					"1",		team );
 	spawnArgs.GetInt(	"rank",					"0",		rank );
+
 	spawnArgs.GetInt(	"fly_offset",			"0",		fly_offset );
 	spawnArgs.GetFloat( "fly_speed",			"100",		fly_speed );
 	spawnArgs.GetFloat( "fly_bob_strength",		"50",		fly_bob_strength );
@@ -3419,6 +3420,10 @@ void idAI::Killed( idEntity *inflictor, idEntity *attacker, int damage, const id
 	}
 	if( player->inventory.enemiesKilled < 0 ) {
 		player->inventory.enemiesKilled = 0;
+	}
+
+	if( hp_divider > 0 ) {
+		player->AddXP( startHealth / hp_divider );		// no decimal places
 	}
 
 //###//

@@ -107,6 +107,8 @@ private:
 	idStr				questlogTextKey;
 	idStr				questDone;
 	idStr				subtitle;
+
+	int					xp;
 //###//
 
 	bool				CheckFacing( idEntity *activator );

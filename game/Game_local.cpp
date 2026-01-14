@@ -298,7 +298,7 @@ void idGameLocal::Init( void ) {
 	declManager->RegisterDeclFolder( "fx",				".fx",				DECL_FX );
 	declManager->RegisterDeclFolder( "particles",		".prt",				DECL_PARTICLE );
 	declManager->RegisterDeclFolder( "af",				".af",				DECL_AF );
-	declManager->RegisterDeclFolder( "newpdas",			".pda",				DECL_PDA );
+//	declManager->RegisterDeclFolder( "newpdas",			".pda",				DECL_PDA ); // disabled - MacX
 
 	cmdSystem->AddCommand( "listModelDefs", idListDecls_f<DECL_MODELDEF>, CMD_FL_SYSTEM|CMD_FL_GAME, "lists model defs" );
 	cmdSystem->AddCommand( "printModelDefs", idPrintDecls_f<DECL_MODELDEF>, CMD_FL_SYSTEM|CMD_FL_GAME, "prints a model def", idCmdSystem::ArgCompletion_Decl<DECL_MODELDEF> );
@@ -309,6 +309,10 @@ void idGameLocal::Init( void ) {
 	idClass::Init();
 
 	InitConsoleCommands();
+
+	//###// by MacX
+	LoadScreenResolution();
+	//###//
 
 	// load default scripts
 	program.Startup( SCRIPT_DEFAULT );
@@ -2567,7 +2571,132 @@ const char* idGameLocal::HandleGuiCommands( const char *menuCommand ) {
 idGameLocal::HandleMainMenuCommands
 ================
 */
-void idGameLocal::HandleMainMenuCommands( const char *menuCommand, idUserInterface *gui ) { }
+void idGameLocal::HandleMainMenuCommands( const char *menuCommand, idUserInterface *gui )
+{
+	//###// by MacX
+	if ( !menuCommand[ 0 ] ) {
+		common->Printf( "idGameLocal::HandleMainMenuCommands: empty command\n" );
+		return;
+	}
+
+	idCmdArgs		args;
+	args.TokenizeString( menuCommand, false );
+
+	for( int icmd = 0; icmd < args.Argc(); ) {
+		const char *cmd = args.Argv( icmd++ );
+		
+		if( !idStr::Icmp( cmd, "setWidescreenSize" ) ) {
+
+			UpdateScreenResolution();
+			continue;
+		}
+
+		if( !idStr::Icmp( cmd, "aspectRatioChanged" ) ) {
+
+			switch( r_aspectRatio.GetInteger() ) {
+			case 1:
+				r_wideScreen.SetInteger( 0 ); // 1280x720
+				break;
+			case 2:
+				r_wideScreen.SetInteger( 4 ); // 1280x800
+				break;
+			default:;
+			}
+
+			UpdateScreenResolution();
+		}
+	}
+
+	//###//
+}
+
+/*
+================
+idGameLocal::UpdateScreenResolution
+================
+*/
+void idGameLocal::UpdateScreenResolution( void )
+{
+	if( r_aspectRatio.GetInteger() == 0 ) {
+		cvarSystem->SetCVarInteger( "r_mode", 4 );	// 800x600
+		return;
+	}
+
+	int width = 1280;
+	int height = 720;
+
+	switch( r_wideScreen.GetInteger() ) {
+	case 0: 
+		break; // width = 1280; height = 720
+	case 1:
+		width = 1366; height = 768;
+		break;
+	case 2:
+		width = 1600; height = 900;
+		break;
+	case 3:
+		width = 1920; height = 1080;
+		break;
+	case 4:
+		width = 1280; height = 800;
+		break;
+	case 5:
+		width = 1440; height = 900;
+		break;
+	case 6:
+		width = 1680; height = 1050;
+		break;
+	case 7:
+		width = 1920; height = 1200;
+		break;
+	default:;
+	}
+
+	// we want to use a custom resolution
+	cvarSystem->SetCVarInteger( "r_mode", -1 );
+	cvarSystem->SetCVarInteger( "r_customWidth", width );
+	cvarSystem->SetCVarInteger( "r_customHeight", height );
+}
+
+/*
+================
+idGameLocal::LoadScreenResolution
+================
+*/
+void idGameLocal::LoadScreenResolution( void )
+{
+	if( cvarSystem->GetCVarInteger( "r_mode" ) != -1 ) {
+		r_aspectRatio.SetInteger( 0 );
+		return;
+	}
+
+	// load custom resolution
+	int width = cvarSystem->GetCVarInteger( "r_customWidth" );
+	int height = cvarSystem->GetCVarInteger( "r_customHeight" );
+
+	switch( width )
+	{
+	case 1280: 
+		r_wideScreen.SetInteger( height == 720 ? 0 : 4 );
+		break;
+	case 1366:
+		r_wideScreen.SetInteger( 1 );
+		break;
+	case 1440:
+		r_wideScreen.SetInteger( 5 );
+		break;
+	case 1600:
+		r_wideScreen.SetInteger( 2 );
+		break;
+	case 1680:
+		r_wideScreen.SetInteger( 6 );
+		break;
+	case 1920:
+		r_wideScreen.SetInteger( height == 1080 ? 3 : 7 );
+		break;
+	default:; // r_widescreen default: 0
+	}
+}
 
 /*
 ================

@@ -296,6 +296,8 @@ void idTrigger_Multi::Save( idSaveGame *savefile ) const {
 	savefile->WriteString( questlogTextKey );
 	savefile->WriteString( questDone );
 	savefile->WriteString( subtitle );
+
+	savefile->WriteInt( xp );
 //###//
 
 }
@@ -323,6 +325,8 @@ void idTrigger_Multi::Restore( idRestoreGame *savefile ) {
 	savefile->ReadString( questlogTextKey );
 	savefile->ReadString( questDone );
 	savefile->ReadString( subtitle );
+
+	savefile->ReadInt( xp );
 //###//
 
 }
@@ -365,6 +369,8 @@ void idTrigger_Multi::Spawn( void ) {
 	spawnArgs.GetString( "questlogTextKey", "", questlogTextKey );
 	spawnArgs.GetString( "questDone", "", questDone );
 	spawnArgs.GetString( "subtitle", "", subtitle );
+
+	spawnArgs.GetInt( "xp", "0", xp );
 //###//
 
 	if ( spawnArgs.GetBool( "anyTouch" ) ) {
@@ -434,6 +440,10 @@ void idTrigger_Multi::TriggerAction( idEntity *activator ) {
 	idStr str;
 	idPlayer* player = gameLocal.GetLocalPlayer();
 
+	if( !player ) {
+		return;
+	}
+
 	idStr diaryString = "";
 	if( !diaryTextKey.IsEmpty() ) {
 		diaryString = "#str_";
@@ -488,8 +498,13 @@ void idTrigger_Multi::TriggerAction( idEntity *activator ) {
 		if( idStr::Cmpn( strSubtitle, STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 ) {
 			str = common->GetLanguageDict()->GetString( strSubtitle.c_str() );
 			player->hud->SetStateString( "player_subtitle", str.c_str() );
+			player->hud->SetStateBool( "player_showSubtitle", g_showSubtitle.GetBool() );
 			player->hud->HandleNamedEvent( "ShowSubtitle" );
 		}
+	}
+
+	if( xp > 0 ) {
+		player->AddXP( xp );
 	}
 
 //###//

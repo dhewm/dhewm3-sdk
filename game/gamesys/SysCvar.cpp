@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "SysCvar.h"
 
+#include "Game_local.h"
+
 #if defined( _DEBUG )
 	#define	BUILD_DEBUG	"-debug"
 #else
@@ -93,7 +95,13 @@ idCVar ui_chat(						"ui_chat",					"0",			CVAR_GAME | CVAR_USERINFO | CVAR_BOOL
 // change anytime vars
 idCVar developer(					"developer",				"0",			CVAR_GAME | CVAR_BOOL, "" );
 
-idCVar r_aspectRatio(				"r_aspectRatio",			"-1",			CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
+//###// modified by MacX
+idCVar r_aspectRatio(				"r_aspectRatio",			"-1",			CVAR_RENDERER | CVAR_GUI | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
+//###//
+
+//###// by MacX
+idCVar r_wideScreen(				"r_wideScreen",				"0",			CVAR_ROM | CVAR_INTEGER, "widescreen resolution selected in the main menu", 0, MAX_WIDESCREEN_SIZES - 1 );
+//###//
 
 idCVar g_cinematic(					"g_cinematic",				"1",			CVAR_GAME | CVAR_BOOL, "skips updating entities that aren't marked 'cinematic' '1' during cinematics" );
 idCVar g_cinematicMaxSkipTime(		"g_cinematicMaxSkipTime",	"600",			CVAR_GAME | CVAR_FLOAT, "# of seconds to allow game to run when skipping cinematic.  prevents lock-up when cinematic doesn't end.", 0, 3600 );
@@ -261,8 +269,8 @@ idCVar pm_staminathreshold(			"pm_staminathreshold",		"45",			CVAR_GAME | CVAR_N
 idCVar pm_staminarate(				"pm_staminarate",			"0.75",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "rate that player regains stamina. divide pm_stamina by this value to determine how long it takes to fully recharge." );
 
 //###// by MacX
-idCVar pm_slowmotion(				"pm_slowmotion",			"60",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "length of time in slow motion" );
-idCVar pm_slowmotionrate(			"pm_slowmotionrate",		"1",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "rate to regain slow motion time" );
+idCVar pm_slowmotion(				"pm_slowmotion",			"60",			CVAR_ROM | CVAR_GAME | CVAR_FLOAT, "length of time in slow motion" );
+idCVar pm_slowmotionrate(			"pm_slowmotionrate",		"1",			CVAR_ROM | CVAR_GAME | CVAR_FLOAT, "rate to regain slow motion time" );
 //###//
 
 idCVar pm_crouchheight(				"pm_crouchheight",			"38",			CVAR_GAME | CVAR_NETWORKSYNC | CVAR_FLOAT, "height of player's bounding box while crouched" );

@@ -1553,7 +1553,7 @@ void idStaticEntity::Think( void ) {
 						renderEntity.gui[2]->StateChanged( gameLocal.time, true );
 					}
 				}
-				//###// by MacX - using code by Cameron
+				//###// by MacX
 				if( !player->diaryUIOpen ) {
 					renderEntity.gui[0]->StateChanged( gameLocal.time, true );
 					if ( renderEntity.gui[1] ) {
@@ -1564,6 +1564,15 @@ void idStaticEntity::Think( void ) {
 					}
 				}
 				if( !player->questlogUIOpen ) {
+					renderEntity.gui[0]->StateChanged( gameLocal.time, true );
+					if ( renderEntity.gui[1] ) {
+						renderEntity.gui[1]->StateChanged( gameLocal.time, true );
+					}
+					if ( renderEntity.gui[2] ) {
+						renderEntity.gui[2]->StateChanged( gameLocal.time, true );
+					}
+				}
+				if( !player->charUIOpen ) {
 					renderEntity.gui[0]->StateChanged( gameLocal.time, true );
 					if ( renderEntity.gui[1] ) {
 						renderEntity.gui[1]->StateChanged( gameLocal.time, true );

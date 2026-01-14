@@ -83,6 +83,14 @@ class idLocationEntity;
 //============================================================================
 extern const int NUM_RENDER_PORTAL_BITS;
 
+//###// by MacX
+
+const int MAX_WIDESCREEN_SIZES = 8;
+
+//###//
+
+//============================================================================
+
 void gameError( const char *fmt, ... );
 
 extern idRenderWorld *				gameRenderWorld;
@@ -556,7 +564,12 @@ private:
 
 	void					UpdateLagometer( int aheadOfServer, int dupeUsercmds );
 
-	virtual void			GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] );
+	void					GetMapLoadingGUI( char gui[ MAX_STRING_CHARS ] );
+
+	//###// by MacX
+	void					LoadScreenResolution( void );
+	void					UpdateScreenResolution( void );
+	//###//
 };
 
 //============================================================================

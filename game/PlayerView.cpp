@@ -458,7 +458,13 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		return;
 	}
 
-	//###// by MacX - using code by Cameron
+	// hack the shake in at the very last moment, so it can't cause any consistency problems
+	renderView_t	hackedView = *view;
+	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
+
+	gameRenderWorld->RenderScene( &hackedView );
+
+	//###// by MacX
 	if( player->diaryUIOpen ) {
 		player->diaryUI->Redraw( gameLocal.time );
 		return;
@@ -467,13 +473,11 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 		player->questlogUI->Redraw( gameLocal.time );
 		return;
 	}
+	if( player->charUIOpen ) {
+		player->charUI->Redraw( gameLocal.time );
+		return;
+	}
 	//###//
-
-	// hack the shake in at the very last moment, so it can't cause any consistency problems
-	renderView_t	hackedView = *view;
-	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
-
-	gameRenderWorld->RenderScene( &hackedView );
 
 	if ( player->spectating ) {
 		return;
@@ -548,7 +552,6 @@ void idPlayerView::SingleView( idUserInterface *hud, const renderView_t *view ) 
 			renderSystem->SetColor4( 1.0f, 1.0f, 1.0f, 1.0f );
 			renderSystem->DrawStretchPic( 0.0f, 0.0f, 640.0f, 480.0f, 0.0f, 0.0f, 1.0f, 1.0f, bfgMaterial );
 		}
-
 // sikk---> Brilliant Bloom/Filmgrain/Motion Blur/DoF/Cel Shading PostProcessing Effects
 		if( z_bloom.GetBool() &&
 			!player->PowerUpActive( BERSERK ) &&

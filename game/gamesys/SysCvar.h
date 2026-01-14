@@ -38,6 +38,10 @@ extern idCVar	g_cinematicMaxSkipTime;
 
 extern idCVar	r_aspectRatio;
 
+//###// by MacX
+extern idCVar	r_wideScreen;
+//###//
+
 extern idCVar	g_monsters;
 extern idCVar	g_decals;
 extern idCVar	g_knockback;

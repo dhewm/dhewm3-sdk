@@ -119,6 +119,11 @@ public:
 	idLinkList<idActor>		enemyNode;			// node linked into an entity's enemy list for quick lookups of who is attacking him
 	idLinkList<idActor>		enemyList;			// list of characters that have targeted the player as their enemy
 
+	//###// by MacX
+	int						hp_divider;		// used in .def-files to define a divider for the calculation of xp
+	int						startHealth;	
+	//##//
+
 public:
 							idActor( void );
 	virtual					~idActor( void );

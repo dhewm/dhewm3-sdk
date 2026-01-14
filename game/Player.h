@@ -139,6 +139,16 @@ struct idDiaryInfo{
 	idStr	pageRight;		// page number, i.e. "-2-"
 };
 
+class idWeaponSkill {
+public:
+	idStr weaponName;
+	int skillLevel;
+
+	idWeaponSkill();
+	idWeaponSkill( idStr const& weaponName_, int const& skillLevel_ );
+	bool operator==( idWeaponSkill const& rhs );
+};
+
 //###//
 
 class idInventory {
@@ -151,6 +161,8 @@ public:
 
 //###// by MacX
 	int						money;
+	idList<idWeaponSkill>	weaponSkillLevel;
+
 	idStrList				diary;
 	idStrList				quest;
 	idStrList				questState;
@@ -158,21 +170,9 @@ public:
 
 	int						enemiesKilled;
 
-	int						testVarGui1;
-	int						testVarGui2;
-	int						testVarGui3;
-	int						testVarGui4;
-	int						testVarGui5;
 	int						testVar1;
 	int						testVar2;
-	int						testVar3;
-	int						testVar4;
-	int						testVar5;
-	int						testVar6;
-	int						testVar7;
-	int						testVar8;
-	int						testVar9;
-	int						testVar10;
+
 //###//
 
 	int						ammo[ AMMO_NUMTYPES ];
@@ -313,11 +313,26 @@ public:
 
 	//###// by MacX
 
+	int						xp;
+	int						level;
+	int						nextLevelXp;
+	int						skillPoints;
+
+	int						healthLevel;
+	int						slowmotionLevel;
+
+	bool					attributeGroup;
+	bool					weaponGroup1;
+	bool					weaponGroup2;
+	bool					weaponGroup3;
+	bool					magicGroup;
+
 	idUserInterface*		diaryUI;
 	bool					diaryUIOpen;
 	idUserInterface*		questlogUI;
 	bool					questlogUIOpen;
-
+	idUserInterface*		charUI;
+	bool					charUIOpen;
 	//###//
 
 	int						weapon_soulcube;
@@ -455,6 +470,11 @@ public:
 	void					CalculateRenderView( void );	// called every tic by player code
 	void					CalculateFirstPersonView( void );
 
+	//###// by MacX
+	void					AddXP( const unsigned int newXp );
+	void					SetDamage( int& damage );
+	//###//
+
 	void					DrawHUD( idUserInterface *hud );
 
 	void					WeaponFireFeedback( const idDict *weaponDef );
@@ -525,6 +545,13 @@ public:
 	//###// by MacX
 	void					ToggleDiary( void );
 	void					ToggleQuestlog( void );
+	void					ToggleChar( void );
+	void					UpdateCharUI( void );
+	void					DeactivateUIs( bool bDiary, bool bQuestlog, bool bCharacter );
+	void					PreviousPageDiary( void );
+	void					NextPageDiary( void );
+	void					PreviousPageQuestlog( void );
+	void					NextPageQuestlog( void );
 	//###//
 
 	void					ToggleScoreboard( void );
@@ -703,6 +730,10 @@ private:
 	idPlayerIcon			playerIcon;
 
 	bool					selfSmooth;
+
+	//###// by MacX
+	void					LevelUp( void );
+	//###//
 
 	void					LookAtKiller( idEntity *inflictor, idEntity *attacker );
 

@@ -35,6 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "WorldSpawn.h"
 
 #include "Actor.h"
+#include "Player.h"
 
 
 /***********************************************************************
@@ -431,6 +432,11 @@ idActor::idActor( void ) {
 	pain_delay			= 0;
 	pain_threshold		= 0;
 
+	//###// by MacX
+	hp_divider			= -1;
+	startHealth			= 0;
+	//###//
+
 	state				= NULL;
 	idealState			= NULL;
 
@@ -510,6 +516,12 @@ void idActor::Spawn( void ) {
 
 	spawnArgs.GetInt( "rank", "0", rank );
 	spawnArgs.GetInt( "team", "0", team );
+
+	//###// by MacX
+	spawnArgs.GetInt(	"hp_divider",			"-1",		hp_divider );
+	startHealth = health;
+	//###//
+
 	spawnArgs.GetVector( "offsetModel", "0 0 0", modelOffset );
 
 	spawnArgs.GetBool( "use_combat_bbox", "0", use_combat_bbox );
@@ -770,6 +782,12 @@ void idActor::Save( idSaveGame *savefile ) const {
 
 	savefile->WriteInt( team );
 	savefile->WriteInt( rank );
+
+	//###// by MacX
+	savefile->WriteInt( hp_divider );
+	savefile->WriteInt( startHealth );
+	//###//
+
 	savefile->WriteMat3( viewAxis );
 
 	savefile->WriteInt( enemyList.Num() );
@@ -884,6 +902,12 @@ void idActor::Restore( idRestoreGame *savefile ) {
 
 	savefile->ReadInt( team );
 	savefile->ReadInt( rank );
+
+	//###// by MacX
+	savefile->ReadInt( hp_divider );
+	savefile->ReadInt( startHealth );
+	//###//
+
 	savefile->ReadMat3( viewAxis );
 
 	savefile->ReadInt( num );
@@ -2181,6 +2205,12 @@ void idActor::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &dir
 
 	int	damage = damageDef->GetInt( "damage" ) * damageScale;
 	damage = GetDamageForLocation( damage, location );
+
+	//###// by MacX
+	if ( attacker->IsType( idPlayer::Type ) ) {
+		static_cast<idPlayer *>(attacker)->SetDamage( damage );
+	}
+	//###//
 
 	// inform the attacker that they hit someone
 	attacker->DamageFeedback( this, inflictor, damage );

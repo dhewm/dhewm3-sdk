@@ -18,9 +18,14 @@ the source under GPL; you can find these in their own branches:
 [Blood Mod](https://github.com/dhewm/dhewm3-sdk/tree/bloodmod),
 [Classic Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/cdoom),
 [Denton's Enhanced Doom3](https://github.com/dhewm/dhewm3-sdk/tree/dentonmod),
+[Desolated - The Crying Fate](https://github.com/dhewm/dhewm3-sdk/tree/desolated),
+[ELDOOM](https://github.com/dhewm/dhewm3-sdk/tree/eldoom),
 [Fitz Packerton](https://github.com/dhewm/dhewm3-sdk/tree/fitz),
+[Grimm: Quest for the Gatherer's Key](https://github.com/dhewm/dhewm3-sdk/tree/grimm)
 [Hard Corps](https://github.com/dhewm/dhewm3-sdk/tree/hardcorps),
+[HeXen: Edge Of Chaos](https://github.com/dhewm/dhewm3-sdk/tree/eoc),
 [Perfected Doom 3](https://github.com/dhewm/dhewm3-sdk/tree/perfected),
+[Real Gibs](https://github.com/dhewm/dhewm3-sdk/tree/realgibs),
 [Scarlet **Rivensin**: The Ruiner](https://github.com/dhewm/dhewm3-sdk/tree/rivensin),
 [Doom3: The Lost Mission](https://github.com/dhewm/dhewm3-sdk/tree/d3le) and
 [Sikkmod](https://github.com/dhewm/dhewm3-sdk/tree/sikkmod)
@@ -34,6 +39,11 @@ dhewm3 1.5.x at [the dhewm3 Github release page](https://github.com/dhewm/dhewm3
 (the dhewm3-mods-1.5.* archives).
 
 ## How to build
+
+See the [mods branch](https://github.com/dhewm/dhewm3-sdk/tree/mods) for a way to build several/all
+mods at once in a partly-automated way.
+
+Manual building:
 
 ### On Windows
 

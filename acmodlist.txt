@@ -2,7 +2,7 @@ bloodmod
 cdoom
 d3le
 dentonmod
-#desolated - doesn't work properly, don't have latest/last state of the gamecode?
+desolated
 #doom3cc - unstable and leaks memory
 eldoom
 eoc

@@ -38,12 +38,22 @@ fi
 
 ACTION="$1"
 
+exit_error() {
+	echo ""
+	echo "ERROR while handling $MOD !"
+	echo ""
+	exit 1
+}
+
 add_mod() {
 	if [ -d "$MOD" ]; then
 		echo "Not adding $MOD - already checked out"
 	else
 		echo "Creating branch '$MOD' and checking it out to directory of that name"
 		git worktree add "$MOD"
+
+		[ $? = 0 ] || exit_error
+
 		echo ""
 		echo "You may want to add '$MOD' to acmodlist.txt"
 	fi
@@ -55,11 +65,14 @@ checkout_mod() {
 	else
 		if ! git ls-remote --exit-code -b origin "$MOD" > /dev/null; then
 			echo "ERROR: There's no branch with name '$MOD' in remote origin!"
+			exit_error
 		else
 			# TODO: this guesses the remote instead of using origin - is there a nice way
 			#  to check out the branch locally from origin in the worktree
 			#  (without checking it out manually here in the parent?)
 			git worktree add --guess-remote "$MOD"
+
+			[ $? = 0 ] || exit_error
 		fi
 	fi
 }
@@ -68,12 +81,14 @@ pull_mod() {
 	echo "Updating $MOD (with git pull)"
 	cd "$MOD"
 	git pull
+	[ $? = 0 ] || exit_error
 	cd ..
 }
 
 cmake_mod() {
 	echo "Setting up CMake build dir for $MOD"
 	cmake -S "$MOD/" -B "$MOD/build" "${ACTIONARGS[@]}"
+	[ $? = 0 ] || exit_error
 }
 
 cmake_remove_mod() {
@@ -84,12 +99,14 @@ cmake_remove_mod() {
 build_mod() {
 	echo "Building $MOD"
 	cmake --build "$MOD/build" "${ACTIONARGS[@]}"
+	[ $? = 0 ] || exit_error
 	echo ""
 }
 
 remove_mod() {
 	echo "Removing $MOD from mods/, its branch (incl. commits) will be preserved"
 	git worktree remove "${ACTIONARGS[@]}" "$MOD"
+	[ $? = 0 ] || exit_error
 }
 
 command_on_mod() {
@@ -97,8 +114,10 @@ command_on_mod() {
 		echo "You must provide a custom command to run for the 'command' action!"
 		exit 1
 	fi
+	echo "On $MOD:"
 	USERCMD="${ACTIONARGS[0]}"
 	"$USERCMD" "${ACTIONARGS[@]:1}" "$MOD"
+	[ $? = 0 ] || exit_error
 }
 
 command_in_mod() {
@@ -108,8 +127,12 @@ command_in_mod() {
 	fi
 	MY_CUR_DIR="$PWD"
 	cd "$MOD"
+	echo "In $MOD:"
 	USERCMD="${ACTIONARGS[0]}"
 	"$USERCMD" "${ACTIONARGS[@]:1}"
+
+	[ $? = 0 ] || exit_error
+
 	cd "$MY_CUR_DIR"
 }
 

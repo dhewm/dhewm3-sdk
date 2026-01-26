@@ -342,7 +342,8 @@ void idPlayerView::DamageImpulse( idVec3 localKickDir, const idDict *damageDef )
 	if ( blobTime ) {
 		screenBlob_t *blob = GetScreenBlob();
 		blob->startFadeTime = gameLocal.slow.time;
-		blob->finishTime = gameLocal.slow.time + blobTime * g_blobTime.GetFloat() * ( (float)gameLocal.msec / USERCMD_MSEC );
+		// DG: use precise timing because gameLocal.msec varies by +/- 1 each frame
+		blob->finishTime = gameLocal.slow.time + blobTime * g_blobTime.GetFloat() * ( gameLocal.msecPrecise / USERCMD_MSEC_PRECISE );
 
 		blob->driftAmount = 0.0f;	// sikk - Blood Spray Screen Effect - keeps damage blood splats from drifting 
 

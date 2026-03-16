@@ -54,6 +54,16 @@ float idBounds::GetRadius( void ) const {
 	return idMath::Sqrt( total );
 }
 
+// HEXEN : Zeroth
+idVec3 idBounds::GetMaxs( void ) const {
+	return idVec3(b[1]);
+}
+
+// HEXEN : Zeroth
+idVec3 idBounds::GetMins( void ) const {
+	return idVec3(b[0]);
+}
+
 /*
 ============
 idBounds::GetRadius

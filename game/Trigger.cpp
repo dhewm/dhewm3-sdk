@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "sys/platform.h"
 #include "script/Script_Thread.h"
 #include "Player.h"
+#include "ai/AI.h"
 
 #include "Trigger.h"
 
@@ -121,6 +122,7 @@ idTrigger::Enable
 void idTrigger::Enable( void ) {
 	GetPhysics()->SetContents( CONTENTS_TRIGGER );
 	GetPhysics()->EnableClip();
+	gameLocal.SetPersistentTrigger( "trig", name.c_str(), true );
 }
 
 /*
@@ -132,6 +134,7 @@ void idTrigger::Disable( void ) {
 	// we may be relinked if we're bound to another object, so clear the contents as well
 	GetPhysics()->SetContents( 0 );
 	GetPhysics()->DisableClip();
+	gameLocal.SetPersistentTrigger( "trig", name.c_str(), false );
 }
 
 /*
@@ -234,6 +237,16 @@ void idTrigger::Spawn( void ) {
 	}
 }
 
+
+// HEXEN : Zeroth
+void idTrigger::eoc_Check_Automap( idEntity *activator ) {
+	idStr mapFloor = spawnArgs.GetString( "floor" );
+	if ( mapFloor != "" && activator->IsType(idPlayer::Type)) {
+		idPlayer *p1 =  static_cast< idPlayer * > ( activator );
+
+		p1->AutoMapChange(mapFloor);
+	}
+}
 
 /*
 ===============================================================================
@@ -391,12 +404,66 @@ idTrigger_Multi::TriggerAction
 ================
 */
 void idTrigger_Multi::TriggerAction( idEntity *activator ) {
+
 	ActivateTargets( triggerWithSelf ? this : activator );
 	CallScript();
 
+// HEXEN : Zeroth
+	eoc_Check_Automap( activator );
+	//eoc_Check_Gravity();
+/*
+	if ( spawnArgs.GetBool("pauseGame") ) {
+		gameLocal.paused = true;
+	}
+*/
+	if ( spawnArgs.GetBool("killAllMonsters") ) {
+		cmdSystem->BufferCommandText( CMD_EXEC_NOW, "massacre" );
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "massacre" );
+	}
+
+	if ( spawnArgs.GetBool("stopAllSounds") ) {
+		gameSoundWorld->StopAllSounds();
+	}
+
+	idPlayer *player = gameLocal.GetLocalPlayer();
+	if ( player != NULL ) {
+		// show custom gui, if any - MUST COME BEFORE PLAYER SPAWN ARGS STUFF BELOW
+		idStr guiname;
+		guiname = spawnArgs.GetString("showGui");
+		if ( guiname != "" ) {
+			player->OpenCustomGui( guiname );
+		}
+
+		// set player spawn args, if any
+		const idKeyValue	*kv;
+		idStr key;
+
+		kv = spawnArgs.MatchPrefix( "setPlayerArg_", NULL );
+		while( kv ) {
+			key = kv->GetKey();
+			key = key.Mid(13,key.Length());
+
+			player->spawnArgs.Set( key.c_str(), kv->GetValue() );
+			kv = spawnArgs.MatchPrefix( "setPlayerArg_", kv );
+		}
+	}
+/*
+	// HEXEN : Zeroth - set local player's variables to let the class know to save
+	// some important info in his end-of-game save screen. that info will let us
+	// be able to use save games from old releases/versions in new releases.
+	spawnArgs.GetString( "endEoCRelease", "", endEoCRelease );
+	if ( endEoCRelease != "" ) {
+		idPlayer *player = gameLocal.GetLocalPlayer();
+		if ( player != NULL ) {
+			player->beaten=true;
+		}
+	}
+*/
 	if ( wait >= 0 ) {
 		nextTriggerTime = gameLocal.time + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
 	} else {
+		gameLocal.SetPersistentRemove( name.c_str() );
+
 		// we can't just remove (this) here, because this is a touch function
 		// called while looping through area links...
 		nextTriggerTime = gameLocal.time + 1;
@@ -610,6 +677,8 @@ void idTrigger_EntityName::TriggerAction( idEntity *activator ) {
 	if ( wait >= 0 ) {
 		nextTriggerTime = gameLocal.time + SEC2MS( wait + random * gameLocal.random.CRandomFloat() );
 	} else {
+		gameLocal.SetPersistentRemove( name.c_str() );
+
 		// we can't just remove (this) here, because this is a touch function
 		// called while looping through area links...
 		nextTriggerTime = gameLocal.time + 1;
@@ -783,6 +852,7 @@ void idTrigger_Timer::Enable( void ) {
 	if ( !on ) {
 		on = true;
 		PostEventSec( &EV_Timer, delay );
+		gameLocal.SetPersistentTrigger( "timer", name.c_str(), true );
 	}
 }
 
@@ -796,6 +866,7 @@ void idTrigger_Timer::Disable( void ) {
 	if ( on ) {
 		on = false;
 		CancelEvents( &EV_Timer );
+		gameLocal.SetPersistentTrigger( "timer", name.c_str(), false );
 	}
 }
 
@@ -908,6 +979,8 @@ void idTrigger_Count::Event_Trigger( idEntity *activator ) {
 			} else {
 				goal = -1;
 			}
+			gameLocal.SetPersistentTriggerInt( "count", "count", name.c_str(), count );
+			gameLocal.SetPersistentTriggerInt( "count", "goal", name.c_str(), goal );
 			PostEventSec( &EV_TriggerAction, delay, activator );
 		}
 	}
@@ -922,6 +995,8 @@ void idTrigger_Count::Event_TriggerAction( idEntity *activator ) {
 	ActivateTargets( activator );
 	CallScript();
 	if ( goal == -1 ) {
+		gameLocal.SetPersistentRemove( name.c_str() );
+
 		PostEventMS( &EV_Remove, 0 );
 	}
 }
@@ -948,7 +1023,8 @@ idTrigger_Hurt::idTrigger_Hurt
 idTrigger_Hurt::idTrigger_Hurt( void ) {
 	on = false;
 	delay = 0.0f;
-	nextTime = 0;
+// HEXEN : Zeroth
+	nextTime.Clear();
 }
 
 /*
@@ -959,7 +1035,20 @@ idTrigger_Hurt::Save
 void idTrigger_Hurt::Save( idSaveGame *savefile ) const {
 	savefile->WriteBool( on );
 	savefile->WriteFloat( delay );
-	savefile->WriteInt( nextTime );
+// HEXEN : Zeroth
+	savefile->WriteInt( nextTime.Num() );
+	for (int i=0; i<nextTime.Num(); i++) {
+		savefile->WriteString( nextTime[i].GetString("name") );
+		savefile->WriteFloat( nextTime[i].GetFloat("time") );
+	}
+	savefile->WriteBool(limitEntityType);
+	savefile->WriteBool(dontTripby_LocalPlayer);
+	savefile->WriteBool(tripby_idPlayer);
+	savefile->WriteBool(tripby_idAI);
+	savefile->WriteBool(tripby_idMoveable);
+	savefile->WriteBool(tripby_idItem);
+	savefile->WriteBool(tripby_idActor);
+	savefile->WriteBool(tripby_idProjectile);
 }
 
 /*
@@ -970,7 +1059,26 @@ idTrigger_Hurt::Restore
 void idTrigger_Hurt::Restore( idRestoreGame *savefile ) {
 	savefile->ReadBool( on );
 	savefile->ReadFloat( delay );
-	savefile->ReadInt( nextTime );
+// HEXEN : Zeroth
+	int c;
+	float f;
+	idStr s;
+	savefile->ReadInt( c );
+	for (int i=0; i<c; i++) {
+		savefile->ReadString( s );
+		savefile->ReadFloat( f );
+		nextTime.Append( idDict() );
+		nextTime[i].Set("name", s);
+		nextTime[i].SetFloat("time", f);
+	}
+	savefile->ReadBool(limitEntityType);
+	savefile->ReadBool(dontTripby_LocalPlayer);
+	savefile->ReadBool(tripby_idPlayer);
+	savefile->ReadBool(tripby_idAI);
+	savefile->ReadBool(tripby_idMoveable);
+	savefile->ReadBool(tripby_idItem);
+	savefile->ReadBool(tripby_idActor);
+	savefile->ReadBool(tripby_idProjectile);
 }
 
 /*
@@ -984,7 +1092,21 @@ idTrigger_Hurt::Spawn
 void idTrigger_Hurt::Spawn( void ) {
 	spawnArgs.GetBool( "on", "1", on );
 	spawnArgs.GetFloat( "delay", "1.0", delay );
-	nextTime = gameLocal.time;
+// HEXEN : Zeroth
+	for (int i=0; i<nextTime.Num(); i++) {
+		nextTime[i].SetFloat("time", gameLocal.time);
+	}
+
+// HEXEN : Zeroth - for limit entity types
+	spawnArgs.GetBool( "dontTripby_LocalPlayer", "0", dontTripby_LocalPlayer);
+	spawnArgs.GetBool( "limitEntityType", "0", limitEntityType);
+	spawnArgs.GetBool( "tripby_idPlayer", "0", tripby_idPlayer);
+	spawnArgs.GetBool( "tripby_idAI", "0", tripby_idAI);
+	spawnArgs.GetBool( "tripby_idMoveable", "0", tripby_idMoveable);
+	spawnArgs.GetBool( "tripby_idItem", "0", tripby_idItem);
+	spawnArgs.GetBool( "tripby_idActor", "0", tripby_idActor);
+	spawnArgs.GetBool( "tripby_idProjectile", "0", tripby_idProjectile);
+
 	Enable();
 }
 
@@ -995,15 +1117,56 @@ idTrigger_Hurt::Event_Touch
 */
 void idTrigger_Hurt::Event_Touch( idEntity *other, trace_t *trace ) {
 	const char *damage;
+	int i;
+	idStr name;
+	bool located;
 
-	if ( on && other && gameLocal.time >= nextTime ) {
+	if ( on && other ) {
+// HEXEN : Zeroth
+		if (limitEntityType) {
+			if ( ( !tripby_idPlayer && other->IsType( idPlayer::Type ) ) ||
+				( !tripby_idAI && other->IsType( idAI::Type ) ) ||
+				( !tripby_idActor && other->IsType( idActor::Type ) ) ||
+				( !tripby_idProjectile && other->IsType( idProjectile::Type ) ) ||
+				( !tripby_idItem && other->IsType( idItem::Type ) ) ||
+				( !tripby_idMoveable && other->IsType( idMoveable::Type ) ) ) {
+				return;
+			}
+		}
+
+		if ( dontTripby_LocalPlayer && other->IsType( idPlayer::Type ) && gameLocal.GetLocalPlayer() == ( static_cast<idPlayer *>( other ) ) ) {
+			return;
+		}
+
+		// delay time based on individual entites
+		if ( delay > 0 ) {
+			name = other->GetName();
+			located=false;
+			for (i=0; i < nextTime.Num(); i++) {
+				if ( nextTime[i].GetString( "name" ) == name ) {
+					if ( nextTime[i].GetFloat( "time" ) > gameLocal.time ) {
+						return;
+					} else {
+						nextTime[i].SetFloat( "time", gameLocal.time + SEC2MS( delay ));
+						located = true;
+						break;
+					}
+				}
+			}
+
+			if ( !located ) {
+				nextTime.Append( idDict() );
+				nextTime[nextTime.Num()-1].Set("name", name);
+				nextTime[nextTime.Num()-1].SetFloat("time", gameLocal.time);
+			}
+		}
+
 		damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
-		other->Damage( NULL, NULL, vec3_origin, damage, 1.0f, INVALID_JOINT );
+		// HEXEN : Zeroth: added the static casts
+		other->Damage( static_cast< idEntity* >( this ), static_cast< idEntity* >( this ), vec3_origin, damage, 1.0f, INVALID_JOINT, trace->c.point );
 
 		ActivateTargets( other );
 		CallScript();
-
-		nextTime = gameLocal.time + SEC2MS( delay );
 	}
 }
 
@@ -1014,6 +1177,7 @@ idTrigger_Hurt::Event_Toggle
 */
 void idTrigger_Hurt::Event_Toggle( idEntity *activator ) {
 	on = !on;
+	gameLocal.SetPersistentTrigger( "hurt_toggle", name.c_str(), on );
 }
 
 
@@ -1068,6 +1232,28 @@ idTrigger_Touch::idTrigger_Touch
 */
 idTrigger_Touch::idTrigger_Touch( void ) {
 	clipModel = NULL;
+// HEXEN : Zeroth
+	nextTime.Clear();
+	onEntrance=false;
+	touchingEntities.Clear();
+	flagEntities.Clear();
+	resistTimeEntities.Clear();
+
+// HEXEN : Zeroth - for limit entity types
+	dontTripby_LocalPlayer=false;
+	limitEntityType=false;
+	tripby_idPlayer=false;
+	tripby_idAI=false;
+	tripby_idMoveable=false;
+	tripby_idItem=false;
+	tripby_idActor=false;
+	tripby_idProjectile=false;
+
+// HEXEN : Zeroth - for trigger_hurtmulti
+	hurtmulti=false;
+
+// HEXEN : Zeroth - primarily for trigger_hurtmulti
+	delay=0;
 }
 
 /*
@@ -1085,6 +1271,30 @@ void idTrigger_Touch::Spawn( void ) {
 	if ( spawnArgs.GetBool( "start_on" ) ) {
 		BecomeActive( TH_THINK );
 	}
+
+// HEXEN : Zeroth - for delay
+	spawnArgs.GetFloat( "delay", "0.0", delay );
+	for (int i=0; i<nextTime.Num(); i++) {
+		nextTime[i].SetFloat("time", gameLocal.time);
+	}
+
+// HEXEN : Zeroth - for trigger_enter
+	spawnArgs.GetBool( "onEnter", "0", onEntrance);
+
+// HEXEN : Zeroth - for damage_multi
+	spawnArgs.GetBool( "hurtmulti", "0", hurtmulti);
+
+// HEXEN : Zeroth - for limit entity types
+	spawnArgs.GetBool( "dontTripby_LocalPlayer", "0", dontTripby_LocalPlayer);
+	spawnArgs.GetBool( "limitEntityType", "0", limitEntityType);
+	spawnArgs.GetBool( "tripby_idPlayer", "0", tripby_idPlayer);
+	spawnArgs.GetBool( "tripby_idAI", "0", tripby_idAI);
+	spawnArgs.GetBool( "tripby_idMoveable", "0", tripby_idMoveable);
+	spawnArgs.GetBool( "tripby_idItem", "0", tripby_idItem);
+	spawnArgs.GetBool( "tripby_idActor", "0", tripby_idActor);
+	spawnArgs.GetBool( "tripby_idProjectile", "0", tripby_idProjectile);
+
+
 }
 
 /*
@@ -1094,6 +1304,32 @@ idTrigger_Touch::Save
 */
 void idTrigger_Touch::Save( idSaveGame *savefile ) {
 	savefile->WriteClipModel( clipModel );
+
+// HEXEN : Zeroth
+	savefile->WriteBool(onEntrance);
+	savefile->WriteBool(limitEntityType);
+	savefile->WriteBool(dontTripby_LocalPlayer);
+	savefile->WriteBool(tripby_idPlayer);
+	savefile->WriteBool(tripby_idAI);
+	savefile->WriteBool(tripby_idMoveable);
+	savefile->WriteBool(tripby_idItem);
+	savefile->WriteBool(tripby_idActor);
+	savefile->WriteBool(tripby_idProjectile);
+	savefile->WriteBool( hurtmulti );
+	savefile->WriteFloat( delay );
+
+	savefile->WriteInt(touchingEntities.Num());
+	for (int i=0; i<touchingEntities.Num(); i++) {
+		savefile->WriteString(touchingEntities[i]);
+		savefile->WriteBool(flagEntities[i]);
+		savefile->WriteInt(resistTimeEntities[i]);
+	}
+
+	savefile->WriteInt(nextTime.Num());
+	for (int i=0; i<nextTime.Num(); i++) {
+		savefile->WriteString( nextTime[i].GetString("name") );
+		savefile->WriteFloat( nextTime[i].GetFloat("time") );
+	}
 }
 
 /*
@@ -1103,6 +1339,45 @@ idTrigger_Touch::Restore
 */
 void idTrigger_Touch::Restore( idRestoreGame *savefile ) {
 	savefile->ReadClipModel( clipModel );
+
+// HEXEN : Zeroth
+	savefile->ReadBool(onEntrance);
+	savefile->ReadBool(limitEntityType);
+	savefile->ReadBool(dontTripby_LocalPlayer);
+	savefile->ReadBool(tripby_idPlayer);
+	savefile->ReadBool(tripby_idAI);
+	savefile->ReadBool(tripby_idMoveable);
+	savefile->ReadBool(tripby_idItem);
+	savefile->ReadBool(tripby_idActor);
+	savefile->ReadBool(tripby_idProjectile);
+	savefile->ReadBool( hurtmulti );
+	savefile->ReadFloat( delay );
+
+	bool bol;
+	int num;
+	idStr str;
+	int tim;
+	savefile->ReadInt(num);
+	for (int i=0; i<num; i++) {
+		savefile->ReadString(str);
+		touchingEntities.Append(str);
+		savefile->ReadBool(bol);
+		flagEntities.Append(bol);
+		savefile->ReadInt(tim);
+		resistTimeEntities.Append(tim);
+	}
+	int c;
+	float f;
+	idStr s;
+	savefile->ReadInt( c );
+	for (int i=0; i<c; i++) {
+		savefile->ReadString( s );
+		savefile->ReadFloat( f );
+		nextTime.Append( idDict() );
+		nextTime[i].Set("name", s);
+		nextTime[i].SetFloat("time", f);
+	}
+	idStr g;
 }
 
 /*
@@ -1110,13 +1385,44 @@ void idTrigger_Touch::Restore( idRestoreGame *savefile ) {
 idTrigger_Touch::TouchEntities
 ================
 */
-void idTrigger_Touch::TouchEntities( void ) {
-	int numClipModels, i;
+void idTrigger_Touch::TouchEntities( void ) { //Z.TODO: this is getting messy, maybe split it into separate entities?
+	int numClipModels, t, i, c;
 	idBounds bounds;
 	idClipModel *cm, *clipModelList[ MAX_GENTITIES ];
 
-	if ( clipModel == NULL || scriptFunction == NULL ) {
+// HEXEN : Zeroth - for trigger_hurtmulti
+	const char *damage;
+	idStr name;
+	bool dontTrigger = true; // DG: initializing this so ensure it has a deterministic value
+
+// HEXEN : Zeroth - for limit entity type
+	idEntity	*entity=NULL;
+	idVec3		cmOrigin;
+	idMat3		cmAxis;
+	cmHandle_t	cmHandle;
+	idVec3		myOrigin;
+	idMat3		myAxis;
+
+	if ( clipModel == NULL ) {
 		return;
+	}
+
+// HEXEN : Zeroth - for trigger_enter
+	if ( onEntrance ) {
+		for ( c=0; c<touchingEntities.Num(); c++ ) {
+			entity = gameLocal.FindEntity(touchingEntities[c].c_str());
+	// remove entities from list which are no longer touching or no longer exist
+			if (!flagEntities[c] || !entity ) {
+				touchingEntities.RemoveIndex(c);
+				touchingEntities.Condense();
+				flagEntities.RemoveIndex(c);
+				flagEntities.Condense();
+				c--;
+			} else {
+	// flag all entities as NOT touching, test if they are during the clip tests
+				flagEntities[c] = false;
+			}
+		}
 	}
 
 	bounds.FromTransformedBounds( clipModel->GetBounds(), clipModel->GetOrigin(), clipModel->GetAxis() );
@@ -1124,27 +1430,101 @@ void idTrigger_Touch::TouchEntities( void ) {
 
 	for ( i = 0; i < numClipModels; i++ ) {
 		cm = clipModelList[ i ];
-
 		if ( !cm->IsTraceModel() ) {
 			continue;
 		}
 
-		idEntity *entity = cm->GetEntity();
-
+		entity = clipModelList[ i ]->GetEntity();
 		if ( !entity ) {
 			continue;
 		}
 
-		if ( !gameLocal.clip.ContentsModel( cm->GetOrigin(), cm, cm->GetAxis(), -1,
-									clipModel->Handle(), clipModel->GetOrigin(), clipModel->GetAxis() ) ) {
+		cmOrigin = cm->GetOrigin();
+		cmAxis = cm->GetAxis();
+		cmHandle = clipModel->Handle();
+		myOrigin = clipModel->GetOrigin();
+		myAxis =  clipModel->GetAxis();
+
+		if ( !gameLocal.clip.ContentsModel( cmOrigin, cm, cmAxis, -1, cmHandle, myOrigin, myAxis ) ) {
 			continue;
+		}
+
+
+// HEXEN : Zeroth - limit entity types
+		if (limitEntityType) {
+			if ( ( !tripby_idPlayer && entity->IsType( idPlayer::Type ) ) ||
+				( !tripby_idAI && entity->IsType( idAI::Type ) ) ||
+				( !tripby_idActor && entity->IsType( idActor::Type ) ) ||
+				( !tripby_idProjectile && entity->IsType( idProjectile::Type ) ) ||
+				( !tripby_idItem && entity->IsType( idItem::Type ) ) ||
+				( !tripby_idMoveable && entity->IsType( idMoveable::Type ) ) ) {
+				continue;
+			}
+		}
+
+		if ( dontTripby_LocalPlayer && entity->IsType( idPlayer::Type ) && gameLocal.GetLocalPlayer() == ( static_cast<idPlayer *>( entity ) ) ) {
+			return;
+		}
+
+// HEXEN : Zeroth - for trigger_enter: if the entity is still touching, dont trigger
+		if ( onEntrance ) {
+			dontTrigger=false;
+			for ( c=0; c<touchingEntities.Num(); c++ ) {
+				if ( touchingEntities[c] == entity->GetName() ) {
+					flagEntities[c] = true; // flag it as touching
+					dontTrigger = true;
+					break;
+				}
+			}
+
+// HEXEN : Zeroth - for trigger_enter: if the entity was not in our list, add it. else don't trigger.
+			if ( !dontTrigger ) {
+				touchingEntities.Append(idStr(entity->GetName()));
+				flagEntities.Append(true);
+			} else {
+				continue;
+			}
+		}
+
+// HEXEN : Zeroth - delay time based on individual entites
+		if ( delay > 0 ) {
+			name = entity->GetName();
+			for (t=0; t < nextTime.Num(); t++) {
+				if ( nextTime[t].GetString( "name" ) == name ) {
+					if ( gameLocal.time < nextTime[t].GetFloat( "time" )  ) {
+						dontTrigger = true;
+						break;
+					} else {
+						dontTrigger = false;
+						nextTime[t].SetFloat( "time", gameLocal.time + SEC2MS( delay ));
+						break;
+					}
+				}
+			}
+
+			// if entity wasn't found in the list, add it
+			if ( t == nextTime.Num() ) {
+				nextTime.Append( idDict() );
+				nextTime[t].Set("name", entity->GetName() );
+				nextTime[t].SetFloat("time", gameLocal.time );
+			} else if ( dontTrigger ) {
+				continue;
+			}
+		}
+
+// HEXEN : Zeroth - for trigger_hurtmulti
+		if ( hurtmulti ) {
+			damage = spawnArgs.GetString( "def_damage", "damage_painTrigger" );
+			entity->Damage( static_cast< idEntity* >( this ), static_cast< idEntity* >( this ), vec3_origin, damage, 1.0f, INVALID_JOINT, idVec3(0,0,0) );
 		}
 
 		ActivateTargets( entity );
 
-		idThread *thread = new idThread();
-		thread->CallFunction( entity, scriptFunction, false );
-		thread->DelayedStart( 0 );
+		if (scriptFunction != NULL) {
+			idThread *thread = new idThread();
+			thread->CallFunction( entity, scriptFunction, false );
+			thread->DelayedStart( 0 );
+		}
 	}
 }
 
@@ -1180,6 +1560,7 @@ idTrigger_Touch::Enable
 */
 void idTrigger_Touch::Enable( void ) {
 	BecomeActive( TH_THINK );
+	gameLocal.SetPersistentTrigger( "touch", name.c_str(), true );
 }
 
 /*
@@ -1189,4 +1570,5 @@ idTrigger_Touch::Disable
 */
 void idTrigger_Touch::Disable( void ) {
 	BecomeInactive( TH_THINK );
+	gameLocal.SetPersistentTrigger( "touch", name.c_str(), false );
 }

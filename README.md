@@ -425,3 +425,6 @@ There are two ways to make a GUI use this:
    see https://github.com/dhewm/dhewm3-sdk/commit/5070b8c7ec6f3a8ba1cb4123de37732f9cd9437f for an example.
    
    Also note that you can *not* generally inject variables into GUIs like that from C++, dhewm3 has special code to make the `"scaleto43"` case work.
+
+Since **1.5.5** there are **additional GUI improvements** (you can create aspect-ratio-independent
+fullscreen GUIs), see https://github.com/dhewm/dhewm3/blob/master/docs/GUIs.md

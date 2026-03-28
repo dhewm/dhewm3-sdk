@@ -358,8 +358,6 @@ void Cmd_ClearPLI_f( const idCmdArgs &args ) {
 
 // HEXEN : Zeroth - set up video mode
 void Cmd_VidRestart_f( const idCmdArgs &args ) {
-	bool doit=false;
-
 	// DG: initialized these variables to appease the compiler
 	int ratio = 0;
 	int width = 0;
@@ -367,9 +365,8 @@ void Cmd_VidRestart_f( const idCmdArgs &args ) {
 
 	int eoc_cvarmode = r_vmode.GetInteger();
 
-	idPlayer *localplayer = gameLocal.GetLocalPlayer();
-
 	/// if you click too fast, doom3 doesnt register that you've unclicked when it resets video. let's try to find the best way to go about this...
+	//idPlayer *localplayer = gameLocal.GetLocalPlayer();
 	//float wait=gameLocal.time+500;
 	//while ( gameLocal.time < wait ) {
 	//	sys.wait(

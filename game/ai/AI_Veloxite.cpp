@@ -196,8 +196,6 @@ float idAI_Veloxite::checkSurfaces() {
 }
 
 bool idAI_Veloxite::checkWall() {
-	int asd=0;
-
 	if (( (float) gameLocal.time / 1000 ) < nextWallCheck) {
 		return false;
 	}

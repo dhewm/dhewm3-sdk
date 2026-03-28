@@ -2689,7 +2689,7 @@ void idLiquid::TouchEntities( void ) { //Z.TODO: this is getting messy, maybe sp
 			float b = spawnArgs.GetFloat( "tinyObjectMass" );
 			float c = spawnArgs.GetFloat( "smallObjectMass" );
 			float d = spawnArgs.GetFloat( "bigObjectMass" );
-			float e = spawnArgs.GetFloat( "largeObjectMass" );
+			// float e = spawnArgs.GetFloat( "largeObjectMass" );
 
 			if (m <= a ) {
 				maxPrt = 0;

@@ -1966,14 +1966,12 @@ void idThread::Event_GetEntityNumFromName( const idStr entName ) {
 
 void idThread::Event_TraceSurfaceNormal( const idVec3 &A, const idVec3 &B, const float clipMask, const idEntity *pass ) {
         trace_t		trace;
-        idEntity	*ent;
 
         gameLocal.clip.TracePoint( trace, A, B, MASK_PLAYERSOLID, pass );
 
         // if near a surface
         if ( trace.fraction < 1.0f ) {
-                idVec3 bub=trace.c.normal;
-                ent = gameLocal.GetTraceEntity(trace);
+                gameLocal.GetTraceEntity(trace);
 
                 idThread::ReturnVector( trace.c.normal );
         }else{

@@ -809,6 +809,7 @@ void idRestoreGame::CreateObjects( void ) {
 	memset( objects.Ptr(), 0, sizeof( objects[ 0 ] ) * objects.Num() );
 
 	for( i = 1; i < objects.Num(); i++ ) {
+		
 		ReadString( classname );
 		type = idClass::GetClass( classname );
 		if ( !type ) {
@@ -837,11 +838,16 @@ void idRestoreGame::RestoreObjects( void ) {
 
 	// restore all the objects
 	for( i = 1; i < objects.Num(); i++ ) {
+		
+		//MessageBox( NULL, objects[i]->GetClassname(), objects[i]->GetClassname(), 1);
+		//MessageBox( NULL, static_cast<idEntity *>(objects[ i ])->GetName(), "ah", MB_OK );
 		CallRestore_r( objects[ i ]->GetType(), objects[ i ] );
 	}
 
 	// regenerate render entities and render lights because are not saved
 	for( i = 1; i < objects.Num(); i++ ) {
+		
+
 		if ( objects[ i ]->IsType( idEntity::Type ) ) {
 			idEntity *ent = static_cast<idEntity *>( objects[ i ] );
 			ent->UpdateVisuals();

@@ -94,7 +94,7 @@ public:	// common physics interface
 	void					LinkClip( void );
 
 	bool					EvaluateContacts( void );
-
+	
 protected:
 	idClipModel *			clipModel;			// clip model used for collision detection
 	idMat3					clipModelAxis;		// axis of clip model aligned with gravity direction
@@ -110,6 +110,12 @@ protected:
 
 	// results of last evaluate
 	idEntityPtr<idEntity>	groundEntityPtr;
+	
+// HEXEN : Zeroth
+protected:
+	bool					IsStuckToSurface;
+	idVec3					SurfaceNormal;
+
 };
 
 #endif /* !__PHYSICS_ACTOR_H__ */

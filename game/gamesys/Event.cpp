@@ -686,6 +686,8 @@ void idEvent::Restore( idRestoreGame *savefile ) {
 	savefile->ReadInt( num );
 
 	for ( i = 0; i < num; i++ ) {
+		
+
 		if ( FreeEvents.IsListEmpty() ) {
 			gameLocal.Error( "idEvent::Restore : No more free events" );
 		}
@@ -722,6 +724,7 @@ void idEvent::Restore( idRestoreGame *savefile ) {
 			format = event->eventdef->GetArgFormat();
 			assert( format );
 			for ( j = 0, size = 0; j < event->eventdef->GetNumArgs(); ++j) {
+				
 				dataPtr = &event->data[ event->eventdef->GetArgOffset( j ) ];
 				switch( format[ j ] ) {
 					case D_EVENT_FLOAT :

@@ -9,6 +9,7 @@ eoc
 fitz
 grimm
 hardcorps
+librecoop
 perfected
 realgibs
 rivensin

@@ -48,6 +48,9 @@ set(src_d3xp_mod
 # LIBC_MALLOC		-DUSE_LIBC_MALLOC=0
 # ID_NOLANADDRESS	-DID_NOLANADDRESS
 
+# the mod DLLs should still be C++98-compatible
+set (CMAKE_CXX_STANDARD 98)
+
 # fallback for cmake versions without add_compile_options
 if(NOT COMMAND add_compile_options)
 	function(add_compile_options)

@@ -44,7 +44,7 @@ public:
 
 						idStaticList();
 						idStaticList( const idStaticList<type,size> &other );
-						~idStaticList<type,size>( void );
+						~idStaticList( void );
 
 	void				Clear( void );										// marks the list as empty.  does not deallocate or intialize data.
 	int					Num( void ) const;									// returns number of elements in list

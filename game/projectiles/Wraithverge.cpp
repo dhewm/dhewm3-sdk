@@ -77,7 +77,7 @@ void idProj_Wraith::Launch( const idVec3 &start, const idVec3 &dir, const idVec3
 }
 
 void idProj_Wraith::SpawnSubWraiths( int num ) {
-	idProj_HomingWraith	*newWraith = NULL;
+	//idProj_HomingWraith	*newWraith = NULL;
 	idEntity	*ent = NULL;
 	idVec3		rnd;
 	idVec3		dir2;
@@ -124,7 +124,7 @@ void idProj_Wraith::SpawnSubWraiths( int num ) {
 		if ( !ent ) {
 			return;
 		}
-		newWraith = static_cast< idProj_HomingWraith* >( ent );
+		//newWraith = static_cast< idProj_HomingWraith* >( ent );
 	}
 }
 

@@ -25,9 +25,6 @@ void idEntity_LeafEmitter::Spawn() {
 
 void idEntity_LeafEmitter::Think() {
 	if ( ( gameLocal.time / 1000 ) > nextLeaf) {
-
-		float i = gameLocal.random.RandomFloat() * 4;
-
 		if (gameLocal.random.RandomInt(1) > 1) {
 			leaf.Set("classname", "object_leaf_lg");
 		} else {

@@ -3575,8 +3575,6 @@ bool idPlayer::GivePowerUp( int powerup, int time ) {
 		}
 		inventory.GivePowerUp( this, powerup, time );
 
-		const idDeclEntityDef *def = NULL;
-
 		if ( hud ) {
 			hud->HandleNamedEvent( "itemPickup" );
 		}
